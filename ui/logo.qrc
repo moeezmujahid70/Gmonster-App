@@ -1,0 +1,25 @@
+<RCC>
+  <qresource prefix="icons">
+  <file>../icons/attachment.svg</file>
+  <file>../icons/attachment_hv.svg</file>
+  <file>../icons/back.svg</file>
+  <file>../icons/back_hv.svg</file>
+  <file>../icons/eye.svg</file>
+  <file>../icons/eye_at.svg</file>
+  <file>../icons/file.svg</file>
+  <file>../icons/forward.svg</file>
+  <file>../icons/forward_hv.svg</file>
+  <file>../icons/image.svg</file>
+  <file>../icons/image_hv.svg</file>
+  <file>../icons/messagebox.svg</file>
+  <file>../icons/messagebox_hv.svg</file>
+  <file>../icons/pdf.svg</file>
+  <file>../icons/pdf_hv.svg</file>
+  <file>../icons/trash.svg</file>
+  <file>../icons/trash_hv.svg</file>
+</qresource>
+
+  <qresource prefix="logo">
+    <file alias="logo.png">software logo.png</file>
+  </qresource>
+</RCC>

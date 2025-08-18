@@ -1,0 +1,52 @@
+{
+    "config": {
+        "limit_of_thread": 150,
+        "login_email": "ss@gmail.com",
+        "subject": "Test subject s",
+        "body": "Test body a"
+    },
+    "settings": {
+        "1": {
+            "number_of_emails": 1,
+            "delay_start": 200,
+            "delay_end": 400,
+            "wait_period": 22
+        },
+        "2": {
+            "number_of_emails": 3,
+            "delay_start": 300,
+            "delay_end": 500,
+            "wait_period": 18
+        },
+        "3": {
+            "number_of_emails": 6,
+            "delay_start": 500,
+            "delay_end": 1000,
+            "wait_period": 8
+        },
+        "4": {
+            "number_of_emails": 9,
+            "delay_start": 500,
+            "delay_end": 1000,
+            "wait_period": 4
+        },
+        "5": {
+            "number_of_emails": 14,
+            "delay_start": 2000,
+            "delay_end": 2800,
+            "wait_period": 2
+        },
+        "6": {
+            "number_of_emails": 19,
+            "delay_start": 2000,
+            "delay_end": 2200,
+            "wait_period": 2
+        },
+        "7": {
+            "number_of_emails": 24,
+            "delay_start": 1550,
+            "delay_end": 1700,
+            "wait_period": 24
+        }
+    }
+}
