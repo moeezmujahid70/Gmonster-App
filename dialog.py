@@ -318,15 +318,11 @@ else:
     myMC = myMainClass()
     app.exec_()
     print("Exit")
-    
-    import datetime
-    
-    if var.signed_in and datetime.datetime.now() <= datetime.datetime(2025, 8, 15):
-        try:
-            import main
-        except Exception as e:
-            alert(
-                text="Error alert at dialog.py : {}".format(e),
-                title="Alert",
-                button="OK",
-            )
+    try:
+        import main
+    except Exception as e:
+        alert(
+            text="Error alert at dialog.py : {}".format(e),
+            title="Alert",
+            button="OK",
+        )
