@@ -9,7 +9,7 @@
 1. Clone repository
 
 ```bash
-git clone https://github.com/yourusername/Gmonster.git
+git clone https://github.com/lildoktor/Gmonster.git
 cd Gmonster
 ```
 
