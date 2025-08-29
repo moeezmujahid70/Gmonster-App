@@ -19,10 +19,17 @@ cd Gmonster
 python -m venv env
 ```
 
-3. Activate environment (if you created virutal enviroment)
+3. Activate environment (if you have created virtual environment)
 
 ```bash
+# CMD/PowerShell:
 env\Scripts\activate
+
+# zsh/bash in windows:
+source env/Scripts/activate 
+
+# Linux/MacOs:
+source env/bin/activate
 ```
 
 4. Install requirements
