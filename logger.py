@@ -11,6 +11,7 @@ logFormatter = logging.Formatter(
 )
 logger = logging.getLogger()
 log_file_path = os.path.join(os.getcwd(), base_dir, "logger.log")
+os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
 fileHandler = TimedRotatingFileHandler(
     log_file_path, when="midnight", interval=1, backupCount=7, encoding="utf-8"
 )
