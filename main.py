@@ -2359,7 +2359,6 @@ if __name__ == "__main__":
 else:
     app = QtWidgets.QApplication(sys.argv)
     mainWindow = MainWindow()
-    mainWindow2 = MainWindow()
     set_icon(mainWindow)
     mainWindow.setWindowFlags(
         mainWindow.windowFlags()
