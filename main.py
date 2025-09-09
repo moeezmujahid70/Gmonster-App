@@ -561,7 +561,7 @@ class MyMainClass:
         def verify_single_email_thread(email, email_index, proxy_config):
             nonlocal completed_count
             
-            url = "https://clownfish-app-w7jr9.ondigitalocean.app/v0/check_email"
+            url = "http://3.93.77.2/v0/check_email"
             headers = {"Content-Type": "application/json"}
             data = {
                 "to_email": email,
