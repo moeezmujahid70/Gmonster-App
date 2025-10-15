@@ -131,16 +131,16 @@ background: transparent;</string>
             <number>0</number>
            </property>
            <property name="leftMargin">
-            <number>9</number>
+            <number>11</number>
            </property>
            <property name="topMargin">
             <number>0</number>
            </property>
            <property name="rightMargin">
-            <number>9</number>
+            <number>11</number>
            </property>
            <property name="bottomMargin">
-            <number>9</number>
+            <number>11</number>
            </property>
            <item>
             <widget class="QListWidget" name="listWidget">
@@ -273,7 +273,7 @@ QScrollBar:vertical {
               <number>0</number>
              </property>
              <property name="leftMargin">
-              <number>9</number>
+              <number>11</number>
              </property>
              <property name="topMargin">
               <number>10</number>
@@ -282,7 +282,7 @@ QScrollBar:vertical {
               <number>0</number>
              </property>
              <property name="bottomMargin">
-              <number>9</number>
+              <number>11</number>
              </property>
              <item>
               <widget class="QLabel" name="label_unread_count">
@@ -371,20 +371,20 @@ QPushButton:pressed {
     }</string>
            </property>
            <property name="text">
-            <string>Fire Webhook</string>
+            <string>Fire webhook</string>
            </property>
           </widget>
          </item>
          <item>
           <layout class="QVBoxLayout" name="verticalLayout_5" stretch="2,1,1">
            <property name="leftMargin">
-            <number>9</number>
+            <number>11</number>
            </property>
            <property name="topMargin">
-            <number>9</number>
+            <number>11</number>
            </property>
            <property name="rightMargin">
-            <number>9</number>
+            <number>11</number>
            </property>
            <property name="bottomMargin">
             <number>0</number>
@@ -392,13 +392,13 @@ QPushButton:pressed {
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout">
              <property name="leftMargin">
-              <number>9</number>
+              <number>11</number>
              </property>
              <property name="topMargin">
-              <number>9</number>
+              <number>11</number>
              </property>
              <property name="rightMargin">
-              <number>9</number>
+              <number>11</number>
              </property>
              <property name="bottomMargin">
               <number>0</number>
@@ -456,7 +456,7 @@ QCheckBox {
             }</string>
                </property>
                <property name="text">
-                <string>Select All</string>
+                <string>Select all</string>
                </property>
               </widget>
              </item>
@@ -497,13 +497,13 @@ QProgressBar::chunk {
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout_2">
              <property name="leftMargin">
-              <number>9</number>
+              <number>11</number>
              </property>
              <property name="topMargin">
-              <number>9</number>
+              <number>11</number>
              </property>
              <property name="rightMargin">
-              <number>9</number>
+              <number>11</number>
              </property>
              <property name="bottomMargin">
               <number>0</number>
@@ -1455,13 +1455,13 @@ QPushButton:pressed {
                 <number>0</number>
                </property>
                <property name="topMargin">
-                <number>9</number>
+                <number>11</number>
                </property>
                <property name="rightMargin">
                 <number>100</number>
                </property>
                <property name="bottomMargin">
-                <number>9</number>
+                <number>11</number>
                </property>
                <item>
                 <widget class="QGroupBox" name="groupBox_12">
@@ -1870,7 +1870,7 @@ QScrollBar:vertical {
                        <x>0</x>
                        <y>0</y>
                        <width>80</width>
-                       <height>150</height>
+                       <height>30</height>
                       </rect>
                      </property>
                      <layout class="QVBoxLayout" name="verticalLayout_28">
@@ -1948,13 +1948,13 @@ p, li { white-space: pre-wrap; }
                 <number>20</number>
                </property>
                <property name="topMargin">
-                <number>9</number>
+                <number>11</number>
                </property>
                <property name="rightMargin">
                 <number>20</number>
                </property>
                <property name="bottomMargin">
-                <number>9</number>
+                <number>11</number>
                </property>
                <item>
                 <widget class="QPushButton" name="pushButton_forward">
@@ -2130,13 +2130,13 @@ QPushButton:pressed {
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_9">
            <property name="leftMargin">
-            <number>9</number>
+            <number>11</number>
            </property>
            <property name="topMargin">
-            <number>9</number>
+            <number>11</number>
            </property>
            <property name="rightMargin">
-            <number>9</number>
+            <number>11</number>
            </property>
            <property name="bottomMargin">
             <number>9</number>
@@ -2173,16 +2173,16 @@ QPushButton:pressed {
                <widget class="QFrame" name="frame_11">
                 <layout class="QGridLayout" name="gridLayout_2">
                  <property name="leftMargin">
-                  <number>9</number>
+                  <number>11</number>
                  </property>
                  <property name="topMargin">
-                  <number>9</number>
+                  <number>11</number>
                  </property>
                  <property name="rightMargin">
                   <number>0</number>
                  </property>
                  <property name="bottomMargin">
-                  <number>9</number>
+                  <number>11</number>
                  </property>
                  <item row="1" column="0">
                   <widget class="QLabel" name="label_3">
@@ -2205,7 +2205,7 @@ QPushButton:pressed {
 margin-left: 5px;</string>
                    </property>
                    <property name="text">
-                    <string>Number of Accounts</string>
+                    <string>Number of accounts</string>
                    </property>
                    <property name="alignment">
                     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -2264,7 +2264,7 @@ font-size: 20px;</string>
 margin-left: 5px;</string>
                    </property>
                    <property name="text">
-                    <string>Emails per Account</string>
+                    <string>Emails per account</string>
                    </property>
                    <property name="alignment">
                     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -2360,7 +2360,7 @@ font-size: 20px;</string>
                     <set>Qt::AlignCenter</set>
                    </property>
                    <property name="placeholderText">
-                    <string>Enter a Range</string>
+                    <string>Enter a range</string>
                    </property>
                   </widget>
                  </item>
@@ -2569,7 +2569,7 @@ QRadioButton {
             }</string>
                      </property>
                      <property name="text">
-                      <string>Plain Text</string>
+                      <string>Plain text</string>
                      </property>
                      <property name="checked">
                       <bool>true</bool>
@@ -2632,7 +2632,7 @@ QRadioButton {
             }</string>
                      </property>
                      <property name="text">
-                      <string>Html</string>
+                      <string>HTML</string>
                      </property>
                     </widget>
                    </item>
@@ -2739,7 +2739,7 @@ QCheckBox {
             }</string>
                 </property>
                 <property name="text">
-                 <string>Custom Hostname</string>
+                 <string>Custom hostname</string>
                 </property>
                </widget>
               </item>
@@ -2769,7 +2769,7 @@ QCheckBox {
             }</string>
                 </property>
                 <property name="text">
-                 <string>Enable Email Tracking</string>
+                 <string>Enable email tracking</string>
                 </property>
                </widget>
               </item>
@@ -2799,7 +2799,7 @@ QCheckBox {
             }</string>
                 </property>
                 <property name="text">
-                 <string>Enable Webhook</string>
+                 <string>Enable webhook</string>
                 </property>
                </widget>
               </item>
@@ -2829,7 +2829,7 @@ QCheckBox {
             }</string>
                 </property>
                 <property name="text">
-                 <string>Remove Targets</string>
+                 <string>Remove targets</string>
                 </property>
                </widget>
               </item>
@@ -2859,7 +2859,7 @@ QCheckBox {
             }</string>
                 </property>
                 <property name="text">
-                 <string>Check for Blocks</string>
+                 <string>Check for blocks</string>
                 </property>
                </widget>
               </item>
@@ -2889,7 +2889,7 @@ QCheckBox {
             }</string>
                 </property>
                 <property name="text">
-                 <string>Mark Sent Airtable</string>
+                 <string>Mark sent Airtable</string>
                 </property>
                </widget>
               </item>
@@ -3146,16 +3146,16 @@ QPushButton:pressed {
                <item>
                 <layout class="QVBoxLayout" name="verticalLayout_10">
                  <property name="leftMargin">
-                  <number>9</number>
+                  <number>11</number>
                  </property>
                  <property name="topMargin">
-                  <number>9</number>
+                  <number>11</number>
                  </property>
                  <property name="rightMargin">
                   <number>0</number>
                  </property>
                  <property name="bottomMargin">
-                  <number>9</number>
+                  <number>11</number>
                  </property>
                  <item>
                   <widget class="QLineEdit" name="lineEdit_subject">
@@ -3314,7 +3314,7 @@ QCheckBox {
             }</string>
                </property>
                <property name="text">
-                <string>AI Assistant</string>
+                <string>AI assistant</string>
                </property>
               </widget>
              </item>
@@ -3455,7 +3455,7 @@ QScrollBar:vertical {
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>553</width>
+                   <width>60</width>
                    <height>40</height>
                   </rect>
                  </property>
@@ -3922,7 +3922,7 @@ QPushButton:pressed {
     }</string>
              </property>
              <property name="text">
-              <string>Email Verifier</string>
+              <string>Email verifier</string>
              </property>
             </widget>
            </item>
@@ -4191,7 +4191,7 @@ QScrollBar:vertical {
 padding-left: 15px;</string>
                </property>
                <property name="text">
-                <string>Follow-up Days</string>
+                <string>Follow-up days</string>
                </property>
                <property name="alignment">
                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -4276,7 +4276,7 @@ QCheckBox {
             }</string>
              </property>
              <property name="text">
-              <string>Follow-up Enabled</string>
+              <string>Follow-up enabled</string>
              </property>
             </widget>
            </item>
@@ -4569,16 +4569,16 @@ p, li { white-space: pre-wrap; }
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_20">
                <property name="leftMargin">
-                <number>9</number>
+                <number>11</number>
                </property>
                <property name="topMargin">
                 <number>0</number>
                </property>
                <property name="rightMargin">
-                <number>9</number>
+                <number>11</number>
                </property>
                <property name="bottomMargin">
-                <number>9</number>
+                <number>11</number>
                </property>
                <item>
                 <spacer name="spacerItem35">
@@ -4834,7 +4834,7 @@ QCheckBox {
             }</string>
              </property>
              <property name="text">
-              <string>Auto-reply Enabled</string>
+              <string>Auto-reply enabled</string>
              </property>
             </widget>
            </item>
@@ -5045,7 +5045,7 @@ QRadioButton {
             }</string>
                 </property>
                 <property name="text">
-                 <string>Canned Reply</string>
+                 <string>Canned reply</string>
                 </property>
                 <property name="checked">
                  <bool>true</bool>
@@ -5108,7 +5108,7 @@ QRadioButton {
             }</string>
                 </property>
                 <property name="text">
-                 <string>AI Reply</string>
+                 <string>AI reply</string>
                 </property>
                </widget>
               </item>
@@ -5363,16 +5363,16 @@ p, li { white-space: pre-wrap; }
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_32">
                <property name="leftMargin">
-                <number>9</number>
+                <number>11</number>
                </property>
                <property name="topMargin">
                 <number>0</number>
                </property>
                <property name="rightMargin">
-                <number>9</number>
+                <number>11</number>
                </property>
                <property name="bottomMargin">
-                <number>9</number>
+                <number>11</number>
                </property>
                <item>
                 <spacer name="spacerItem45">
@@ -5533,7 +5533,7 @@ QScrollBar:vertical {
            <property name="geometry">
             <rect>
              <x>0</x>
-             <y>-1300</y>
+             <y>0</y>
              <width>1091</width>
              <height>2100</height>
             </rect>
@@ -5646,7 +5646,7 @@ QPushButton:pressed {
     }</string>
                  </property>
                  <property name="text">
-                  <string>Download Track File</string>
+                  <string>Download track file</string>
                  </property>
                 </widget>
                </item>
@@ -5681,7 +5681,7 @@ QPushButton:pressed {
                   <string notr="true">margin-left: 5px;</string>
                  </property>
                  <property name="text">
-                  <string>Domain Name</string>
+                  <string>Domain name</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -5833,7 +5833,7 @@ QPushButton:pressed {
                   <string notr="true">margin-left: 5px;</string>
                  </property>
                  <property name="text">
-                  <string>Analytics Account</string>
+                  <string>Analytics account</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -5884,7 +5884,7 @@ QPushButton:pressed {
                   <string notr="true">margin-left: 5px;</string>
                  </property>
                  <property name="text">
-                  <string>Campaign Name</string>
+                  <string>Campaign name</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -6025,7 +6025,7 @@ QPushButton:pressed {
                   <string notr="true">margin-left: 5px;</string>
                  </property>
                  <property name="text">
-                  <string>Google Analytics API Key</string>
+                  <string>Google Analytics API key</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -6164,7 +6164,7 @@ QPushButton:pressed {
                   <string notr="true">margin-left: 5px;</string>
                  </property>
                  <property name="text">
-                  <string>Target Blacklist</string>
+                  <string>Target blacklist</string>
                  </property>
                 </widget>
                </item>
@@ -6199,7 +6199,7 @@ QPushButton:pressed {
                   <string notr="true">margin-left: 5px;</string>
                  </property>
                  <property name="text">
-                  <string>Webhook Interval</string>
+                  <string>Webhook interval</string>
                  </property>
                 </widget>
                </item>
@@ -6235,7 +6235,7 @@ QCheckBox {
             }</string>
                  </property>
                  <property name="text">
-                  <string>Auto Fire Responses Webhook  </string>
+                  <string>Auto fire responses webhook</string>
                  </property>
                 </widget>
                </item>
@@ -6277,7 +6277,7 @@ QCheckBox {
                   <string notr="true">margin-left: 5px;</string>
                  </property>
                  <property name="text">
-                  <string>Inbox Blacklist</string>
+                  <string>Inbox blacklist</string>
                  </property>
                 </widget>
                </item>
@@ -6381,7 +6381,7 @@ QCheckBox:checked {
 }</string>
                  </property>
                  <property name="text">
-                  <string>Responses Webhook Enabled</string>
+                  <string>Responses webhook enabled</string>
                  </property>
                 </widget>
                </item>
@@ -6612,7 +6612,7 @@ QCheckBox:checked {
                   <string notr="true">margin-left: 5px;</string>
                  </property>
                  <property name="text">
-                  <string>CC Emails</string>
+                  <string>CC emails</string>
                  </property>
                 </widget>
                </item>
@@ -6730,7 +6730,7 @@ QCheckBox {
             }</string>
                  </property>
                  <property name="text">
-                  <string>Enable Inbox Whitelist</string>
+                  <string>Enable inbox whitelist</string>
                  </property>
                 </widget>
                </item>
@@ -6752,7 +6752,7 @@ QCheckBox {
                   <string notr="true">margin-left: 5px;</string>
                  </property>
                  <property name="text">
-                  <string>Inbox Whitelist</string>
+                  <string>Inbox whitelist</string>
                  </property>
                 </widget>
                </item>
@@ -6789,7 +6789,7 @@ QCheckBox {
             }</string>
                  </property>
                  <property name="text">
-                  <string>Enable CC Emails</string>
+                  <string>Enable CC emails</string>
                  </property>
                 </widget>
                </item>
@@ -6955,7 +6955,7 @@ QCheckBox {
                   </font>
                  </property>
                  <property name="text">
-                  <string>Clear Cached</string>
+                  <string>Clear cached</string>
                  </property>
                 </widget>
                </item>
@@ -6989,7 +6989,7 @@ QCheckBox {
                   </font>
                  </property>
                  <property name="text">
-                  <string>Airtable Configration</string>
+                  <string>Airtable configuration</string>
                  </property>
                 </widget>
                </item>
@@ -7082,7 +7082,7 @@ QPushButton:pressed {
     }</string>
                  </property>
                  <property name="text">
-                  <string>Clear Cached Targets from DB</string>
+                  <string>Clear cached targets from DB</string>
                  </property>
                 </widget>
                </item>
@@ -7101,7 +7101,7 @@ QPushButton:pressed {
                   </font>
                  </property>
                  <property name="text">
-                  <string>API Key</string>
+                  <string>API key</string>
                  </property>
                 </widget>
                </item>
@@ -7228,7 +7228,7 @@ QPushButton:pressed {
     }</string>
                  </property>
                  <property name="text">
-                  <string>Load Target From Airtable</string>
+                  <string>Load target from Airtable</string>
                  </property>
                 </widget>
                </item>
@@ -7263,7 +7263,7 @@ QPushButton:pressed {
                   <string notr="true">margin-left: 5px;</string>
                  </property>
                  <property name="text">
-                  <string>Scheduled Campaign</string>
+                  <string>Scheduled campaign</string>
                  </property>
                 </widget>
                </item>
@@ -7313,7 +7313,7 @@ QPushButton:pressed {
                   <string notr="true">margin-left: 5px;</string>
                  </property>
                  <property name="text">
-                  <string>Table Name</string>
+                  <string>Table name</string>
                  </property>
                 </widget>
                </item>
@@ -7351,7 +7351,7 @@ QCheckBox {
             }</string>
                  </property>
                  <property name="text">
-                  <string>Mark Sent Airtable</string>
+                  <string>Mark sent Airtable</string>
                  </property>
                 </widget>
                </item>
@@ -7425,7 +7425,7 @@ QCheckBox {
             }</string>
                  </property>
                  <property name="text">
-                  <string>Continuous Loading</string>
+                  <string>Continuous loading</string>
                  </property>
                 </widget>
                </item>
@@ -7521,7 +7521,7 @@ QCheckBox {
             }</string>
                  </property>
                  <property name="text">
-                  <string>Use Desktop ID</string>
+                  <string>Use desktop ID</string>
                  </property>
                 </widget>
                </item>
@@ -7704,7 +7704,7 @@ QPushButton:pressed {
                   </font>
                  </property>
                  <property name="text">
-                  <string>OpenAI Key</string>
+                  <string>OpenAI key</string>
                  </property>
                 </widget>
                </item>
@@ -7775,7 +7775,7 @@ QCheckBox {
             }</string>
                  </property>
                  <property name="text">
-                  <string>Random Character Encoding</string>
+                  <string>Random character encoding</string>
                  </property>
                 </widget>
                </item>
@@ -7817,7 +7817,7 @@ QCheckBox {
                   <string notr="true">margin-left: 5px;</string>
                  </property>
                  <property name="text">
-                  <string>Open AI Key</string>
+                  <string>OpenAI key</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -7889,7 +7889,7 @@ QCheckBox {
             }</string>
                  </property>
                  <property name="text">
-                  <string>Proxy Enabled</string>
+                  <string>Proxy enabled</string>
                  </property>
                 </widget>
                </item>
