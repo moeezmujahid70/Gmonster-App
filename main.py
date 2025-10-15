@@ -2382,7 +2382,14 @@ else:
     from update_checker import update_checker
 
     myMC = MyMainClass()
+    
+    def signal_handler(signum, frame):
+        logger.info(f"Received signal {signum}, shutting down gracefully...")
+        var.exit_gracefully(signum, frame)
+        app.quit()
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
     app.exec_()
     logger.info("Exiting")
-    signal.signal(signal.SIGTERM, var.exit_gracefully)
     sys.exit()
