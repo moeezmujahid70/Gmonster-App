@@ -70,8 +70,13 @@ class TableModel(QtCore.QAbstractTableModel):
             self.beginInsertRows(QtCore.QModelIndex(), row_count, row_count)
             result, id = database.db_insert_row()
             if result:
-                self._data.loc[row_count] = [id] + \
-                    [""] * (self._data.shape[1] - 1)
+                # Create new row with empty strings
+                new_row = [id] + [""] * (self._data.shape[1] - 1)
+                # If STATUS column exists, set it to "not checked"
+                if "STATUS" in self._data.columns:
+                    status_idx = self._data.columns.get_loc("STATUS")
+                    new_row[status_idx] = "not checked"
+                self._data.loc[row_count] = new_row
                 row_count += 1
                 self.endInsertRows()
                 return True
