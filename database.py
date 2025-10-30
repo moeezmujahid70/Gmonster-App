@@ -14,6 +14,7 @@ from sqlalchemy import (
     JSON,
     TypeDecorator,
     types,
+    text,
 )
 from sqlalchemy.orm import sessionmaker
 import json
@@ -93,6 +94,7 @@ class Targets(Base):
     six = Column(String)
     TONAME = Column(String)
     EMAIL = Column(String)
+    STATUS = Column(String, default="not checked")
 
 
 class CachedTargets(Base):
@@ -114,6 +116,34 @@ class FollowUp(Base):
 
 
 Base.metadata.create_all(engine)
+
+
+def migrate_database():
+    """Migrate database schema - add STATUS column to targets table if it doesn't exist"""
+    try:
+        # Check if STATUS column exists in targets table
+        with engine.connect() as conn:
+            # Try to query the STATUS column
+            try:
+                result = conn.execute(text("SELECT STATUS FROM targets LIMIT 1"))
+                result.close()
+                conn.execute(text('UPDATE targets SET "STATUS" = "not checked" WHERE "STATUS" IS NULL OR "STATUS" = ""'))
+                conn.commit()
+                logger.info("Updated NULL/empty STATUS values to 'not checked'")
+            except Exception as e:
+                # Column doesn't exist, add it
+                conn.execute(text('ALTER TABLE targets ADD COLUMN "STATUS" VARCHAR DEFAULT "not checked"'))
+                conn.commit()
+                # Set all existing rows to "not checked"
+                conn.execute(text('UPDATE targets SET "STATUS" = "not checked" WHERE "STATUS" IS NULL OR "STATUS" = ""'))
+                conn.commit()
+                logger.info("STATUS column added successfully and set default values")
+    except Exception as e:
+        logger.error(f"Error during database migration: {e}")
+
+
+# Run migration
+migrate_database()
 
 
 def get_session():
@@ -280,6 +310,11 @@ def db_update_row(row):
             objects.six = row["6"]
             objects.TONAME = row["TONAME"]
             objects.EMAIL = row["EMAIL"]
+            # Set STATUS if provided, otherwise default to "not checked"
+            if "STATUS" in row:
+                objects.STATUS = row["STATUS"] if row["STATUS"] else "not checked"
+            else:
+                objects.STATUS = "not checked"
         session.commit()
         print("DB updated")
         return True
@@ -354,7 +389,7 @@ def db_insert_row():
             )
         else:
             objects = Targets(
-                one="", two="", three="", four="", five="", six="", TONAME="", EMAIL=""
+                one="", two="", three="", four="", five="", six="", TONAME="", EMAIL="", STATUS="not checked"
             )
         session.add(objects)
         session.commit()
@@ -369,9 +404,15 @@ def update_target_verified():
     session = get_session()
     try:
         clear_table(target=True)
-        target = var.target[["1", "2", "3", "4", "5", "6", "TONAME", "EMAIL"]]
+        # Check if STATUS column exists in var.target, if not add it
+        if "STATUS" not in var.target.columns:
+            var.target["STATUS"] = "not checked"
+        target = var.target[["1", "2", "3", "4", "5", "6", "TONAME", "EMAIL", "STATUS"]]
         target.fillna(" ", inplace=True)
-        target = target.astype(str)
+        # Convert all columns except STATUS to string
+        for col in ["1", "2", "3", "4", "5", "6", "TONAME", "EMAIL"]:
+            target[col] = target[col].astype(str)
+        # Keep STATUS as is (don't convert to string if it's already correct)
         target = target.loc[target["EMAIL"] != " "]
         if len(var.target_blacklist) > 0:
             target = target[
@@ -390,6 +431,7 @@ def update_target_verified():
                     six=row["6"],
                     TONAME=row["TONAME"],
                     EMAIL=row["EMAIL"],
+                    STATUS=row.get("STATUS", "not checked"),
                 )
                 for index, row in target.iterrows()
             ]
@@ -405,6 +447,7 @@ def update_target_verified():
                 six="",
                 TONAME="",
                 EMAIL="",
+                STATUS="not checked",
             )
             session.add(objects)
         session.commit()
@@ -427,7 +470,7 @@ def file_to_db():
         "PROXY_USER",
         "PROXY_PASS",
     ]
-    target_header = ["1", "2", "3", "4", "5", "6", "TONAME", "EMAIL"]
+    target_header = ["1", "2", "3", "4", "5", "6", "TONAME", "EMAIL", "STATUS"]
     try:
         if var.db_file_loading_config["group_a"]:
             clear_table(group_a=True)
@@ -542,6 +585,9 @@ def file_to_db():
                     sheet_name="target",
                 )
                 target.columns = target.columns.astype(str)
+                # Add STATUS column if it doesn't exist
+                if "STATUS" not in target.columns:
+                    target["STATUS"] = "not checked"
                 target = target[target_header]
                 if list(target.keys()) == target_header:
                     target.fillna(" ", inplace=True)
@@ -564,6 +610,7 @@ def file_to_db():
                                 six=row["6"],
                                 TONAME=row["TONAME"],
                                 EMAIL=row["EMAIL"],
+                                STATUS=row.get("STATUS", "not checked"),
                             )
                             for index, row in target.iterrows()
                         ]
@@ -579,6 +626,7 @@ def file_to_db():
                             six="",
                             TONAME="",
                             EMAIL="",
+                            STATUS="not checked",
                         )
                         session.add(objects)
                     session.commit()
@@ -659,6 +707,7 @@ def dummy_data_db(group_a=True, group_b=True, target=True):
             six="",
             TONAME="",
             EMAIL="",
+            STATUS="not checked",
         )
         session.add(objects)
     session.commit()
@@ -706,6 +755,7 @@ def pandas_to_db(group_a=None, group_b=None, target=None):
                     six=row["6"],
                     TONAME=row["TONAME"],
                     EMAIL=row["EMAIL"],
+                    STATUS=row.get("STATUS", "not checked"),
                 )
                 for index, row in var.target.iterrows()
             ]
@@ -764,6 +814,7 @@ def db_to_pandas(group_a=None, group_b=None, target=None):
                 "6": item.six,
                 "TONAME": item.TONAME,
                 "EMAIL": item.EMAIL,
+                "STATUS": item.STATUS if item.STATUS else "not checked",
             }.copy()
             for item in _results
         ]
@@ -857,6 +908,9 @@ class PullTargetAirtable(threading.Thread):
             targets = self.rearrange_data(targets)
             target_df = pd.DataFrame(targets)
             if len(target_df) > 0:
+                # Add STATUS column with default value
+                if "STATUS" not in target_df.columns:
+                    target_df["STATUS"] = "not checked"
                 var.target = target_df
                 # clear targets from db
                 clear_table(group_a=None, group_b=None, target=True)

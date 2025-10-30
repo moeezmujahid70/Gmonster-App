@@ -6,6 +6,7 @@ global GUI
 import os
 import random
 import re
+import socket
 import sys
 import threading
 import time
@@ -31,7 +32,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 from pyautogui import alert, confirm
-from PyQt5.QtCore import Qt, pyqtSignal, QDate
+from PyQt5.QtCore import Qt, pyqtSignal, QDate, QItemSelection
 from PyQt5.QtGui import QColor
 import traceback
 from datetime import datetime
@@ -311,6 +312,10 @@ class MyMainClass:
         GUI.checkBox_inbox_whitelist.stateChanged.connect(self.update_checkbox_status)
         GUI.checkBox_enable_cc_emails.stateChanged.connect(self.update_checkbox_status)
         GUI.pushButton_email_verify.clicked.connect(self.email_verify)
+        GUI.pushButton_select_toggle.toggled.connect(self.toggle_checkbox_section)
+        # Initialize dropdown visibility
+        GUI.frame_verifier_dropdown.setVisible(True)
+        GUI.frame_checkboxes.setVisible(True)
         GUI.radioButton_html.clicked.connect(self.compose_change)
         GUI.radioButton_plain_text.clicked.connect(self.compose_change)
         if var.body_type == "Html":
@@ -342,6 +347,11 @@ class MyMainClass:
         GUI.radioButton_db_target.clicked.connect(self.update_db_table)
         GUI.pushButton_add_row.clicked.connect(self.insert_row)
         GUI.pushButton_remove_row.clicked.connect(self.remove_row)
+        # Connect status checkboxes to selection method
+        GUI.checkBox_safe.stateChanged.connect(self.select_rows_by_status)
+        GUI.checkBox_risky.stateChanged.connect(self.select_rows_by_status)
+        GUI.checkBox_unknown.stateChanged.connect(self.select_rows_by_status)
+        GUI.checkBox_not_checked.stateChanged.connect(self.select_rows_by_status)
         Thread(target=database.startup_load_db, daemon=True, args=("dialog",)).start()
         GUI.pushButton_sort_date.clicked.connect(self.date_sort)
         GUI.pushButton_sort_alpha.clicked.connect(self.alpha_sort)
@@ -520,7 +530,7 @@ class MyMainClass:
             except Exception as e:
                 logger.error(f"Error verifying email {email}: {str(e)}")
         var.target = var.target[var.target["EMAIL"].isin(valid_emails)].copy()
-        var.target["verified"] = False
+        var.target["STATUS"] = "not checked"
         update_target_verified()
         self.update_db_table()
         if not valid_emails:
@@ -555,43 +565,77 @@ class MyMainClass:
         progress_dialog.setLabelText("Verifying emails... (0)")
         # Simple threading approach
         checked_emails = [[] for _ in range(len(valid_emails))]
+        json_results = []
         completed_count = 0
         thread_lock = threading.Lock()
         
         def verify_single_email_thread(email, email_index, proxy_config):
             nonlocal completed_count
             
-            url = "http://3.93.77.2/v0/check_email"
+            # url = "http://3.93.77.2/v0/check_email"
+            url = "http://194.32.107.15/v0/check_email"
+            # url = "http://localhost/v0/check_email"
+            # url = "http://localhost:81/v0/check_email"
+            # url = "http://localhost:82/v0/check_email"
             headers = {"Content-Type": "application/json"}
+            # proxy_config = {
+            #     "host": "81.28.96.97",
+            #     "port": 3130,
+            #     "username": "HPBGqbRbahPhs5rA",
+            #     "password": "Vk4ANxZDMYKjTEVc"
+            # }
+
+            # get the ehlo name and domain from the proxy config
+            proxy_ip = proxy_config["host"].split(":")[0]
+
+            try:
+                ehlo_name = socket.gethostbyaddr(proxy_ip)[0]
+                email_domain = ".".join(ehlo_name.split(".")[-2:])
+            except socket.herror:
+                ehlo_name = proxy_ip
+            
+            if ehlo_name == proxy_ip:
+                ehlo_name = "gigahost.no"
+                email_domain = "gigahost.no"
+            
+            from_email = f"verify@{email_domain}"
+
             data = {
                 "to_email": email,
+                "from_email": from_email,
+                "hello_name": ehlo_name,
                 "proxy": proxy_config
             }
-            
+
             try:
-                response = requests.post(url, headers=headers, json=data, timeout=30)
+                response = requests.post(url, headers=headers, json=data, timeout=120)
                 if response.status_code == 200:
                     try:
                         result = response.json()
-                        if result["is_reachable"] == 'invalid':
-                            checked_emails[email_index].append("invalid email")
-                        if result["misc"].get("is_disposable"):
-                            checked_emails[email_index].append("disposable email")
-                        if result["mx"].get("accepts_mail") == False:
-                            checked_emails[email_index].append("mx does not accept mail")
-                        if result["smtp"].get("is_disabled"):
-                            checked_emails[email_index].append("smtp disabled")
-                        if result["smtp"].get("is_deliverable") == False:
-                            checked_emails[email_index].append("smtp not deliverable")
-                        if result["smtp"].get("has_full_inbox"):
-                            checked_emails[email_index].append("smtp has full inbox")
-                        if result["smtp"].get("can_connect_smtp") == False:
-                            checked_emails[email_index].append("smtp can not connect")
-                        if len(checked_emails[email_index]) == 0:
-                            checked_emails[email_index].append("valid email")
-                            with thread_lock:
-                                var.target.loc[var.target["EMAIL"] == email, "verified"] = True
+                        # if result["is_reachable"] == 'invalid':
+                        #     checked_emails[email_index].append("invalid email")
+                        # if result["misc"].get("is_disposable"):
+                        #     checked_emails[email_index].append("disposable email")
+                        # if result["mx"].get("accepts_mail") == False:
+                        #     checked_emails[email_index].append("mx does not accept mail")
+                        # if result["smtp"].get("is_disabled"):
+                        #     checked_emails[email_index].append("smtp disabled")
+                        # if result["smtp"].get("is_deliverable") == False:
+                        #     checked_emails[email_index].append("smtp not deliverable")
+                        # if result["smtp"].get("has_full_inbox"):
+                        #     checked_emails[email_index].append("smtp has full inbox")
+                        # if result["smtp"].get("can_connect_smtp") == False:
+                        #     checked_emails[email_index].append("smtp can not connect")
+                        # if len(checked_emails[email_index]) == 0:
+                        #     checked_emails[email_index].append(result["is_reachable"])
+                        checked_emails[email_index].append(dumps(result))
+                        with thread_lock:
+                            json_results.append(dumps(result))
+                            var.target.loc[var.target["EMAIL"] == email, "STATUS"] = result["is_reachable"]
                     except ValueError as e:
+                        checked_emails[email_index].append(response.text)
+                        with thread_lock:
+                            json_results.append(response.text)
                         logger.error(f"JSON decode error for {email}: {str(e)}")
                         logger.error(f"Response content: {response.text}")
                 else:
@@ -653,6 +697,8 @@ class MyMainClass:
             # Wait for remaining tasks
             while futures:
                 if progress_dialog.wasCanceled():
+                    executor.shutdown(wait=False, cancel_futures=True)
+                    QtWidgets.QApplication.processEvents()
                     break
                 for completed_future in list(futures.keys()):
                     if completed_future.done():
@@ -661,76 +707,88 @@ class MyMainClass:
                 progress_dialog.setLabelText(f"Verifying emails... ({completed_count}/{len(valid_emails)})")
                 QtWidgets.QApplication.processEvents()
                 time.sleep(0.01)
-        var.target = var.target[var.target["verified"] == True].copy()
-        var.target = var.target.drop(columns=["verified"])
+        var.target = var.target[var.target["STATUS"] != "invalid"].copy()
         update_target_verified()
         self.update_db_table()
         total_emails = len(valid_emails)
         verified_emails = len(var.target["EMAIL"].tolist())
         bad_emails = total_emails - verified_emails
+
         try:
             verification_folder = "Email verification"
             os.makedirs(verification_folder, exist_ok=True)
-            current_date = datetime.now().strftime("%Y-%m-%d")
+            current_date = datetime.now().strftime("%Y-%m-%d-%H-%M")
             excel_filename = os.path.join(
                 verification_folder, f"email_verification_{current_date}.xlsx"
             )
+            jsonl_filename = os.path.join(
+                verification_folder, f"email_verification_{current_date}.jsonl"
+            )
             
-            # Get verified and bad emails properly
-            verified_email_list = var.target["EMAIL"].tolist()
-            bad_email_list = [email for email in valid_emails if email not in verified_email_list]
+            # Save JSON results as JSONL
+            try:
+                with open(jsonl_filename, 'w') as jsonl_file:
+                    for json_result in json_results:
+                        jsonl_file.write(json_result + '\n')
+                logger.info(f"JSON results saved to {jsonl_filename}")
+            except Exception as e:
+                logger.error(f"Error saving JSONL file: {str(e)}")
             
-            # Create a comprehensive report with all emails and their status
-            all_emails_data = []
+            # # Get verified and bad emails properly
+            # verified_email_list = var.target["EMAIL"].tolist()
+            # bad_email_list = [email for email in valid_emails if email not in verified_email_list]
             
-            for i, email in enumerate(valid_emails):
-                if i < len(checked_emails):
-                    # Fill empty checked_emails entries
-                    if len(checked_emails[i]) == 0:
-                        error_message = "not checked"
-                    else:
-                        error_message = " | ".join(checked_emails[i])
-                else:
-                    error_message = "not checked"
+            # # Create a comprehensive report with all emails and their status
+            # all_emails_data = []
+            
+            # for i, email in enumerate(valid_emails):
+            #     if i < len(checked_emails):
+            #         # Fill empty checked_emails entries
+            #         if len(checked_emails[i]) == 0:
+            #             error_message = "not checked"
+            #         else:
+            #             error_message = " | ".join(checked_emails[i])
+            #     else:
+            #         error_message = "not checked"
                 
-                # Determine status
-                if email in verified_email_list:
-                    status = "Verified"
-                else:
-                    status = "Bad"
+            #     # Determine status
+            #     if email in verified_email_list:
+            #         status = "Good"
+            #     else:
+            #         status = "Bad"
                 
-                all_emails_data.append({
-                    "Email": email,
-                    "Status": status,
-                    "Error Messages": error_message
-                })
+            #     all_emails_data.append({
+            #         "Email": email,
+            #         "Status": status,
+            #         "Error Messages": error_message
+            #     })
             
-            # Create DataFrame
-            df_report = pd.DataFrame(all_emails_data)
+            # # Create DataFrame
+            # df_report = pd.DataFrame(all_emails_data)
             
-            # Ensure we have data to write
-            if df_report.empty:
-                df_report = pd.DataFrame({
-                    "Email": ["No data"],
-                    "Status": ["No data"],
-                    "Error Messages": ["No data"]
-                })
+            # # Ensure we have data to write
+            # if df_report.empty:
+            #     df_report = pd.DataFrame({
+            #         "Email": ["No data"],
+            #         "Status": ["No data"],
+            #         "Error Messages": ["No data"]
+            #     })
             
-            with pd.ExcelWriter(excel_filename, engine="openpyxl") as writer:
-                df_report.to_excel(
-                    writer, index=False, sheet_name="Verification Results"
-                )
-                worksheet = writer.sheets["Verification Results"]
+            # with pd.ExcelWriter(excel_filename, engine="openpyxl") as writer:
+            #     df_report.to_excel(
+            #         writer, index=False, sheet_name="Verification Results"
+            #     )
+            #     worksheet = writer.sheets["Verification Results"]
                 
-                # Auto-adjust column widths
-                for idx, col in enumerate(df_report.columns):
-                    max_length = max(
-                        df_report[col].astype(str).apply(len).max(), len(col)
-                    )
-                    # Cap the width at 50 characters for readability
-                    worksheet.column_dimensions[chr(65 + idx)].width = min(max_length + 2, 50)
+            #     # Auto-adjust column widths
+            #     for idx, col in enumerate(df_report.columns):
+            #         max_length = max(
+            #             df_report[col].astype(str).apply(len).max(), len(col)
+            #         )
+            #         # Cap the width at 50 characters for readability
+            #         worksheet.column_dimensions[chr(65 + idx)].width = min(max_length + 2, 50)
             
-            logger.info(f"Verification report saved to {excel_filename}")
+            # logger.info(f"Verification report saved to {excel_filename}")
             
         except Exception as e:
             logger.error(f"Error creating Excel report: {str(e)}")
@@ -745,6 +803,14 @@ class MyMainClass:
             button="OK",
         )
 
+    def toggle_checkbox_section(self, checked):
+        """Toggle the visibility of the checkbox section within the dropdown"""
+        GUI.frame_checkboxes.setVisible(checked)
+        # Update the arrow direction
+        if checked:
+            GUI.pushButton_select_toggle.setText("▼ Select")
+        else:
+            GUI.pushButton_select_toggle.setText("► Select")
 
     def verify_bulk_emails(self, api_url, emails, proxySetting):
         url = f"{api_url}/bulk-verify"
@@ -1514,6 +1580,52 @@ class MyMainClass:
                 var.command_q.put("self.update_db_table()")
             else:
                 self.logger.warning("Select something")
+        GUI.tableView_database.clearSelection()
+
+    def select_rows_by_status(self):
+        """Select all rows in the table that match the checked status filters"""
+        try:
+            # Check if STATUS column exists in the data
+            if "STATUS" not in GUI.model._data.columns:
+                return
+            
+            # Get the checked statuses
+            selected_statuses = []
+            if GUI.checkBox_safe.isChecked():
+                selected_statuses.append("safe")
+            if GUI.checkBox_risky.isChecked():
+                selected_statuses.append("risky")
+            if GUI.checkBox_unknown.isChecked():
+                selected_statuses.append("unknown")
+            if GUI.checkBox_not_checked.isChecked():
+                selected_statuses.append("not checked")
+            
+            # Clear existing selection
+            GUI.tableView_database.clearSelection()
+            
+            # If no checkboxes are checked, return
+            if not selected_statuses:
+                return
+            
+            # Get selection model
+            selection_model = GUI.tableView_database.selectionModel()
+            
+            # Select rows matching the selected statuses
+            for row_index in range(GUI.model.rowCount(None)):
+                status_value = str(GUI.model._data.iloc[row_index]["STATUS"]).lower()
+                
+                # Check if this row's status matches any selected status
+                if status_value in selected_statuses:
+                    # Select the entire row - get the model index for the row
+                    index = GUI.model.index(row_index, 0)
+                    # Use Select | Rows flags to select entire row and keep previous selections
+                    selection_model.select(
+                        index,
+                        QtCore.QItemSelectionModel.Select | QtCore.QItemSelectionModel.Rows
+                    )
+            
+        except Exception as e:
+            self.logger.error(f"Error at select_rows_by_status - {e}")
 
     def update_db_table(self):
         GUI.model.layoutAboutToBeChanged.emit()

@@ -3615,7 +3615,7 @@ Campaign</string>
                               <property name="minimumSize">
                                 <size>
                                   <width>0</width>
-                                  <height>25</height>
+                                  <height>40</height>
                                 </size>
                               </property>
                               <property name="font">
@@ -3660,7 +3660,7 @@ QRadioButton {
                               <property name="minimumSize">
                                 <size>
                                   <width>0</width>
-                                  <height>25</height>
+                                  <height>40</height>
                                 </size>
                               </property>
                               <property name="maximumSize">
@@ -3685,7 +3685,7 @@ QRadioButton {
                               <property name="minimumSize">
                                 <size>
                                   <width>0</width>
-                                  <height>25</height>
+                                  <height>40</height>
                                 </size>
                               </property>
                               <property name="font">
@@ -3727,7 +3727,7 @@ QRadioButton {
                               <property name="minimumSize">
                                 <size>
                                   <width>0</width>
-                                  <height>25</height>
+                                  <height>40</height>
                                 </size>
                               </property>
                               <property name="maximumSize">
@@ -3752,7 +3752,7 @@ QRadioButton {
                               <property name="minimumSize">
                                 <size>
                                   <width>0</width>
-                                  <height>25</height>
+                                  <height>40</height>
                                 </size>
                               </property>
                               <property name="font">
@@ -3875,32 +3875,6 @@ QPushButton:pressed {
                           </property>
                         </spacer>
                       </item>
-           <item>
-            <widget class="QFrame" name="frame_email_verifier">
-             <property name="styleSheet">
-              <string notr="true">QFrame {
-     background-color: transparent;
- }</string>
-             </property>
-             <property name="frameShape">
-              <enum>QFrame::NoFrame</enum>
-             </property>
-             <layout class="QVBoxLayout" name="verticalLayout_email_verifier">
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <property name="leftMargin">
-               <number>0</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <property name="rightMargin">
-               <number>0</number>
-              </property>
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
                       <item>
                         <widget class="QPushButton" name="pushButton_email_verify">
                           <property name="minimumSize">
@@ -3940,55 +3914,81 @@ QPushButton:pressed {
                           </property>
                           <property name="checkable">
                             <bool>true</bool>
-                           </property>
-                          </widget>
-                         </item>
-                         <item>
-                          <widget class="QFrame" name="frame_verifier_dropdown">
-                           <property name="styleSheet">
+                          </property>
+                        </widget>
+                      </item>
+                      <item>
+                        <widget class="QFrame" name="frame_email_verifier">
+                          <property name="styleSheet">
                             <string notr="true">QFrame {
+     background-color: transparent;
+ }</string>
+                          </property>
+                          <property name="frameShape">
+                            <enum>QFrame::NoFrame</enum>
+                          </property>
+                          <layout class="QVBoxLayout" name="verticalLayout_email_verifier">
+                            <property name="spacing">
+                              <number>0</number>
+                            </property>
+                            <property name="leftMargin">
+                              <number>0</number>
+                            </property>
+                            <property name="topMargin">
+                              <number>0</number>
+                            </property>
+                            <property name="rightMargin">
+                              <number>0</number>
+                            </property>
+                            <property name="bottomMargin">
+                              <number>0</number>
+                            </property>
+                            <item>
+                              <widget class="QFrame" name="frame_verifier_dropdown">
+                                <property name="styleSheet">
+                                  <string notr="true">QFrame {
                 background-color: #d9e3f0;
                 border: 1px solid #aaa;
                 border-radius: 3px;
             }</string>
-                           </property>
-                           <property name="frameShape">
-                            <enum>QFrame::StyledPanel</enum>
-                           </property>
-                           <layout class="QVBoxLayout" name="verticalLayout_dropdown">
-                            <property name="spacing">
-                             <number>5</number>
-                            </property>
-                            <property name="leftMargin">
-                             <number>10</number>
-                            </property>
-                            <property name="topMargin">
-                             <number>10</number>
-                            </property>
-                            <property name="rightMargin">
-                             <number>10</number>
-                            </property>
-                            <property name="bottomMargin">
-                             <number>10</number>
-                            </property>
-                            <item>
-                             <widget class="QPushButton" name="pushButton_select_toggle">
-                              <property name="minimumSize">
-                               <size>
-                                <width>0</width>
-                                <height>30</height>
-                               </size>
-                              </property>
-                              <property name="font">
-                               <font>
-                                <family>Arial</family>
-                                <pointsize>12</pointsize>
-                                <weight>75</weight>
-                                <bold>true</bold>
-                               </font>
-                              </property>
-                              <property name="styleSheet">
-                               <string notr="true">QPushButton {
+                                </property>
+                                <property name="frameShape">
+                                  <enum>QFrame::StyledPanel</enum>
+                                </property>
+                                <layout class="QVBoxLayout" name="verticalLayout_dropdown">
+                                  <property name="spacing">
+                                    <number>5</number>
+                                  </property>
+                                  <property name="leftMargin">
+                                    <number>10</number>
+                                  </property>
+                                  <property name="topMargin">
+                                    <number>10</number>
+                                  </property>
+                                  <property name="rightMargin">
+                                    <number>10</number>
+                                  </property>
+                                  <property name="bottomMargin">
+                                    <number>10</number>
+                                  </property>
+                                  <item>
+                                    <widget class="QPushButton" name="pushButton_select_toggle">
+                                      <property name="minimumSize">
+                                        <size>
+                                          <width>0</width>
+                                          <height>30</height>
+                                        </size>
+                                      </property>
+                                      <property name="font">
+                                        <font>
+                                          <family>Arial</family>
+                                          <pointsize>12</pointsize>
+                                          <weight>75</weight>
+                                          <bold>true</bold>
+                                        </font>
+                                      </property>
+                                      <property name="styleSheet">
+                                        <string notr="true">QPushButton {
                 background-color: transparent;
                 border: none;
                 text-align: left;
@@ -3998,150 +3998,128 @@ QPushButton:pressed {
             QPushButton:hover {
                 background-color: rgba(0, 138, 191, 0.1);
             }</string>
-                              </property>
-                              <property name="text">
-                               <string>▼ Select</string>
-                              </property>
-                              <property name="checkable">
-                               <bool>true</bool>
-                              </property>
-                              <property name="checked">
-                               <bool>true</bool>
-                              </property>
-                             </widget>
+                                      </property>
+                                      <property name="text">
+                                        <string>▼ Select</string>
+                                      </property>
+                                      <property name="checkable">
+                                        <bool>true</bool>
+                                      </property>
+                                      <property name="checked">
+                                        <bool>true</bool>
+                                      </property>
+                                    </widget>
+                                  </item>
+                                  <item>
+                                    <widget class="QFrame" name="frame_checkboxes">
+                                      <property name="frameShape">
+                                        <enum>QFrame::NoFrame</enum>
+                                      </property>
+                                      <layout class="QVBoxLayout" name="verticalLayout_checkboxes">
+                                        <property name="spacing">
+                                          <number>5</number>
+                                        </property>
+                                        <property name="leftMargin">
+                                          <number>20</number>
+                                        </property>
+                                        <property name="topMargin">
+                                          <number>5</number>
+                                        </property>
+                                        <property name="rightMargin">
+                                          <number>0</number>
+                                        </property>
+                                        <property name="bottomMargin">
+                                          <number>5</number>
+                                        </property>
+                                        <item>
+                                          <widget class="QCheckBox" name="checkBox_safe">
+                                            <property name="font">
+                                              <font>
+                                                <family>Arial</family>
+                                                <pointsize>11</pointsize>
+                                              </font>
+                                            </property>
+                                            <property name="styleSheet">
+                                              <string notr="true">QCheckBox {
+                color: #000;
+                spacing: 5px;
+            }</string>
+                                            </property>
+                                            <property name="text">
+                                              <string>Safe</string>
+                                            </property>
+                                          </widget>
+                                        </item>
+                                        <item>
+                                          <widget class="QCheckBox" name="checkBox_risky">
+                                            <property name="font">
+                                              <font>
+                                                <family>Arial</family>
+                                                <pointsize>11</pointsize>
+                                              </font>
+                                            </property>
+                                            <property name="styleSheet">
+                                              <string notr="true">QCheckBox {
+                color: #000;
+                spacing: 5px;
+            }</string>
+                                            </property>
+                                            <property name="text">
+                                              <string>Risky</string>
+                                            </property>
+                                          </widget>
+                                        </item>
+                                        <item>
+                                          <widget class="QCheckBox" name="checkBox_unknown">
+                                            <property name="font">
+                                              <font>
+                                                <family>Arial</family>
+                                                <pointsize>11</pointsize>
+                                              </font>
+                                            </property>
+                                            <property name="styleSheet">
+                                              <string notr="true">QCheckBox {
+                color: #000;
+                spacing: 5px;
+            }</string>
+                                            </property>
+                                            <property name="text">
+                                              <string>Unknown</string>
+                                            </property>
+                                            <property name="checked">
+                                              <bool>false</bool>
+                                            </property>
+                                          </widget>
+                                        </item>
+                                        <item>
+                                          <widget class="QCheckBox" name="checkBox_not_checked">
+                                            <property name="font">
+                                              <font>
+                                                <family>Arial</family>
+                                                <pointsize>11</pointsize>
+                                              </font>
+                                            </property>
+                                            <property name="styleSheet">
+                                              <string notr="true">QCheckBox {
+                color: #000;
+                spacing: 5px;
+            }</string>
+                                            </property>
+                                            <property name="text">
+                                              <string>Not Checked</string>
+                                            </property>
+                                            <property name="checked">
+                                              <bool>false</bool>
+                                            </property>
+                                          </widget>
+                                        </item>
+                                      </layout>
+                                    </widget>
+                                  </item>
+                                </layout>
+                              </widget>
                             </item>
-                            <item>
-                             <widget class="QFrame" name="frame_checkboxes">
-                              <property name="frameShape">
-                               <enum>QFrame::NoFrame</enum>
-                              </property>
-                              <layout class="QVBoxLayout" name="verticalLayout_checkboxes">
-                               <property name="spacing">
-                                <number>5</number>
-                               </property>
-                               <property name="leftMargin">
-                                <number>20</number>
-                               </property>
-                               <property name="topMargin">
-                                <number>5</number>
-                               </property>
-                               <property name="rightMargin">
-                                <number>0</number>
-                               </property>
-                               <property name="bottomMargin">
-                                <number>5</number>
-                               </property>
-                               <item>
-                                <widget class="QCheckBox" name="checkBox_valid">
-                                 <property name="font">
-                                  <font>
-                                   <family>Arial</family>
-                                   <pointsize>11</pointsize>
-                                  </font>
-                                 </property>
-                                 <property name="styleSheet">
-                                  <string notr="true">QCheckBox {
-                color: #000;
-                spacing: 5px;
-            }</string>
-                                 </property>
-                                 <property name="text">
-                                  <string>Valid</string>
-                                 </property>
-                                </widget>
-                               </item>
-                               <item>
-                                <widget class="QCheckBox" name="checkBox_risky">
-                                 <property name="font">
-                                  <font>
-                                   <family>Arial</family>
-                                   <pointsize>11</pointsize>
-                                  </font>
-                                 </property>
-                                 <property name="styleSheet">
-                                  <string notr="true">QCheckBox {
-                color: #000;
-                spacing: 5px;
-            }</string>
-                                 </property>
-                                 <property name="text">
-                                  <string>Risky</string>
-                                 </property>
-                                </widget>
-                               </item>
-                               <item>
-                                <widget class="QCheckBox" name="checkBox_unknown">
-                                 <property name="font">
-                                  <font>
-                                   <family>Arial</family>
-                                   <pointsize>11</pointsize>
-                                  </font>
-                                 </property>
-                                 <property name="styleSheet">
-                                  <string notr="true">QCheckBox {
-                color: #000;
-                spacing: 5px;
-            }</string>
-                                 </property>
-                                 <property name="text">
-                                  <string>Unknown</string>
-                                 </property>
-                                 <property name="checked">
-                                  <bool>true</bool>
-                                 </property>
-                                </widget>
-                               </item>
-                               <item>
-                                <widget class="QCheckBox" name="checkBox_invalid">
-                                 <property name="font">
-                                  <font>
-                                   <family>Arial</family>
-                                   <pointsize>11</pointsize>
-                                  </font>
-                                 </property>
-                                 <property name="styleSheet">
-                                  <string notr="true">QCheckBox {
-                color: #000;
-                spacing: 5px;
-            }</string>
-                                 </property>
-                                 <property name="text">
-                                  <string>Invalid</string>
-                                 </property>
-                                 <property name="checked">
-                                  <bool>true</bool>
-                                 </property>
-                                </widget>
-                               </item>
-                               <item>
-                                <widget class="QCheckBox" name="checkBox_not_checked">
-                                 <property name="font">
-                                  <font>
-                                   <family>Arial</family>
-                                   <pointsize>11</pointsize>
-                                  </font>
-                                 </property>
-                                 <property name="styleSheet">
-                                  <string notr="true">QCheckBox {
-                color: #000;
-                spacing: 5px;
-            }</string>
-                                 </property>
-                                 <property name="text">
-                                  <string>Not Checked</string>
-                                 </property>
-                                 <property name="checked">
-                                  <bool>true</bool>
-                                 </property>
-                                </widget>
-                               </item>
-                              </layout>
-                             </widget>
-                            </item>
-                           </layout>
-                          </widget>
-                         </item>
-                        </layout>
+                          </layout>
                         </widget>
                       </item>
                       <item>
@@ -4158,7 +4136,7 @@ QPushButton:pressed {
                         </spacer>
                       </item>
                       <item>
-            <widget class="QPushButton" name="pushButton_remove_row">
+                        <widget class="QPushButton" name="pushButton_remove_row">
                           <property name="minimumSize">
                             <size>
                               <width>150</width>
@@ -4220,8 +4198,8 @@ QPushButton:pressed {
                             <font>
                               <family>Arial</family>
                               <pointsize>15</pointsize>
-                              <weight>50</weight>
                               <bold>false</bold>
+                              <weight>50</weight>
                             </font>
                           </property>
                           <property name="styleSheet">
@@ -4331,13 +4309,6 @@ QScrollBar:vertical {
                     </attribute>
                   </widget>
                 </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="stackedWidgetPage4">
-       <layout class="QHBoxLayout" name="horizontalLayout_19">
-        <property name="spacing">
-         <number>0</number>
-        </property>
                 <property name="leftMargin">
                   <number>0</number>
                 </property>
@@ -4348,6 +4319,13 @@ QScrollBar:vertical {
                   <number>0</number>
                 </property>
                 <property name="bottomMargin">
+                  <number>0</number>
+                </property>
+              </layout>
+            </widget>
+            <widget class="QWidget" name="stackedWidgetPage4">
+              <layout class="QHBoxLayout" name="horizontalLayout_19">
+                <property name="spacing">
                   <number>0</number>
                 </property>
                 <item>
