@@ -318,11 +318,14 @@ else:
     myMC = myMainClass()
     app.exec_()
     print("Exit")
-    try:
-        import main
-    except Exception as e:
-        alert(
-            text="Error alert at dialog.py : {}".format(e),
-            title="Alert",
-            button="OK",
-        )
+    if var.signed_in:
+        try:
+            import main
+        except Exception as e:
+            alert(
+                text="Error alert at dialog.py : {}".format(e),
+                title="Alert",
+                button="OK",
+            )
+    else:
+        logger.info("Exited before sign-in; not launching main window.")
