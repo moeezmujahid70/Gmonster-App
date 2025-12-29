@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'c:\Users\abdul\Desktop\mail\Gmonster\ui\gui.ui'
+# Form implementation generated from reading ui file 'ui/gui.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #
@@ -2027,6 +2027,43 @@ class Ui_MainWindow(object):
         self.radioButton_db_target.setObjectName("radioButton_db_target")
         self.horizontalLayout_15.addWidget(self.radioButton_db_target)
         self.verticalLayout_13.addLayout(self.horizontalLayout_15)
+        self.label_target_count = QtWidgets.QLabel(self.groupBox_7)
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(12)
+        self.label_target_count.setFont(font)
+        self.label_target_count.setStyleSheet("QLabel {\n"
+"    color: #555;\n"
+"    padding-left: 10px;\n"
+"}")
+        self.label_target_count.setObjectName("label_target_count")
+        self.verticalLayout_13.addWidget(self.label_target_count)
+        self.pushButton_export_targets = QtWidgets.QPushButton(self.groupBox_7)
+        self.pushButton_export_targets.setMinimumSize(QtCore.QSize(0, 40))
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(13)
+        font.setBold(False)
+        font.setWeight(50)
+        self.pushButton_export_targets.setFont(font)
+        self.pushButton_export_targets.setStyleSheet("QPushButton {\n"
+"    border: 1px solid #555;\n"
+"    border-radius: 3px;\n"
+"    border-style: Solid;\n"
+"    background: rgba(0, 138, 191);\n"
+"    padding: 5px 20px;\n"
+"    color: rgb(255, 255, 255);\n"
+"    }\n"
+"QPushButton:hover {\n"
+"    background: rgba(0, 138, 191, 0.6);\n"
+"    opacity: 0.2\n"
+"    }\n"
+"QPushButton:pressed {\n"
+"    border-style: inset;\n"
+"    background: rgb(0, 138, 191);\n"
+"    }")
+        self.pushButton_export_targets.setObjectName("pushButton_export_targets")
+        self.verticalLayout_13.addWidget(self.pushButton_export_targets)
         spacerItem23 = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         self.verticalLayout_13.addItem(spacerItem23)
         self.line_4 = QtWidgets.QFrame(self.groupBox_7)
@@ -4122,6 +4159,8 @@ class Ui_MainWindow(object):
         self.radioButton_db_groupa.setText(_translate("MainWindow", "Group A"))
         self.radioButton_db_groupb.setText(_translate("MainWindow", "Group B"))
         self.radioButton_db_target.setText(_translate("MainWindow", "Target"))
+        self.label_target_count.setText(_translate("MainWindow", "Targets: 0"))
+        self.pushButton_export_targets.setText(_translate("MainWindow", "Export targets"))
         self.pushButton_load_db.setText(_translate("MainWindow", "Import"))
         self.pushButton_email_verify.setText(_translate("MainWindow", "Email verifier"))
         self.pushButton_select_toggle.setText(_translate("MainWindow", "▼ Select"))

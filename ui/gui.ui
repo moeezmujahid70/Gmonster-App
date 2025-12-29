@@ -3785,6 +3785,64 @@ QRadioButton {
                         </layout>
                       </item>
                       <item>
+                        <widget class="QLabel" name="label_target_count">
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>12</pointsize>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">QLabel {
+    color: #555;
+    padding-left: 10px;
+}</string>
+                          </property>
+                          <property name="text">
+                            <string>Targets: 0</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item>
+                        <widget class="QPushButton" name="pushButton_export_targets">
+                          <property name="minimumSize">
+                            <size>
+                              <width>0</width>
+                              <height>40</height>
+                            </size>
+                          </property>
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>13</pointsize>
+                              <bold>false</bold>
+                              <weight>50</weight>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">QPushButton {
+    border: 1px solid #555;
+    border-radius: 3px;
+    border-style: Solid;
+    background: rgba(0, 138, 191);
+    padding: 5px 20px;
+    color: rgb(255, 255, 255);
+    }
+QPushButton:hover {
+    background: rgba(0, 138, 191, 0.6);
+    opacity: 0.2
+    }
+QPushButton:pressed {
+    border-style: inset;
+    background: rgb(0, 138, 191);
+    }</string>
+                          </property>
+                          <property name="text">
+                            <string>Export targets</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item>
                         <spacer name="spacerItem23">
                           <property name="orientation">
                             <enum>Qt::Vertical</enum>
