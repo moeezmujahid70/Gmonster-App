@@ -15,6 +15,8 @@ from sqlalchemy import (
     TypeDecorator,
     types,
     text,
+    inspect,
+
 )
 from sqlalchemy.orm import sessionmaker
 import json
@@ -118,26 +120,50 @@ class FollowUp(Base):
 Base.metadata.create_all(engine)
 
 
+# def migrate_database():
+#     """Migrate database schema - add STATUS column to targets table if it doesn't exist"""
+#     try:
+#         # Check if STATUS column exists in targets table
+#         with engine.connect() as conn:
+#             # Try to query the STATUS column
+#             try:
+#                 result = conn.execute(text("SELECT STATUS FROM targets LIMIT 1"))
+#                 result.close()
+#                 conn.execute(text('UPDATE targets SET "STATUS" = "not checked" WHERE "STATUS" IS NULL OR "STATUS" = ""'))
+#                 conn.commit()
+#                 logger.info("Updated NULL/empty STATUS values to 'not checked'")
+#             except Exception as e:
+#                 # Column doesn't exist, add it
+#                 conn.execute(text('ALTER TABLE targets ADD COLUMN "STATUS" VARCHAR DEFAULT "not checked"'))
+#                 conn.commit()
+#                 # Set all existing rows to "not checked"
+#                 conn.execute(text('UPDATE targets SET "STATUS" = "not checked" WHERE "STATUS" IS NULL OR "STATUS" = ""'))
+#                 conn.commit()
+#                 logger.info("STATUS column added successfully and set default values")
+#     except Exception as e:
+#         logger.error(f"Error during database migration: {e}")
+
+# from sqlalchemy import inspect
+
 def migrate_database():
-    """Migrate database schema - add STATUS column to targets table if it doesn't exist"""
     try:
-        # Check if STATUS column exists in targets table
-        with engine.connect() as conn:
-            # Try to query the STATUS column
-            try:
-                result = conn.execute(text("SELECT STATUS FROM targets LIMIT 1"))
-                result.close()
-                conn.execute(text('UPDATE targets SET "STATUS" = "not checked" WHERE "STATUS" IS NULL OR "STATUS" = ""'))
-                conn.commit()
-                logger.info("Updated NULL/empty STATUS values to 'not checked'")
-            except Exception as e:
-                # Column doesn't exist, add it
-                conn.execute(text('ALTER TABLE targets ADD COLUMN "STATUS" VARCHAR DEFAULT "not checked"'))
-                conn.commit()
-                # Set all existing rows to "not checked"
-                conn.execute(text('UPDATE targets SET "STATUS" = "not checked" WHERE "STATUS" IS NULL OR "STATUS" = ""'))
-                conn.commit()
-                logger.info("STATUS column added successfully and set default values")
+        insp = inspect(engine)
+
+        # get column names in the targets table
+        cols = {c["name"] for c in insp.get_columns("targets")}
+
+        with engine.begin() as conn:  # begin() auto-commits/rolls back
+            if "STATUS" not in cols:
+                conn.execute(text('ALTER TABLE targets ADD COLUMN "STATUS" VARCHAR DEFAULT \'not checked\''))
+                logger.info("STATUS column added successfully")
+
+            conn.execute(text("""
+                UPDATE targets
+                SET "STATUS" = 'not checked'
+                WHERE "STATUS" IS NULL OR "STATUS" = ''
+            """))
+            logger.info("Updated NULL/empty STATUS values to 'not checked'")
+
     except Exception as e:
         logger.error(f"Error during database migration: {e}")
 
@@ -407,11 +433,11 @@ def update_target_verified():
         # Check if STATUS column exists in var.target, if not add it
         if "STATUS" not in var.target.columns:
             var.target["STATUS"] = "not checked"
-        target = var.target[["1", "2", "3", "4", "5", "6", "TONAME", "EMAIL", "STATUS"]]
+        target = var.target[["1", "2", "3", "4", "5", "6", "TONAME", "EMAIL", "STATUS"]].copy()
         target.fillna(" ", inplace=True)
         # Convert all columns except STATUS to string
         for col in ["1", "2", "3", "4", "5", "6", "TONAME", "EMAIL"]:
-            target[col] = target[col].astype(str)
+            target.loc[:, col] = target[col].astype(str)
         # Keep STATUS as is (don't convert to string if it's already correct)
         target = target.loc[target["EMAIL"] != " "]
         if len(var.target_blacklist) > 0:
