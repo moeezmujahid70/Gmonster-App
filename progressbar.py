@@ -127,13 +127,13 @@ class DeleteEmail(Ui_Dialog):
 
     def progressbar(self):
         if total_email_count != 0 and delete_status == True:
-            value = var.delete_email_count / total_email_count * 100
+            value = int(var.delete_email_count / total_email_count * 100)
             self.label_status.setText(
                 "Deleted : {}/{}".format(var.delete_email_count, total_email_count)
             )
             self.progressBar.setValue(value)
         elif not delete_status:
-            value = var.delete_email_count / total_email_count * 100
+            value = int(var.delete_email_count / total_email_count * 100)
             self.label_status.setText(
                 "Deleting Finished : {}/{}".format(
                     var.delete_email_count, total_email_count

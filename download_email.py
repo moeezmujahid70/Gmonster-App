@@ -47,7 +47,16 @@ class Download(Ui_Dialog):
                     f"Total Email Downloaded : {var.total_email_downloaded} Accounts failed : {var.email_failed}"
                 )
                 self.pushButton_cancel.setText("Close")
-            value = var.acc_finished / var.total_acc * 100
+            # compute percentage safely (avoid ZeroDivisionError) and pass int to setValue
+            try:
+                if var.total_acc and var.total_acc > 0:
+                    value = int(round(var.acc_finished / var.total_acc * 100))
+                else:
+                    value = 0
+            except Exception:
+                value = 0
+            # clamp between 0 and 100
+            value = max(0, min(100, value))
             self.progressBar.setValue(value)
         except Exception as e:
             print("Error at download_email.Download.update_gui : {}".format(e))
