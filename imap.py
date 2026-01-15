@@ -120,12 +120,27 @@ class ImapDeleteEmail(ImapBase, threading.Thread):
                     imap.uid("STORE", row["uid"], "+X-GM-LABELS", "\\Trash")
                     var.delete_email_count += 1
                     var.inbox_data[var.inbox_group].drop(row_index, inplace=True)
-                    matching_row = var.inbox_data_table[var.inbox_group][
-                        (var.inbox_data_table[var.inbox_group]["from"] == row["from"])
-                        & (var.inbox_data_table[var.inbox_group]["subject"] == row["subject"])
-                        & (var.inbox_data_table[var.inbox_group]["date"] == row["date"])
-                    ].index[0]
-                    var.inbox_data_table[var.inbox_group].drop(matching_row, inplace=True)
+                    matching_row = None
+                    if (
+                        not var.inbox_data_table[var.inbox_group].empty
+                        and "uid" in var.inbox_data_table[var.inbox_group].columns
+                        and "uid" in row
+                    ):
+                        match = var.inbox_data_table[var.inbox_group][
+                            var.inbox_data_table[var.inbox_group]["uid"] == row["uid"]
+                        ]
+                        if not match.empty:
+                            matching_row = match.index[0]
+                    if matching_row is None:
+                        match = var.inbox_data_table[var.inbox_group][
+                            (var.inbox_data_table[var.inbox_group]["from"] == row["from"])
+                            & (var.inbox_data_table[var.inbox_group]["subject"] == row["subject"])
+                            & (var.inbox_data_table[var.inbox_group]["date"] == row["date"])
+                        ]
+                        if not match.empty:
+                            matching_row = match.index[0]
+                    if matching_row is not None:
+                        var.inbox_data_table[var.inbox_group].drop(matching_row, inplace=True)
             if not sent_emails.empty:
                 imap.select('"[Gmail]/Sent Mail"')
                 for row_index, row in sent_emails.iterrows():
@@ -134,12 +149,27 @@ class ImapDeleteEmail(ImapBase, threading.Thread):
                     imap.uid("STORE", row["uid"], "+X-GM-LABELS", "\\Trash")
                     var.delete_email_count += 1
                     var.inbox_data[var.inbox_group].drop(row_index, inplace=True)
-                    matching_row = var.inbox_data_table[var.inbox_group][
-                        (var.inbox_data_table[var.inbox_group]["from"] == row["from"])
-                        & (var.inbox_data_table[var.inbox_group]["subject"] == row["subject"])
-                        & (var.inbox_data_table[var.inbox_group]["date"] == row["date"])
-                    ].index[0]
-                    var.inbox_data_table[var.inbox_group].drop(matching_row, inplace=True)
+                    matching_row = None
+                    if (
+                        not var.inbox_data_table[var.inbox_group].empty
+                        and "uid" in var.inbox_data_table[var.inbox_group].columns
+                        and "uid" in row
+                    ):
+                        match = var.inbox_data_table[var.inbox_group][
+                            var.inbox_data_table[var.inbox_group]["uid"] == row["uid"]
+                        ]
+                        if not match.empty:
+                            matching_row = match.index[0]
+                    if matching_row is None:
+                        match = var.inbox_data_table[var.inbox_group][
+                            (var.inbox_data_table[var.inbox_group]["from"] == row["from"])
+                            & (var.inbox_data_table[var.inbox_group]["subject"] == row["subject"])
+                            & (var.inbox_data_table[var.inbox_group]["date"] == row["date"])
+                        ]
+                        if not match.empty:
+                            matching_row = match.index[0]
+                    if matching_row is not None:
+                        var.inbox_data_table[var.inbox_group].drop(matching_row, inplace=True)
             imap.close()
             imap.logout()
         except Exception as e:
