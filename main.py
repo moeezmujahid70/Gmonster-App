@@ -123,6 +123,8 @@ class MyMainClass:
         GUI.tableView_database.resizeColumnsToContents()
         delegate = InLineEditDelegate()
         GUI.tableView_database.setItemDelegate(delegate)
+        GUI.label_target_count.hide()
+        GUI.pushButton_export_targets.hide()
         self.logger = var.logger
         self.sub_exp = 0
         self.try_failed = 0
@@ -154,7 +156,7 @@ class MyMainClass:
         self.command_timer.timeout.connect(self.run_command)
         self.command_timer.start()
         self.autoReply_timer = QtCore.QTimer()
-        self.autoReply_timer.setInterval(var.autoReply_intervals * 60 * 1000)
+        self.autoReply_timer.setInterval(max(1, int(var.autoReply_intervals * 60 * 1000)))
         self.autoReply_timer.timeout.connect(self.autoReply_start)
         if var.autoReply_enabled:
             self.autoReply_timer.start()
@@ -173,6 +175,7 @@ class MyMainClass:
         self.option = GUI.pushButton_sort_date.text()
         GUI.pushButton_send.clicked.connect(self.send_camp)
         GUI.pushButton_reply.clicked.connect(self.send_reply)
+        GUI.pushButton_export_targets.clicked.connect(self.export_targets)
         GUI.lineEdit_subject.setText(var.compose_email_subject)
         GUI.textBrowser_compose.setPlainText(var.compose_email_body)
         GUI.checkBox_remove_email_from_target.setChecked(var.remove_email_from_target)
@@ -190,7 +193,7 @@ class MyMainClass:
         GUI.checkBox_space_encoding.setChecked(var.space_encoding_checkbox)
         self.auto_fire_responses_webhook_timer = QtCore.QTimer()
         self.auto_fire_responses_webhook_timer.setInterval(
-            var.auto_fire_responses_webhook_interval * 3600 * 1000
+            max(1, int(var.auto_fire_responses_webhook_interval * 3600 * 1000))
         )
         self.auto_fire_responses_webhook_timer.timeout.connect(
             lambda: threading.Thread(
@@ -237,7 +240,7 @@ class MyMainClass:
         GUI.tableWidget_inbox.cellClicked.connect(self.email_show)
         self.continuous_loading_airtable_timer = QtCore.QTimer()
         self.continuous_loading_airtable_timer.setInterval(
-            var.AirtableConfig.continuous_loading_time_period * 3600 * 1000
+            max(1, int(var.AirtableConfig.continuous_loading_time_period * 3600 * 1000))
         )
         self.continuous_loading_airtable_timer.timeout.connect(
             self.pull_target_from_airtable
@@ -426,6 +429,7 @@ class MyMainClass:
         GUI.radioButton_email_negative.clicked.connect(self.inbox_show_changed)
         self.autoReply_positive_last_date = pd.to_datetime(var.date, format="%m/%d/%Y").strftime("%Y-%m-%d %H:%M:%S")
         self.autoReply_all_last_date = pd.to_datetime(var.date, format="%m/%d/%Y").strftime("%Y-%m-%d %H:%M:%S")
+        self.update_target_count()
         threading.Thread(
             target=self.reset_schedule_campaign_job_list, daemon=True, args=[]
         ).start()
@@ -641,6 +645,9 @@ class MyMainClass:
                 else:
                     logger.error(f"HTTP {response.status_code} for {email}: {response.text}")
                     
+            except requests.exceptions.ConnectionError as e:
+                logger.error(f"Connection error for {email} to {url}: {str(e)}")
+                logger.error(f"Email verification service unreachable. Check if service at 194.32.107.15:80 is running.")
             except requests.RequestException as e:
                 logger.error(f"Request failed for {email}: {str(e)}")
             
@@ -665,18 +672,44 @@ class MyMainClass:
                 # Get new proxy every 10 tasks
                 if i % 10 == 0:
                     url = var.api + "verify/get_proxy/{}".format(var.login_email)
-                    response = requests.post(url, timeout=10)
-                    if response.status_code == 200:
-                        next_proxy = response.json()["proxy"]
-                        ip, username, password = next_proxy.split()
-                        proxy_config = {
-                            "host": ip.split(":")[0].strip(),
-                            "port": int(ip.split(":")[1].strip()),
-                            "username": username.strip(),
-                            "password": password.strip()
-                        }
-                    else:
-                        alert(text="Service not available. Please try again later.", title="Error", button="OK")
+                    try:
+                        response = requests.post(url, timeout=10)
+                        if response.status_code == 200:
+                            next_proxy = response.json()["proxy"]
+                            ip, username, password = next_proxy.split()
+                            proxy_config = {
+                                "host": ip.split(":")[0].strip(),
+                                "port": int(ip.split(":")[1].strip()),
+                                "username": username.strip(),
+                                "password": password.strip()
+                            }
+                        else:
+                            error_message = "Service not available. Please try again later."
+                            try:
+                                payload = response.json()
+                                backend_message = payload.get("message") or payload.get("error")
+                                if backend_message:
+                                    error_message = backend_message
+                            except ValueError:
+                                if response.text:
+                                    error_message = response.text.strip()
+                            logger.error(
+                                f"get_proxy failed at {url}: HTTP {response.status_code} - {response.text}"
+                            )
+                            alert(text=error_message, title="Error", button="OK")
+                            break
+                    except requests.exceptions.ConnectionError as e:
+                        logger.error(
+                            f"Cannot connect to proxy service at {url}: {str(e)}"
+                        )
+                        error_message = f"Cannot reach proxy service. Check if {var.api} is accessible."
+                        alert(text=error_message, title="Error", button="OK")
+                        break
+                    except requests.RequestException as e:
+                        logger.error(
+                            f"Request error to proxy service at {url}: {str(e)}"
+                        )
+                        alert(text=f"Error fetching proxy: {str(e)}", title="Error", button="OK")
                         break
                 
                 # Submit first 10 immediately, then rate limit
@@ -1559,6 +1592,34 @@ class MyMainClass:
 
     def insert_row(self):
         GUI.model.insertRows()
+        self.update_target_count()
+
+    # def remove_row(self):
+    #     rows = GUI.tableView_database.selectedIndexes()
+    #     rows = list(set([item.row() for item in rows]))
+    #     if len(rows) == 1:
+    #         GUI.model.removeRows(rows[0])
+    #         # Enqueue refresh to main thread so behavior matches multi-row delete
+    #         try:
+    #             var.command_q.put("self.update_db_table()")
+    #         except Exception:
+    #                 pass
+    #     else:
+    #         if len(rows) > 1:
+    #             ids = (
+    #                 GUI.model._data[GUI.model._data.index.isin(rows)]
+    #                 .iloc[:, 0]
+    #                 .to_list()
+    #             )
+    #             Thread(target=database.db_remove_rows, daemon=True, args=(ids,)).start()
+    #             var.command_q.put(f"GUI.model._data.drop({rows}, inplace=True)")
+    #             var.command_q.put(
+    #                 "GUI.model._data.reset_index(drop=True, inplace=True)"
+    #             )
+    #             var.command_q.put("self.update_db_table()")
+    #         else:
+    #             self.logger.warning("Select something")
+    #     GUI.tableView_database.clearSelection()
 
     def remove_row(self):
         rows = GUI.tableView_database.selectedIndexes()
@@ -1567,20 +1628,17 @@ class MyMainClass:
             GUI.model.removeRows(rows[0])
         else:
             if len(rows) > 1:
-                ids = (
-                    GUI.model._data[GUI.model._data.index.isin(rows)]
-                    .iloc[:, 0]
-                    .to_list()
-                )
+                index_labels = GUI.model._data.index[rows].tolist()
+                ids = GUI.model._data.iloc[rows, 0].to_list()
+                GUI.model.layoutAboutToBeChanged.emit()
+                GUI.model._data.drop(index_labels, inplace=True)
+                GUI.model._data.reset_index(drop=True, inplace=True)
+                GUI.model.layoutChanged.emit()
                 Thread(target=database.db_remove_rows, daemon=True, args=(ids,)).start()
-                var.command_q.put(f"GUI.model._data.drop({rows}, inplace=True)")
-                var.command_q.put(
-                    "GUI.model._data.reset_index(drop=True, inplace=True)"
-                )
-                var.command_q.put("self.update_db_table()")
             else:
                 self.logger.warning("Select something")
         GUI.tableView_database.clearSelection()
+        self.update_target_count()
 
     def select_rows_by_status(self):
         """Select all rows in the table that match the checked status filters"""
@@ -1637,6 +1695,7 @@ class MyMainClass:
             else:
                 GUI.model._data = var.target
         GUI.model.layoutChanged.emit()
+        self.update_target_count()
 
     def update_limit_of_thread(self):
         try:
@@ -1644,6 +1703,47 @@ class MyMainClass:
         except Exception as e:
             GUI.lineEdit_number_of_threads.setText(str(var.limit_of_thread))
             alert(text="Must be a number", title="Alert", button="OK")
+
+    def update_target_count(self):
+            if GUI.radioButton_db_target.isChecked():
+                count = 0
+                try:
+                    count = len(GUI.model._data) if GUI.model._data is not None else 0
+                except Exception:
+                    count = 0
+                GUI.label_target_count.setText(f"Targets: {count}")
+                GUI.label_target_count.show()
+                GUI.pushButton_export_targets.show()
+            else:
+                GUI.label_target_count.hide()
+                GUI.pushButton_export_targets.hide()
+
+
+    def export_targets(self):
+        if not GUI.radioButton_db_target.isChecked():
+            return
+        data = GUI.model._data
+        if data is None or data.empty:
+            alert(text="No targets to export.", title="Export", button="OK")
+            return
+        default_name = f"targets-{datetime.now().strftime('%Y%m%d-%H%M')}.xlsx"
+        file_path, _ = QFileDialog.getSaveFileName(
+            mainWindow, "Export Targets", default_name, "Excel Files (*.xlsx)"
+        )
+        if not file_path:
+            return
+        if not file_path.lower().endswith(".xlsx"):
+            file_path += ".xlsx"
+        try:
+            data.to_excel(file_path, index=False)
+            alert(
+                text=f"Exported {len(data)} targets to:\n{file_path}",
+                title="Export complete",
+                button="OK",
+            )
+        except Exception as e:
+            logger.error(f"Export targets failed: {e}")
+            alert(text=f"Export failed: {e}", title="Error", button="OK")
 
     def check_for_subscription(self):
         global quit_application
@@ -1726,10 +1826,18 @@ class MyMainClass:
 
     def batch_delete(self):
         try:
-            if (
-                var.inbox_data["checkbox_status"].sum() > 0
-                or GUI.checkBox_delete_all.isChecked()
-            ):
+            inbox_df = None
+            try:
+                inbox_df = var.inbox_data[var.inbox_group]
+            except Exception:
+                inbox_df = None
+            selected_count = 0
+            if inbox_df is not None and not inbox_df.empty and "checkbox_status" in inbox_df.columns:
+                try:
+                    selected_count = int(inbox_df["checkbox_status"].sum())
+                except Exception:
+                    selected_count = 0
+            if selected_count > 0 or GUI.checkBox_delete_all.isChecked():
                 result = confirm(
                     text="Are you sure?",
                     title="Confirmation Window",
@@ -1980,7 +2088,7 @@ class MyMainClass:
                 GUI.lable_campaign_status_text.setText("Stopped")
             else:
                 GUI.lable_campaign_status_text.setText("Sending")
-            GUI.progressBar_compose.setValue(value)
+            GUI.progressBar_compose.setValue(int(value))
         except Exception as e:
             logger.error("Error at main.py->update_compose_progressbar : {}".format(e))
 
@@ -2204,9 +2312,15 @@ class MyMainClass:
             # Batch processing with enumerate for cleaner iteration
             for row_pos, (_, row_data) in enumerate(inbox_data.iterrows()):
                 # Set text items efficiently
-                GUI.tableWidget_inbox.setItem(row_pos, 2, QTableWidgetItem(row_data["from_name"]))
-                GUI.tableWidget_inbox.setItem(row_pos, 3, QTableWidgetItem(row_data["subject"]))
-                GUI.tableWidget_inbox.setItem(row_pos, 4, QTableWidgetItem(row_data["date"].strftime("%d/%b")))
+                GUI.tableWidget_inbox.setItem(row_pos, 2, QTableWidgetItem(row_data.get("from_name", "")))
+                GUI.tableWidget_inbox.setItem(row_pos, 3, QTableWidgetItem(row_data.get("subject", "")))
+                # Safely format the date even if missing or not a datetime
+                date_val = row_data.get("date", "")
+                try:
+                    date_text = date_val.strftime("%d/%b") if hasattr(date_val, "strftime") else str(date_val)
+                except Exception:
+                    date_text = ""
+                GUI.tableWidget_inbox.setItem(row_pos, 4, QTableWidgetItem(date_text))
                 
                 # Create and configure button
                 button_show_mail = QtWidgets.QPushButton("")
@@ -2237,36 +2351,90 @@ class MyMainClass:
             if state == QtCore.Qt.Checked:
                 print("Checked")
                 var.inbox_data[var.inbox_group].loc[row, "checkbox_status"] = 1
-                matching_row = var.inbox_data_table[var.inbox_group][
-                    (var.inbox_data_table[var.inbox_group]["from"] == var.inbox_data[var.inbox_group].iloc[row]["from"])
-                    & (
-                        var.inbox_data_table[var.inbox_group]["subject"]
-                        == var.inbox_data[var.inbox_group].iloc[row]["subject"]
-                    )
-                    & (var.inbox_data_table[var.inbox_group]["date"] == var.inbox_data[var.inbox_group].iloc[row]["date"])
-                ].index[0]
-                var.inbox_data_table[var.inbox_group].loc[matching_row, "checkbox_status"] = 1
+                matching_row = None
+                if (
+                    not var.inbox_data_table[var.inbox_group].empty
+                    and "uid" in var.inbox_data_table[var.inbox_group].columns
+                    and "uid" in var.inbox_data[var.inbox_group].columns
+                ):
+                    match = var.inbox_data_table[var.inbox_group][
+                        var.inbox_data_table[var.inbox_group]["uid"]
+                        == var.inbox_data[var.inbox_group].iloc[row]["uid"]
+                    ]
+                    if not match.empty:
+                        matching_row = match.index[0]
+                if matching_row is None:
+                    match = var.inbox_data_table[var.inbox_group][
+                        (var.inbox_data_table[var.inbox_group]["from"] == var.inbox_data[var.inbox_group].iloc[row]["from"])
+                        & (
+                            var.inbox_data_table[var.inbox_group]["subject"]
+                            == var.inbox_data[var.inbox_group].iloc[row]["subject"]
+                        )
+                        & (var.inbox_data_table[var.inbox_group]["date"] == var.inbox_data[var.inbox_group].iloc[row]["date"])
+                    ]
+                    if not match.empty:
+                        matching_row = match.index[0]
+                if matching_row is not None:
+                    var.inbox_data_table[var.inbox_group].loc[matching_row, "checkbox_status"] = 1
                 print(var.inbox_data[var.inbox_group].iloc[row]["subject"])
             else:
                 print("Unchecked")
                 var.inbox_data[var.inbox_group].loc[row, "checkbox_status"] = 0
-                matching_row = var.inbox_data_table[var.inbox_group][
-                    (var.inbox_data_table[var.inbox_group]["from"] == var.inbox_data[var.inbox_group].iloc[row]["from"])
-                    & (
-                        var.inbox_data_table[var.inbox_group]["subject"]
-                        == var.inbox_data[var.inbox_group].iloc[row]["subject"]
-                    )
-                    & (var.inbox_data_table[var.inbox_group]["date"] == var.inbox_data[var.inbox_group].iloc[row]["date"])
-                ].index[0]
-                var.inbox_data_table[var.inbox_group].loc[matching_row, "checkbox_status"] = 0
+                matching_row = None
+                if (
+                    not var.inbox_data_table[var.inbox_group].empty
+                    and "uid" in var.inbox_data_table[var.inbox_group].columns
+                    and "uid" in var.inbox_data[var.inbox_group].columns
+                ):
+                    match = var.inbox_data_table[var.inbox_group][
+                        var.inbox_data_table[var.inbox_group]["uid"]
+                        == var.inbox_data[var.inbox_group].iloc[row]["uid"]
+                    ]
+                    if not match.empty:
+                        matching_row = match.index[0]
+                if matching_row is None:
+                    match = var.inbox_data_table[var.inbox_group][
+                        (var.inbox_data_table[var.inbox_group]["from"] == var.inbox_data[var.inbox_group].iloc[row]["from"])
+                        & (
+                            var.inbox_data_table[var.inbox_group]["subject"]
+                            == var.inbox_data[var.inbox_group].iloc[row]["subject"]
+                        )
+                        & (var.inbox_data_table[var.inbox_group]["date"] == var.inbox_data[var.inbox_group].iloc[row]["date"])
+                    ]
+                    if not match.empty:
+                        matching_row = match.index[0]
+                if matching_row is not None:
+                    var.inbox_data_table[var.inbox_group].loc[matching_row, "checkbox_status"] = 0
                 print(var.inbox_data[var.inbox_group].iloc[row]["subject"])
 
     def toggle_all_checkboxes(self, state, header_checkbox):
         row_count = GUI.tableWidget_inbox.rowCount()
+        checked = state == QtCore.Qt.Checked
         for row in range(row_count):
             checkbox = GUI.tableWidget_inbox.cellWidget(row, 0)
             if checkbox and isinstance(checkbox, QtWidgets.QCheckBox):
-                checkbox.setChecked(state == QtCore.Qt.Checked)
+                checkbox.blockSignals(True)
+                checkbox.setChecked(checked)
+                checkbox.blockSignals(False)
+        inbox_df = None
+        try:
+            inbox_df = var.inbox_data[var.inbox_group]
+        except Exception:
+            inbox_df = None
+        if inbox_df is not None and not inbox_df.empty and "checkbox_status" in inbox_df.columns:
+            var.inbox_data[var.inbox_group].loc[:, "checkbox_status"] = 1 if checked else 0
+            table_df = var.inbox_data_table[var.inbox_group]
+            if (
+                table_df is not None
+                and not table_df.empty
+                and "uid" in table_df.columns
+                and "uid" in inbox_df.columns
+            ):
+                uids = inbox_df["uid"].tolist()
+                var.inbox_data_table[var.inbox_group].loc[
+                    var.inbox_data_table[var.inbox_group]["uid"].isin(uids),
+                    "checkbox_status",
+                ] = 1 if checked else 0
         all_checked = all(
             (
                 GUI.tableWidget_inbox.cellWidget(row, 0).isChecked()
@@ -2363,16 +2531,22 @@ class MyMainClass:
         var.row_pos = 0
         GUI.tableWidget_inbox.setRowCount(0)
         inbox_data = var.inbox_data[var.inbox_group].copy()
+        # Only attempt to sort if the relevant column exists to avoid KeyError
+        cols = inbox_data.columns
         if option == "Latest":
-            inbox_data.sort_values(by="date", inplace=True, ascending=True)
+            if "date" in cols:
+                inbox_data.sort_values(by="date", inplace=True, ascending=True)
         else:
             if option == "A - Z":
-                inbox_data.sort_values(by="subject", inplace=True, ascending=False)
+                if "subject" in cols:
+                    inbox_data.sort_values(by="subject", inplace=True, ascending=False)
             else:
                 if option == "Z - A":
-                    inbox_data.sort_values(by="subject", inplace=True, ascending=True)
+                    if "subject" in cols:
+                        inbox_data.sort_values(by="subject", inplace=True, ascending=True)
                 else:
-                    inbox_data.sort_values(by="date", inplace=True, ascending=False)
+                    if "date" in cols:
+                        inbox_data.sort_values(by="date", inplace=True, ascending=False)
         inbox_data.reset_index(drop=True, inplace=True)
         var.inbox_data[var.inbox_group] = inbox_data
         self.display_email_in_table()
