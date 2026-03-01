@@ -26,7 +26,8 @@ class Ui_MainWindow(object):
         font.setPointSize(11)
         MainWindow.setFont(font)
         MainWindow.setAutoFillBackground(False)
-        MainWindow.setStyleSheet("background-color: #E3E3E3;")
+        MainWindow.setStyleSheet("background-color: #E3E3E3;\n"
+"color: #333333;")
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setStyleSheet("QLineEdit{\n"
 "    border: 1px solid;\n"
@@ -35,6 +36,7 @@ class Ui_MainWindow(object):
 "    padding: 5px;\n"
 "    min-height: 30px;\n"
 "    max-height: 30px;\n"
+"    color: #222222;\n"
 "}")
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
