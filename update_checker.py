@@ -39,9 +39,12 @@ class UpdateHandler:
             logger.info("Internal Process: Update downloaded.")
             with ZipFile(filepath, "r") as zip_file:
                 zip_file.extractall(path=temp_path)
-            subprocess.Popen([var.update_bat_file_path], shell=True)
-            logger.info("Internal Process: Closing the application.")
-            var.command_q.put("QtCore.QCoreApplication.quit()")
+            if os.name == "nt":
+                subprocess.Popen([var.update_bat_file_path], shell=True)
+                logger.info("Internal Process: Closing the application.")
+                var.command_q.put("QtCore.QCoreApplication.quit()")
+            else:
+                logger.info("Internal Process: Update extracted. Auto-replace is only supported on Windows.")
         except:
             logger.info(
                 "Error at UpdateHandler.download: {}".format(traceback.format_exc())

@@ -21,7 +21,7 @@ import json
 import uuid
 from pyairtable import Table
 from pyairtable.formulas import match
-from pyautogui import alert, password, confirm
+from compat_ui import alert, password, confirm
 from datetime import datetime, timedelta
 from imap import ImapCheckForBlocks, ImapFollowUpCheck
 from webhook import SendWebhook, CampaignReportWebhook
@@ -122,7 +122,8 @@ class TestMail(SmtpBase):
                 (
                     str(
                         Header(
-                            "{} {}".format(self.first_from_name, self.last_from_name),
+                            "{} {}".format(self.first_from_name,
+                                           self.last_from_name),
                             "utf-8",
                         )
                     ),
@@ -184,7 +185,8 @@ class TestMail(SmtpBase):
             return True
         except Exception as e:
             logger.error(
-                "Error at test send - {} - {}".format(self.user, traceback.format_exc())
+                "Error at test send - {} - {}".format(
+                    self.user, traceback.format_exc())
             )
             return False
 
@@ -218,7 +220,8 @@ class ForwardMail(SmtpBase):
                 (
                     str(
                         Header(
-                            "{} {}".format(self.first_from_name, self.last_from_name),
+                            "{} {}".format(self.first_from_name,
+                                           self.last_from_name),
                             "utf-8",
                         )
                     ),
@@ -232,7 +235,8 @@ class ForwardMail(SmtpBase):
                 send_to = var.cc_emails.split(",") + [send_to]
             msg["Date"] = formatdate(localtime=True)
             msg["Message-ID"] = make_msgid(domain=self.user.split("@")[1])
-            checked_emails = var.inbox_data[var.inbox_group].loc[var.inbox_data[var.inbox_group]["checkbox_status"] == 1]
+            checked_emails = var.inbox_data[var.inbox_group].loc[var.inbox_data[var.inbox_group]
+                                                                 ["checkbox_status"] == 1]
             if checked_emails.empty:
                 logger.warning("No emails selected for forwarding.")
                 return False
@@ -255,11 +259,13 @@ class ForwardMail(SmtpBase):
             server.sendmail(self.user, send_to, msg.as_string())
             server.quit()
             server.close()
-            logger.info(f"Forwarded {len(checked_emails)} emails to {self.forward_to}")
+            logger.info(
+                f"Forwarded {len(checked_emails)} emails to {self.forward_to}")
             return True
         except Exception as e:
             logger.error(
-                "Error at forward - {} - {}".format(self.user, traceback.format_exc())
+                "Error at forward - {} - {}".format(
+                    self.user, traceback.format_exc())
             )
             return False
 
@@ -306,7 +312,8 @@ class ReplyMail(SmtpBase):
                 (
                     str(
                         Header(
-                            "{} {}".format(self.first_from_name, self.last_from_name),
+                            "{} {}".format(self.first_from_name,
+                                           self.last_from_name),
                             "utf-8",
                         )
                     ),
@@ -367,7 +374,8 @@ class ReplyMail(SmtpBase):
             return True
         except Exception as e:
             logger.error(
-                "Error at replying - {} - {}".format(self.user, traceback.format_exc())
+                "Error at replying - {} - {}".format(
+                    self.user, traceback.format_exc())
             )
             return False
 
@@ -388,7 +396,8 @@ class Smtp(SmtpBase, threading.Thread):
         self.local_hostname = None
         self.followup_enabled = kwargs["followup_enabled"]
         self.logger.info(
-            "SMTP thread starting: Length - {} {}".format(len(self.target), self.user)
+            "SMTP thread starting: Length - {} {}".format(
+                len(self.target), self.user)
         )
 
     def _login(self):
@@ -541,13 +550,15 @@ class Smtp(SmtpBase, threading.Thread):
                     break
                 for counter in range(0, 3):
                     try:
-                        server.sendmail(self.user, item["EMAIL"], msg.as_string())
+                        server.sendmail(
+                            self.user, item["EMAIL"], msg.as_string())
                         break
                     except:
                         if counter == 2:
                             raise
                         time.sleep(random.randint(10, 100))
-                        logger.warning("Reconnecting smtp - {}".format(self.name))
+                        logger.warning(
+                            "Reconnecting smtp - {}".format(self.name))
                         try:
                             server = self._login()
                         except:
@@ -623,7 +634,8 @@ class Smtp(SmtpBase, threading.Thread):
                         )
                         break
                     else:
-                        self.logger.error(f"Found no block messages : {self.name}")
+                        self.logger.error(
+                            f"Found no block messages : {self.name}")
                         # self.logger.error(
                         #     f"Found no block messages : {self.name} {str(datetime.now())}")
 
@@ -633,7 +645,8 @@ class Smtp(SmtpBase, threading.Thread):
         except Exception as e:
             email_failed += 1
             self.logger.error(
-                "Error at Sending - {} - {}".format(self.name, traceback.format_exc())
+                "Error at Sending - {} - {}".format(
+                    self.name, traceback.format_exc())
             )
             t_dict = {
                 "TARGET": last_recipient,
@@ -775,7 +788,8 @@ class AddCachedTargets(threading.Thread):
                     email = AddCachedTargets.targets_q.get()
                     self.db.add_to_cached_targets(email)
             except Exception as e:
-                logger.error(f"Error at AddCachedTargets : {traceback.format_exc()}")
+                logger.error(
+                    f"Error at AddCachedTargets : {traceback.format_exc()}")
             time.sleep(1)
         logger.info("AddCachedTargets thread class terminating")
 
@@ -821,12 +835,13 @@ def main(group, d_start, d_end, group_selected, num_emails_per_address_range):
         target = var.target.copy()
         # it removes the rows that doesn't any email address
         target = target[target["EMAIL"] != ""]
-        
+
         # Filter targets upfront to be unique by EMAIL
         original_count = len(target)
         target = target.drop_duplicates(subset=['EMAIL'], keep='first')
         unique_count = len(target)
-        logger.info(f"Target filtering: {original_count} -> {unique_count} (removed {original_count - unique_count} duplicates)")
+        logger.info(
+            f"Target filtering: {original_count} -> {unique_count} (removed {original_count - unique_count} duplicates)")
 
         target.insert(9, "flag", "")
         target["flag"] = 0
@@ -945,7 +960,8 @@ def main(group, d_start, d_end, group_selected, num_emails_per_address_range):
 
                     Smtp(**kwargs).start()
 
-                    logger.info(f"{name} set to sent {num_emails_per_address} emails")
+                    logger.info(
+                        f"{name} set to sent {num_emails_per_address} emails")
 
                     while (
                         var.thread_open_campaign >= var.limit_of_thread
@@ -1076,7 +1092,8 @@ def follow_up(campaign_id: str):
             logger.info(
                 f"Waiting to start Followup process because campaign is running, Campaign ID - {campaign_id}"
             )
-        logger.info(f"Starting Followup process again, Campaign ID - {campaign_id}")
+        logger.info(
+            f"Starting Followup process again, Campaign ID - {campaign_id}")
         var.command_q.put("GUI.progressBar_compose.setValue(0)")
         var.command_q.put("self.send_button_visibility(on=False)")
         var.command_q.put("self.compose_config_visibility(on=False)")
@@ -1107,7 +1124,8 @@ def follow_up(campaign_id: str):
                     time.sleep(1)
             while ImapFollowUpCheck.thread_open != 0:
                 time.sleep(1)
-            var.command_q.put("GUI.label_compose_status.setText('Follow Up: 1/2')")
+            var.command_q.put(
+                "GUI.label_compose_status.setText('Follow Up: 1/2')")
             followup_required = ImapFollowUpCheck.followup_required
             FollowUpSend.email_to_be_sent = ImapFollowUpCheck.email_to_be_sent
             if len(followup_required) > 0:
@@ -1127,7 +1145,8 @@ def follow_up(campaign_id: str):
                 while FollowUpSend.thread_open != 0:
                     time.sleep(1)
                 try:
-                    field_names = ["TARGET", "FROMEMAIL", "STATUS", "CAMPAIGN", "DATE"]
+                    field_names = ["TARGET", "FROMEMAIL",
+                                   "STATUS", "CAMPAIGN", "DATE"]
                     with open(
                         os.path.join(
                             os.getcwd(), var.base_dir, var.followup_report_file_path
@@ -1136,7 +1155,8 @@ def follow_up(campaign_id: str):
                         newline="",
                         encoding="utf-8",
                     ) as csvfile:
-                        writer = csv.DictWriter(csvfile, fieldnames=field_names)
+                        writer = csv.DictWriter(
+                            csvfile, fieldnames=field_names)
                         writer.writeheader()
                         while not FollowUpSend.send_report.empty():
                             report = FollowUpSend.send_report.get()
@@ -1149,10 +1169,13 @@ def follow_up(campaign_id: str):
                         f"Error at follow_up, Campaign Id - {campaign_id} - {e}\n{traceback.format_exc()}"
                     )
             else:
-                logger.info(f"No Followups required. Campaign Id - {campaign_id}")
+                logger.info(
+                    f"No Followups required. Campaign Id - {campaign_id}")
         else:
-            logger.info(f"No Followups entry found. Campaign Id - {campaign_id}")
-        var.command_q.put("GUI.label_compose_status.setText('Follow Up: 2/2 Done')")
+            logger.info(
+                f"No Followups entry found. Campaign Id - {campaign_id}")
+        var.command_q.put(
+            "GUI.label_compose_status.setText('Follow Up: 2/2 Done')")
     except Exception as e:
         logger.error(
             f"Error at follow_up, Campaign Id - {campaign_id}: {e}\n{traceback.format_exc()}"

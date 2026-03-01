@@ -1,24 +1,29 @@
-global scheduler
-import traceback
-import uuid
-from json import load, dumps
-from pathlib import Path
-import pandas as pd
-import queue
-from queue import LifoQueue
-from win32event import CreateMutex
-from win32api import CloseHandle, GetLastError
-from winerror import ERROR_ALREADY_EXISTS
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
-import var
-from logger import logger
-import sys
 import os
+import sys
+from logger import logger
+import var
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from apscheduler.schedulers.background import BackgroundScheduler
+import tempfile
+if os.name == 'nt':
+    import msvcrt
+else:
+    import fcntl
+from queue import LifoQueue
+import queue
+import pandas as pd
+from pathlib import Path
+from json import load, dumps
+import uuid
+import traceback
+global scheduler
+
 
 def override_where():
     """ overrides certifi.core.where to return actual location of cacert.pem"""
     return os.path.abspath(os.path.join(os.getcwd(), 'database', 'cacert.pem'))
+
+
 if hasattr(sys, 'frozen'):
     import certifi.core
     os.environ['REQUESTS_CA_BUNDLE'] = override_where()
@@ -31,20 +36,47 @@ if hasattr(sys, 'frozen'):
 else:
     import requests
 
+
 class SingleInstance:
     """ Limits application to single instance """
 
     def __init__(self):
         self.mutexname = 'testmutex_{D0E858DF-985E-4907-B7FB-8D732C3FC3B9}'
-        self.mutex = CreateMutex(None, False, self.mutexname)
-        self.lasterror = GetLastError()
+        self.lasterror = 0
+        self.lock_file = None
+        lock_file_path = os.path.join(
+            tempfile.gettempdir(), f'{self.mutexname}.lock')
+        self.lock_file = open(lock_file_path, 'a+')
+        try:
+            if os.name == 'nt':
+                self.lock_file.seek(0)
+                msvcrt.locking(self.lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                fcntl.flock(self.lock_file.fileno(),
+                            fcntl.LOCK_EX | fcntl.LOCK_NB)
+            self.lasterror = 0
+        except OSError:
+            self.lasterror = 1
 
     def already_running(self):
-        return self.lasterror == ERROR_ALREADY_EXISTS
+        return self.lasterror != 0
 
     def __del__(self):
-        if self.mutex:
-            CloseHandle(self.mutex)
+        if self.lock_file:
+            try:
+                if os.name == 'nt':
+                    self.lock_file.seek(0)
+                    msvcrt.locking(self.lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    fcntl.flock(self.lock_file.fileno(), fcntl.LOCK_UN)
+            except Exception:
+                pass
+            try:
+                self.lock_file.close()
+            except Exception:
+                pass
+
+
 try:
 
     def resource_path(relative_path):
@@ -60,24 +92,31 @@ base_dir = 'database'
 followup_report_file_path = 'followup_report.csv'
 update_temp_path = 'temp'
 update_bat_file_path = os.path.join(os.getcwd(), base_dir, 'updater.bat')
-try:
-    with open(update_bat_file_path, 'w') as file:
-        file.write('\n@echo off\n\nrem Wait for a period of time (e.g., 20 seconds)\ntimeout /t 20\n\nrem Replace the original executable with the updated one\nset "tempExePath=.\\temp\\GMonster.exe"  rem Replace with the actual path of the updated executable\nset "originalExePath=.\\GMonster.exe"  rem Replace with the actual path of the original executable\ncopy /y "%tempExePath%" "%originalExePath%"\n\nrem Execute the updated version of the application\nstart "" "%originalExePath%"\n\nset "tempExePath=.\\temp\\WUM.exe"  rem Replace with the actual path of the updated executable\nset "originalExePath=.\\WUM.exe"  rem Replace with the actual path of the original executable\ncopy /y "%tempExePath%" "%originalExePath%"\n            \n            ')
-except:
-    logger.error(f'Error at updater.bat file creating: {traceback.format_exc()}')
+if os.name == 'nt':
+    try:
+        with open(update_bat_file_path, 'w') as file:
+            file.write('\n@echo off\n\nrem Wait for a period of time (e.g., 20 seconds)\ntimeout /t 20\n\nrem Replace the original executable with the updated one\nset "tempExePath=.\\temp\\GMonster.exe"  rem Replace with the actual path of the updated executable\nset "originalExePath=.\\GMonster.exe"  rem Replace with the actual path of the original executable\ncopy /y "%tempExePath%" "%originalExePath%"\n\nrem Execute the updated version of the application\nstart "" "%originalExePath%"\n\nset "tempExePath=.\\temp\\WUM.exe"  rem Replace with the actual path of the updated executable\nset "originalExePath=.\\WUM.exe"  rem Replace with the actual path of the original executable\ncopy /y "%tempExePath%" "%originalExePath%"\n            \n            ')
+    except:
+        logger.error(
+            f'Error at updater.bat file creating: {traceback.format_exc()}')
 compose_email_subject = 'Just a friendly outreach about [3]'
 compose_email_body = "{Hey|Hi|Hello} [TONAME|Something],\n\nI'm reaching out to you because i {noticed|came across|found|visited} you website {the other day|yesterday} and thought you'd be interested in a {collaboration|partnership}.\n\n{Hope you don't mind my outreach!|Looking forward to your reply!}\n\nRegards,\n[FIRSTFROMNAME]"
 compose_email_body_html = "<html>\n    <body>\n        <p>{Hey|Hi|Hello} [TONAME|Something],<br>\n        I'm reaching out to you because i {noticed|came across|found|visited} you website {the other day|yesterday} and thought you'd be interested in a {collaboration|partnership}.<br>\n        {Hope you don't mind my outreach!|Looking forward to your reply!}<br>\n        </p>\n    </body>\n</html>\n"
 body_type = 'Normal'
-jobstores = {'default': SQLAlchemyJobStore(url=f'sqlite:///{base_dir}/jobs.sqlite')}
+jobstores = {'default': SQLAlchemyJobStore(
+    url=f'sqlite:///{base_dir}/jobs.sqlite')}
 logger.info('Logger Started')
 scheduler = BackgroundScheduler(logger=logger)
 scheduler.start()
 
+
 def exit_gracefully(signum, frame):
     logger.info('shutdown scheduler gracefully')
     scheduler.shutdown()
+
+
 db_file_loading_config = {'group_a': True, 'group_b': True, 'target': True}
+
 
 class AirtableConfig:
     base_id = ''
@@ -90,7 +129,9 @@ class AirtableConfig:
 
     def __init__(self):
         return
-wum_exe_path = 'WUM.exe'
+
+
+wum_exe_path = 'WUM.exe' if os.name == 'nt' else 'WUM'
 CONFUSABLES_CHARACTER = ['\u2003', '\u2002', '\u2001', '\u2000']
 add_custom_hostname = False
 window_title = 'GMonster'
@@ -142,10 +183,11 @@ limit_of_thread = 100
 login_email = ''
 tracking = {}
 webhook_link = ''
-api = 'https://enzim.pythonanywhere.com/'
+api = 'https://dev-enzim.pythonanywhere.com/'
 gmail_provider = 'https://gmonster.co/product/gmail-accounts/'
 proxy_provider = 'https://gmonster.co/product/gmonster-proxies/'
-campaign_scheduler_cache_path = os.path.join(os.path.join(os.getcwd(), base_dir, 'campaign_scheduler'))
+campaign_scheduler_cache_path = os.path.join(
+    os.path.join(os.getcwd(), base_dir, 'campaign_scheduler'))
 try:
     if not os.path.exists(campaign_scheduler_cache_path):
         os.mkdir(campaign_scheduler_cache_path)
@@ -246,7 +288,8 @@ try:
     AirtableConfig.use_desktop_id = config['airtable']['use_desktop_id']
     AirtableConfig.mark_sent_airtable = config['airtable']['mark_sent_airtable']
     AirtableConfig.continuous_loading = config['airtable']['continuous_loading']
-    AirtableConfig.continuous_loading_time_period = config['airtable']['continuous_loading_time_period']
+    AirtableConfig.continuous_loading_time_period = config[
+        'airtable']['continuous_loading_time_period']
     proxy_on = config['proxy_on']
 except Exception as e:
     logger.info('Exception occurred at config loading : {}'.format(e))
@@ -254,8 +297,11 @@ except Exception as e:
 delay_start = int(delay_between_emails.split('-')[0].strip())
 delay_end = int(delay_between_emails.split('-')[1].strip())
 
+
 def email_tracking_link():
     return f"{tracking['domain_name']}/track-email-open.php?client_id=123456789.987654321&event_name={tracking['campaign_name']}"
+
+
 delete_email_count = 0
 stop_delete = False
 group_a = pd.DataFrame()
@@ -265,20 +311,21 @@ db_path = 'database/group.db'
 if __name__ == '__main__':
     myapp = SingleInstance()
     if myapp.already_running():
-        from pyautogui import alert
+        from compat_ui import alert
         alert(text='Another instance of this program is already running')
         logger.info('Another instance of this program is already running')
         sys.exit(1)
     is_testing_environment = 0
     try:
         if os.getenv('fa414ce5-05d1-45e2-ba53-df760ad35fa0'):
-            is_testing_environment = int(os.getenv('fa414ce5-05d1-45e2-ba53-df760ad35fa0'))
+            is_testing_environment = int(
+                os.getenv('fa414ce5-05d1-45e2-ba53-df760ad35fa0'))
     except:
         pass
     logger.info('gmonster_desktop_id - {}'.format(gmonster_desktop_id))
     from utils import update_config_json
     update_config_json()
-    #add comment here
+    # add comment here
     if is_testing_environment:
         import main
     else:

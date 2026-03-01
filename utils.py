@@ -3,7 +3,7 @@ import var
 from var import logger
 import random
 import json
-from pyautogui import alert
+from compat_ui import alert
 import uuid
 
 
@@ -22,7 +22,8 @@ def is_number(s):
 def difference_between_time(first_time, last_time):
     difference = last_time - first_time
     seconds_in_day = 86400
-    minutes, seconds = divmod(difference.days * seconds_in_day + difference.seconds, 60)
+    minutes, seconds = divmod(
+        difference.days * seconds_in_day + difference.seconds, 60)
     elapsed_time = round(minutes + seconds / 60, 2)
     return elapsed_time
 
@@ -129,7 +130,8 @@ def update_config_json(alternative_name=None):
         }
         if alternative_name:
             with open(
-                var.campaign_scheduler_cache_path + f"/{alternative_name}.json", "w"
+                var.campaign_scheduler_cache_path +
+                    f"/{alternative_name}.json", "w"
             ) as json_file:
                 json.dump(data, json_file, indent=4)
             logger.info("Scheduler Campaign config saved")
@@ -231,7 +233,8 @@ def format_email(
         toname_value = TONAME.strip() if TONAME and TONAME.strip() else match.group(1)
         return toname_value
 
-    text = re.sub("\\[TONAME\\s*\\|\\s*([^\\]]+)\\]", handle_toname_match, text)
+    text = re.sub("\\[TONAME\\s*\\|\\s*([^\\]]+)\\]",
+                  handle_toname_match, text)
     if (
         var.body_type == "Html"
         and var.email_tracking_state is True
@@ -245,7 +248,8 @@ def format_email(
         text = "".join(text)
         rid = uuid.uuid4()
         text = text.replace("[**RID**]", str(rid))
-    STYLE_SCRIPT_PATTERN = re.compile("(<(style|script)[^>]*>)(.*?)(</\\2>)", re.DOTALL)
+    STYLE_SCRIPT_PATTERN = re.compile(
+        "(<(style|script)[^>]*>)(.*?)(</\\2>)", re.DOTALL)
     saved_styles = []
 
     def save_style_script(match):

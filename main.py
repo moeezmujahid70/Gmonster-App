@@ -1,23 +1,15 @@
-global app
-global mainWindow
-global myMC
-global quit_application
-global GUI
-import os
-import random
-import re
-import socket
-import sys
-import threading
-import time
-import uuid
-import webbrowser
-import requests
-from json import load, dumps
-from threading import Thread
-from time import sleep
-import pandas as pd
-from PyQt5 import QtCore, QtGui, QtWidgets
+from email_validator import validate_email
+from textblob import TextBlob
+from gui import Ui_MainWindow
+from database import update_target_verified
+from openai import OpenAI
+import subprocess
+import signal
+from datetime import datetime
+import traceback
+from PyQt5.QtGui import QColor
+from PyQt5.QtCore import Qt, pyqtSignal, QDate, QItemSelection
+from compat_ui import alert, confirm
 from PyQt5.QtWidgets import (
     QFileDialog,
     QTableWidgetItem,
@@ -31,18 +23,26 @@ from PyQt5.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
 )
-from pyautogui import alert, confirm
-from PyQt5.QtCore import Qt, pyqtSignal, QDate, QItemSelection
-from PyQt5.QtGui import QColor
-import traceback
-from datetime import datetime
-import signal
-import subprocess
-from openai import OpenAI
-from database import update_target_verified
-from gui import Ui_MainWindow
-from textblob import TextBlob
-from email_validator import validate_email
+from PyQt5 import QtCore, QtGui, QtWidgets
+import pandas as pd
+from time import sleep
+from threading import Thread
+from json import load, dumps
+import requests
+import webbrowser
+import uuid
+import time
+import threading
+import sys
+import socket
+import re
+import random
+import os
+global app
+global mainWindow
+global myMC
+global quit_application
+global GUI
 
 quit_application = False
 
@@ -96,7 +96,8 @@ class AIPromptDialog(QDialog):
             answer = response.choices[0].message.content
             self.promptSubmitted.emit(answer)
         except Exception as e:
-            alert(text=f"Failed to connect: {str(e)}", title="Error", button="OK")
+            alert(text=f"Failed to connect: {str(e)}",
+                  title="Error", button="OK")
 
 
 class MyGui(Ui_MainWindow, QtWidgets.QWidget):
@@ -110,9 +111,11 @@ class MyMainClass:
     def __init__(self):
         self.compose_font_size = 13
         GUI.checkBox_delete_all.stateChanged.connect(
-            lambda state: self.toggle_all_checkboxes(state, GUI.checkBox_delete_all)
+            lambda state: self.toggle_all_checkboxes(
+                state, GUI.checkBox_delete_all)
         )
-        GUI.listWidget.currentRowChanged.connect(self.on_listwidget_row_changed)
+        GUI.listWidget.currentRowChanged.connect(
+            self.on_listwidget_row_changed)
         GUI.listWidget.setCurrentRow(0)
         GUI.lable_campaign_status_text.hide()
         GUI.label_campaign_status.hide()
@@ -149,14 +152,16 @@ class MyMainClass:
         GUI.lineEdit_subject.setText(var.compose_email_subject)
         self.set_campaign_config()
         self.time_interval_sub_check = 3600
-        subscription_thread = Thread(target=self.check_for_subscription, daemon=True)
+        subscription_thread = Thread(
+            target=self.check_for_subscription, daemon=True)
         subscription_thread.start()
         self.command_timer = QtCore.QTimer()
         self.command_timer.setInterval(10)
         self.command_timer.timeout.connect(self.run_command)
         self.command_timer.start()
         self.autoReply_timer = QtCore.QTimer()
-        self.autoReply_timer.setInterval(max(1, int(var.autoReply_intervals * 60 * 1000)))
+        self.autoReply_timer.setInterval(
+            max(1, int(var.autoReply_intervals * 60 * 1000)))
         self.autoReply_timer.timeout.connect(self.autoReply_start)
         if var.autoReply_enabled:
             self.autoReply_timer.start()
@@ -166,7 +171,8 @@ class MyMainClass:
         self.autoReply_finished = False
         self.autoReply_finished_timer = QtCore.QTimer()
         self.autoReply_finished_timer.setInterval(1000)
-        self.autoReply_finished_timer.timeout.connect(self.wait_autoReply_finished)
+        self.autoReply_finished_timer.timeout.connect(
+            self.wait_autoReply_finished)
         date = QtCore.QDate.fromString(var.date, "M/d/yyyy")
         GUI.dateEdit_imap_since.setDate(date)
         GUI.dateEdit_imap_since.dateChanged.connect(self.date_update)
@@ -178,12 +184,14 @@ class MyMainClass:
         GUI.pushButton_export_targets.clicked.connect(self.export_targets)
         GUI.lineEdit_subject.setText(var.compose_email_subject)
         GUI.textBrowser_compose.setPlainText(var.compose_email_body)
-        GUI.checkBox_remove_email_from_target.setChecked(var.remove_email_from_target)
+        GUI.checkBox_remove_email_from_target.setChecked(
+            var.remove_email_from_target)
         GUI.checkBox_add_custom_hostname.setChecked(var.add_custom_hostname)
         GUI.checkBox_enable_webhook.setChecked(var.enable_webhook_status)
         GUI.checkBox_email_tracking.setChecked(var.email_tracking_state)
         GUI.checkBox_check_for_blocks.setChecked(var.check_for_blocks)
-        GUI.checkBox_responses_webhook.setChecked(var.responses_webhook_enabled)
+        GUI.checkBox_responses_webhook.setChecked(
+            var.responses_webhook_enabled)
         GUI.checkBox_auto_fire_responses_webhook.setChecked(
             var.auto_fire_responses_webhook
         )
@@ -205,8 +213,10 @@ class MyMainClass:
                 f"auto_fire_responses_webhook Interval: {var.auto_fire_responses_webhook_interval} hour"
             )
             self.start_auto_fire_responses_timer()
-        GUI.checkBox_configuration_followup_enabled.setChecked(var.followup_enabled)
-        GUI.lineEdit_configuration_followup_days.setText(str(var.followup_days))
+        GUI.checkBox_configuration_followup_enabled.setChecked(
+            var.followup_enabled)
+        GUI.lineEdit_configuration_followup_days.setText(
+            str(var.followup_days))
         GUI.lineEdit_follow_up_subject.setText(var.followup_subject)
         GUI.textBrowser_follow_up_body.setText(var.followup_body)
         GUI.lineEdit_delay_between_emails.setText(var.delay_between_emails)
@@ -214,14 +224,16 @@ class MyMainClass:
             str(var.auto_fire_responses_webhook_interval)
         )
         GUI.lineEdit_cc_emails.setText(var.cc_emails)
-        GUI.lineEdit_configuration_scan_interval.setText(str(var.autoReply_intervals))
+        GUI.lineEdit_configuration_scan_interval.setText(
+            str(var.autoReply_intervals))
         if var.autoReply_canned_switch:
             GUI.textBrowser_autoReply_body.setText(var.autoReply_body)
         else:
             GUI.textBrowser_autoReply_body.setText(var.autoReply_prompt)
         GUI.radioButton_all.setChecked(~var.autoReply_switch)
         GUI.radioButton_positive.setChecked(var.autoReply_switch)
-        GUI.checkBox_configuration_autoReply_enabled.setChecked(var.autoReply_enabled)
+        GUI.checkBox_configuration_autoReply_enabled.setChecked(
+            var.autoReply_enabled)
         GUI.radioButton_canned_reply.setChecked(var.autoReply_canned_switch)
         GUI.radioButton_ai_reply.setChecked(~var.autoReply_canned_switch)
         GUI.lineEdit_open_ai_key.setText(var.open_ai_key)
@@ -252,16 +264,20 @@ class MyMainClass:
         else:
             GUI.radioButton_campaign_group_b.setChecked(True)
         GUI.checkBox_ai_assistant.stateChanged.connect(self.show_ai_assistant)
-        GUI.checkBox_responses_webhook.stateChanged.connect(self.update_checkbox_status)
+        GUI.checkBox_responses_webhook.stateChanged.connect(
+            self.update_checkbox_status)
         GUI.checkBox_auto_fire_responses_webhook.stateChanged.connect(
             self.update_checkbox_status
         )
         GUI.checkBox_auto_fire_responses_webhook.stateChanged.connect(
             self.start_auto_fire_responses_timer
         )
-        GUI.checkBox_check_for_blocks.stateChanged.connect(self.update_checkbox_status)
-        GUI.checkBox_email_tracking.stateChanged.connect(self.update_checkbox_status)
-        GUI.checkBox_enable_webhook.stateChanged.connect(self.update_checkbox_status)
+        GUI.checkBox_check_for_blocks.stateChanged.connect(
+            self.update_checkbox_status)
+        GUI.checkBox_email_tracking.stateChanged.connect(
+            self.update_checkbox_status)
+        GUI.checkBox_enable_webhook.stateChanged.connect(
+            self.update_checkbox_status)
         GUI.checkBox_remove_email_from_target.stateChanged.connect(
             self.update_checkbox_status
         )
@@ -271,12 +287,16 @@ class MyMainClass:
         GUI.checkBox_configuration_followup_enabled.stateChanged.connect(
             self.update_checkbox_status
         )
-        GUI.checkBox_proxy_enabled.stateChanged.connect(self.update_checkbox_proxy)
-        GUI.lineEdit_follow_up_subject.textChanged.connect(self.update_followup_subject)
-        GUI.textBrowser_follow_up_body.textChanged.connect(self.update_followup_body)
+        GUI.checkBox_proxy_enabled.stateChanged.connect(
+            self.update_checkbox_proxy)
+        GUI.lineEdit_follow_up_subject.textChanged.connect(
+            self.update_followup_subject)
+        GUI.textBrowser_follow_up_body.textChanged.connect(
+            self.update_followup_body)
         GUI.pushButton_follow_up_save.clicked.connect(self.configuration_save)
         GUI.pushButton_autoReply_save.clicked.connect(self.configuration_save)
-        GUI.textBrowser_autoReply_body.textChanged.connect(self.update_autoReply_body)
+        GUI.textBrowser_autoReply_body.textChanged.connect(
+            self.update_autoReply_body)
         GUI.lineEdit_configuration_scan_interval.textChanged.connect(
             self.update_autoReply_intervals
         )
@@ -288,9 +308,12 @@ class MyMainClass:
         GUI.radioButton_canned_reply.clicked.connect(
             self.update_autoReply_canned_switch
         )
-        GUI.radioButton_ai_reply.clicked.connect(self.update_autoReply_canned_switch)
-        GUI.lineEdit_airtable_base_id.textChanged.connect(self.update_airtable_config)
-        GUI.lineEdit_airtable_api_key.textChanged.connect(self.update_airtable_config)
+        GUI.radioButton_ai_reply.clicked.connect(
+            self.update_autoReply_canned_switch)
+        GUI.lineEdit_airtable_base_id.textChanged.connect(
+            self.update_airtable_config)
+        GUI.lineEdit_airtable_api_key.textChanged.connect(
+            self.update_airtable_config)
         GUI.lineEdit_airtable_table_name.textChanged.connect(
             self.update_airtable_config
         )
@@ -311,11 +334,15 @@ class MyMainClass:
         GUI.pushButton_database_load_target_from_airtable.clicked.connect(
             self.pull_target_from_airtable
         )
-        GUI.checkBox_space_encoding.stateChanged.connect(self.update_checkbox_status)
-        GUI.checkBox_inbox_whitelist.stateChanged.connect(self.update_checkbox_status)
-        GUI.checkBox_enable_cc_emails.stateChanged.connect(self.update_checkbox_status)
+        GUI.checkBox_space_encoding.stateChanged.connect(
+            self.update_checkbox_status)
+        GUI.checkBox_inbox_whitelist.stateChanged.connect(
+            self.update_checkbox_status)
+        GUI.checkBox_enable_cc_emails.stateChanged.connect(
+            self.update_checkbox_status)
         GUI.pushButton_email_verify.clicked.connect(self.email_verify)
-        GUI.pushButton_select_toggle.toggled.connect(self.toggle_checkbox_section)
+        GUI.pushButton_select_toggle.toggled.connect(
+            self.toggle_checkbox_section)
         # Initialize dropdown visibility
         GUI.frame_verifier_dropdown.setVisible(True)
         GUI.frame_checkboxes.setVisible(True)
@@ -327,24 +354,32 @@ class MyMainClass:
             GUI.radioButton_plain_text.setChecked(True)
         GUI.checkBox_compose_preview.clicked.connect(self.compose_preview)
         GUI.lineEdit_subject.textChanged.connect(self.compose_subject_update)
-        GUI.lineEdit_num_per_address.textChanged.connect(self.update_num_per_address)
+        GUI.lineEdit_num_per_address.textChanged.connect(
+            self.update_num_per_address)
         GUI.lineEdit_delay_between_emails.editingFinished.connect(
             self.update_delay_between_emails
         )
-        GUI.radioButton_campaign_group_a.clicked.connect(self.update_campaign_group)
-        GUI.radioButton_campaign_group_b.clicked.connect(self.update_campaign_group)
-        GUI.pushButton_attachments_reply.clicked.connect(self.openFileNamesDialog_reply)
-        GUI.pushButton_attachments_campaign.clicked.connect(self.openFileNamesDialog)
+        GUI.radioButton_campaign_group_a.clicked.connect(
+            self.update_campaign_group)
+        GUI.radioButton_campaign_group_b.clicked.connect(
+            self.update_campaign_group)
+        GUI.pushButton_attachments_reply.clicked.connect(
+            self.openFileNamesDialog_reply)
+        GUI.pushButton_attachments_campaign.clicked.connect(
+            self.openFileNamesDialog)
         GUI.pushButton_load_db.clicked.connect(self.load_db)
         GUI.pushButton_delete.clicked.connect(self.batch_delete)
         GUI.pushButton_forward.clicked.connect(self.forward)
         GUI.pushButton_test.clicked.connect(self.test_send)
-        GUI.textBrowser_show_email.anchorClicked.connect(QtGui.QDesktopServices.openUrl)
+        GUI.textBrowser_show_email.anchorClicked.connect(
+            QtGui.QDesktopServices.openUrl)
         GUI.textBrowser_compose.textChanged.connect(self.compose_update)
         GUI.textEdit_reply.textChanged.connect(self.update_rely_text)
-        GUI.label_desktop_app_id.setText(f"Desktop ID: {var.gmonster_desktop_id}")
+        GUI.label_desktop_app_id.setText(
+            f"Desktop ID: {var.gmonster_desktop_id}")
         GUI.label_desktop_app_id2.setText(var.gmonster_desktop_id)
-        GUI.lineEdit_number_of_threads.textChanged.connect(self.update_limit_of_thread)
+        GUI.lineEdit_number_of_threads.textChanged.connect(
+            self.update_limit_of_thread)
         GUI.radioButton_db_groupa.clicked.connect(self.update_db_table)
         GUI.radioButton_db_groupb.clicked.connect(self.update_db_table)
         GUI.radioButton_db_target.clicked.connect(self.update_db_table)
@@ -354,8 +389,10 @@ class MyMainClass:
         GUI.checkBox_safe.stateChanged.connect(self.select_rows_by_status)
         GUI.checkBox_risky.stateChanged.connect(self.select_rows_by_status)
         GUI.checkBox_unknown.stateChanged.connect(self.select_rows_by_status)
-        GUI.checkBox_not_checked.stateChanged.connect(self.select_rows_by_status)
-        Thread(target=database.startup_load_db, daemon=True, args=("dialog",)).start()
+        GUI.checkBox_not_checked.stateChanged.connect(
+            self.select_rows_by_status)
+        Thread(target=database.startup_load_db,
+               daemon=True, args=("dialog",)).start()
         GUI.pushButton_sort_date.clicked.connect(self.date_sort)
         GUI.pushButton_sort_alpha.clicked.connect(self.alpha_sort)
         GUI.lineEdit_email_tracking_analytics_account.textChanged.connect(
@@ -371,7 +408,8 @@ class MyMainClass:
             self.update_email_tracking_php
         )
         GUI.pushButton_download_track.clicked.connect(self.download_track_php)
-        GUI.pushButton_configuration_save.clicked.connect(self.configuration_save)
+        GUI.pushButton_configuration_save.clicked.connect(
+            self.configuration_save)
         GUI.lineEdit_webhook_link.textChanged.connect(self.update_webhook_link)
         GUI.pushButton_compose_zoomIn.clicked.connect(
             lambda: self.compose_zoomInOut("zoomIn")
@@ -392,9 +430,12 @@ class MyMainClass:
         GUI.pushButton_fire_inbox_webhook.clicked.connect(
             self.start_inbox_stream_thread
         )
-        GUI.lineEdit_target_blacklist.textChanged.connect(self.change_target_blacklist)
-        GUI.lineEdit_inbox_blacklist.textChanged.connect(self.change_inbox_blacklist)
-        GUI.lineEdit_inbox_whitelist.textChanged.connect(self.change_inbox_whitelist)
+        GUI.lineEdit_target_blacklist.textChanged.connect(
+            self.change_target_blacklist)
+        GUI.lineEdit_inbox_blacklist.textChanged.connect(
+            self.change_inbox_blacklist)
+        GUI.lineEdit_inbox_whitelist.textChanged.connect(
+            self.change_inbox_whitelist)
         GUI.lineEdit_configuration_followup_days.textChanged.connect(
             self.change_followup_days
         )
@@ -427,8 +468,10 @@ class MyMainClass:
         GUI.radioButton_email_sent.clicked.connect(self.inbox_show_changed)
         GUI.radioButton_email_positive.clicked.connect(self.inbox_show_changed)
         GUI.radioButton_email_negative.clicked.connect(self.inbox_show_changed)
-        self.autoReply_positive_last_date = pd.to_datetime(var.date, format="%m/%d/%Y").strftime("%Y-%m-%d %H:%M:%S")
-        self.autoReply_all_last_date = pd.to_datetime(var.date, format="%m/%d/%Y").strftime("%Y-%m-%d %H:%M:%S")
+        self.autoReply_positive_last_date = pd.to_datetime(
+            var.date, format="%m/%d/%Y").strftime("%Y-%m-%d %H:%M:%S")
+        self.autoReply_all_last_date = pd.to_datetime(
+            var.date, format="%m/%d/%Y").strftime("%Y-%m-%d %H:%M:%S")
         self.update_target_count()
         threading.Thread(
             target=self.reset_schedule_campaign_job_list, daemon=True, args=[]
@@ -481,7 +524,7 @@ class MyMainClass:
         else:
             url_mappings = {
                 "Store": "https://gmonster.co/store",
-                "Leads": "https://gmonster.co/leads", 
+                "Leads": "https://gmonster.co/leads",
                 "Tutorials": "https://gmonster.co/tutorials",
                 "Support": "https://gmonster.co/support"
             }
@@ -503,18 +546,20 @@ class MyMainClass:
             return
         # remove duplicates
         var.target = var.target.drop_duplicates(subset=["EMAIL"])
+
         def is_valid_email_format(email):
             # Remove emails that begin with a dot
             if email.startswith('.'):
                 return False
-            
+
             # Remove emails with invalid symbols (?$!% etc.)
-            invalid_chars = ['?', '$', '!', '%', '#', '&', '*', '(', ')', '[', ']', '{', '}', '|', '\\', '/', '<', '>', '=', '+']
+            invalid_chars = ['?', '$', '!', '%', '#', '&', '*',
+                             '(', ')', '[', ']', '{', '}', '|', '\\', '/', '<', '>', '=', '+']
             if any(char in email for char in invalid_chars):
                 return False
-            
+
             return True
-        
+
         if os.path.exists("database/verify_blacklist.txt"):
             with open("database/verify_blacklist.txt", "r") as f:
                 blacklist = f.readlines()
@@ -524,7 +569,8 @@ class MyMainClass:
         if blacklist:
             var.target = var.target[~var.target["EMAIL"].isin(blacklist)]
 
-        var.target = var.target[var.target["EMAIL"].apply(is_valid_email_format)]
+        var.target = var.target[var.target["EMAIL"].apply(
+            is_valid_email_format)]
         emails = var.target["EMAIL"].tolist()
         valid_emails = []
         for email in emails:
@@ -572,10 +618,10 @@ class MyMainClass:
         json_results = []
         completed_count = 0
         thread_lock = threading.Lock()
-        
+
         def verify_single_email_thread(email, email_index, proxy_config):
             nonlocal completed_count
-            
+
             # url = "http://3.93.77.2/v0/check_email"
             url = "http://194.32.107.15/v0/check_email"
             # url = "http://localhost/v0/check_email"
@@ -597,11 +643,11 @@ class MyMainClass:
                 email_domain = ".".join(ehlo_name.split(".")[-2:])
             except socket.herror:
                 ehlo_name = proxy_ip
-            
+
             if ehlo_name == proxy_ip:
                 ehlo_name = "gigahost.no"
                 email_domain = "gigahost.no"
-            
+
             from_email = f"verify@{email_domain}"
 
             data = {
@@ -612,7 +658,8 @@ class MyMainClass:
             }
 
             try:
-                response = requests.post(url, headers=headers, json=data, timeout=120)
+                response = requests.post(
+                    url, headers=headers, json=data, timeout=120)
                 if response.status_code == 200:
                     try:
                         result = response.json()
@@ -635,43 +682,47 @@ class MyMainClass:
                         checked_emails[email_index].append(dumps(result))
                         with thread_lock:
                             json_results.append(dumps(result))
-                            var.target.loc[var.target["EMAIL"] == email, "STATUS"] = result["is_reachable"]
+                            var.target.loc[var.target["EMAIL"] ==
+                                           email, "STATUS"] = result["is_reachable"]
                     except ValueError as e:
                         checked_emails[email_index].append(response.text)
                         with thread_lock:
                             json_results.append(response.text)
-                        logger.error(f"JSON decode error for {email}: {str(e)}")
+                        logger.error(
+                            f"JSON decode error for {email}: {str(e)}")
                         logger.error(f"Response content: {response.text}")
                 else:
-                    logger.error(f"HTTP {response.status_code} for {email}: {response.text}")
-                    
+                    logger.error(
+                        f"HTTP {response.status_code} for {email}: {response.text}")
+
             except requests.exceptions.ConnectionError as e:
-                logger.error(f"Connection error for {email} to {url}: {str(e)}")
-                logger.error(f"Email verification service unreachable. Check if service at 194.32.107.15:80 is running.")
+                logger.error(
+                    f"Connection error for {email} to {url}: {str(e)}")
+                logger.error(
+                    f"Email verification service unreachable. Check if service at 194.32.107.15:80 is running.")
             except requests.RequestException as e:
                 logger.error(f"Request failed for {email}: {str(e)}")
-            
 
-            
             # Update completion count
             with thread_lock:
                 completed_count += 1
-        
+
         # Thread pool with proxy fetching every 10 tasks
         import concurrent.futures
         import queue
-        
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
             futures = {}
             proxy_config = None
-            
+
             for i, email in enumerate(valid_emails):
                 if progress_dialog.wasCanceled():
                     break
-                
+
                 # Get new proxy every 10 tasks
                 if i % 10 == 0:
-                    url = var.api + "verify/get_proxy/{}".format(var.login_email)
+                    url = var.api + \
+                        "verify/get_proxy/{}".format(var.login_email)
                     try:
                         response = requests.post(url, timeout=10)
                         if response.status_code == 200:
@@ -687,7 +738,8 @@ class MyMainClass:
                             error_message = "Service not available. Please try again later."
                             try:
                                 payload = response.json()
-                                backend_message = payload.get("message") or payload.get("error")
+                                backend_message = payload.get(
+                                    "message") or payload.get("error")
                                 if backend_message:
                                     error_message = backend_message
                             except ValueError:
@@ -696,7 +748,8 @@ class MyMainClass:
                             logger.error(
                                 f"get_proxy failed at {url}: HTTP {response.status_code} - {response.text}"
                             )
-                            alert(text=error_message, title="Error", button="OK")
+                            alert(text=error_message,
+                                  title="Error", button="OK")
                             break
                     except requests.exceptions.ConnectionError as e:
                         logger.error(
@@ -709,24 +762,27 @@ class MyMainClass:
                         logger.error(
                             f"Request error to proxy service at {url}: {str(e)}"
                         )
-                        alert(text=f"Error fetching proxy: {str(e)}", title="Error", button="OK")
+                        alert(
+                            text=f"Error fetching proxy: {str(e)}", title="Error", button="OK")
                         break
-                
+
                 # Submit first 10 immediately, then rate limit
                 if i % 10 != 0:
                     time.sleep(random.uniform(0.20, 0.25))
-                
-                future = executor.submit(verify_single_email_thread, email, i, proxy_config)
+
+                future = executor.submit(
+                    verify_single_email_thread, email, i, proxy_config)
                 futures[future] = i
-                
+
                 # Check completed tasks and update UI
                 for completed_future in list(futures.keys()):
                     if completed_future.done():
                         futures.pop(completed_future)
                         progress_dialog.setValue(completed_count)
-                        progress_dialog.setLabelText(f"Verifying emails... ({completed_count}/{len(valid_emails)})")
+                        progress_dialog.setLabelText(
+                            f"Verifying emails... ({completed_count}/{len(valid_emails)})")
                         QtWidgets.QApplication.processEvents()
-            
+
             # Wait for remaining tasks
             while futures:
                 if progress_dialog.wasCanceled():
@@ -737,7 +793,8 @@ class MyMainClass:
                     if completed_future.done():
                         futures.pop(completed_future)
                 progress_dialog.setValue(completed_count)
-                progress_dialog.setLabelText(f"Verifying emails... ({completed_count}/{len(valid_emails)})")
+                progress_dialog.setLabelText(
+                    f"Verifying emails... ({completed_count}/{len(valid_emails)})")
                 QtWidgets.QApplication.processEvents()
                 time.sleep(0.01)
         var.target = var.target[var.target["STATUS"] != "invalid"].copy()
@@ -757,7 +814,7 @@ class MyMainClass:
             jsonl_filename = os.path.join(
                 verification_folder, f"email_verification_{current_date}.jsonl"
             )
-            
+
             # Save JSON results as JSONL
             try:
                 with open(jsonl_filename, 'w') as jsonl_file:
@@ -766,14 +823,14 @@ class MyMainClass:
                 logger.info(f"JSON results saved to {jsonl_filename}")
             except Exception as e:
                 logger.error(f"Error saving JSONL file: {str(e)}")
-            
+
             # # Get verified and bad emails properly
             # verified_email_list = var.target["EMAIL"].tolist()
             # bad_email_list = [email for email in valid_emails if email not in verified_email_list]
-            
+
             # # Create a comprehensive report with all emails and their status
             # all_emails_data = []
-            
+
             # for i, email in enumerate(valid_emails):
             #     if i < len(checked_emails):
             #         # Fill empty checked_emails entries
@@ -783,22 +840,22 @@ class MyMainClass:
             #             error_message = " | ".join(checked_emails[i])
             #     else:
             #         error_message = "not checked"
-                
+
             #     # Determine status
             #     if email in verified_email_list:
             #         status = "Good"
             #     else:
             #         status = "Bad"
-                
+
             #     all_emails_data.append({
             #         "Email": email,
             #         "Status": status,
             #         "Error Messages": error_message
             #     })
-            
+
             # # Create DataFrame
             # df_report = pd.DataFrame(all_emails_data)
-            
+
             # # Ensure we have data to write
             # if df_report.empty:
             #     df_report = pd.DataFrame({
@@ -806,13 +863,13 @@ class MyMainClass:
             #         "Status": ["No data"],
             #         "Error Messages": ["No data"]
             #     })
-            
+
             # with pd.ExcelWriter(excel_filename, engine="openpyxl") as writer:
             #     df_report.to_excel(
             #         writer, index=False, sheet_name="Verification Results"
             #     )
             #     worksheet = writer.sheets["Verification Results"]
-                
+
             #     # Auto-adjust column widths
             #     for idx, col in enumerate(df_report.columns):
             #         max_length = max(
@@ -820,9 +877,9 @@ class MyMainClass:
             #         )
             #         # Cap the width at 50 characters for readability
             #         worksheet.column_dimensions[chr(65 + idx)].width = min(max_length + 2, 50)
-            
+
             # logger.info(f"Verification report saved to {excel_filename}")
-            
+
         except Exception as e:
             logger.error(f"Error creating Excel report: {str(e)}")
             alert(
@@ -862,7 +919,18 @@ class MyMainClass:
             GUI.checkbox_delete_all.show()
 
     def launch_wum(self):
-        subprocess.Popen([os.path.join(os.getcwd(), var.wum_exe_path)])
+        wum_path = os.path.join(os.getcwd(), var.wum_exe_path)
+        if os.path.exists(wum_path):
+            subprocess.Popen([wum_path])
+            return
+
+        mac_app_path = os.path.join(os.getcwd(), "WUM.app")
+        if sys.platform == "darwin" and os.path.exists(mac_app_path):
+            subprocess.Popen(["open", mac_app_path])
+            return
+
+        alert(text="WUM executable not found for this platform.",
+              title="Warning", button="OK")
 
     def update_auto_fire_responses_webhook_interval(self, data):
         if is_number(data):
@@ -898,7 +966,8 @@ class MyMainClass:
             var.responses_webhook_enabled = _responses_webhook_enabled
             var.download_email_status = False
         except Exception as e:
-            logger.error(f"auto_fire_responses_webhook error: {traceback.format_exc()}")
+            logger.error(
+                f"auto_fire_responses_webhook error: {traceback.format_exc()}")
         finally:
             logger.info("auto_fire_responses_webhook finished")
 
@@ -925,7 +994,8 @@ class MyMainClass:
                 if GUI.radioButton_campaign_group_a.isChecked()
                 else var.group_b
             )
-            var.num_emails_per_address = str(GUI.lineEdit_num_per_address.text())
+            var.num_emails_per_address = str(
+                GUI.lineEdit_num_per_address.text())
             num_emails_per_address_range = {
                 "start": int(var.num_emails_per_address.split("-")[0].strip()),
                 "end": int(var.num_emails_per_address.split("-")[1].strip()),
@@ -935,7 +1005,8 @@ class MyMainClass:
             delay_end = int(var.delay_between_emails.split("-")[1].strip())
             len_group = len(group)
             len_target = len(var.target)
-            avg_emails_per_address = (num_emails_per_address_range["end"] + num_emails_per_address_range["start"]) / 2
+            avg_emails_per_address = (
+                num_emails_per_address_range["end"] + num_emails_per_address_range["start"]) / 2
             avg_delay = (delay_end + delay_start) / 2
             if len_group * avg_emails_per_address > len_target:
                 total_email_to_be_sent = len_target
@@ -974,7 +1045,8 @@ class MyMainClass:
                     misfire_grace_time=None,
                 )
                 self.reset_schedule_campaign_job_list()
-                logger.info(f"Scheduled job id: {job.id} at {str(scheduled_time)}")
+                logger.info(
+                    f"Scheduled job id: {job.id} at {str(scheduled_time)}")
         except Exception as e:
             logger.error(
                 f"Error at {self.__class__.__name__}: {traceback.format_exc()}"
@@ -982,7 +1054,8 @@ class MyMainClass:
 
     def set_campaign_config(self):
         GUI.lineEdit_num_per_address.setText(str(var.num_emails_per_address))
-        GUI.lineEdit_delay_between_emails.setText(str(var.delay_between_emails))
+        GUI.lineEdit_delay_between_emails.setText(
+            str(var.delay_between_emails))
         GUI.lineEdit_number_of_threads.setText(str(var.limit_of_thread))
 
     def remove_schedule_campaign(self, job_id):
@@ -1102,7 +1175,8 @@ class MyMainClass:
         if is_number(value):
             var.autoReply_intervals = float(value)
         else:
-            self.logger.error("Auto-reply scan interval value can only be Numerical")
+            self.logger.error(
+                "Auto-reply scan interval value can only be Numerical")
 
     def autoReply_start(self):
         try:
@@ -1131,7 +1205,8 @@ class MyMainClass:
             #     date_obj = QtCore.QDate.currentDate().addDays(-1)  # Set to 1 day before today if date is today or later
             # date = date_obj.toString("M/d/yyyy")
             # logger.info(date)
-            Thread(target=main, daemon=True, args=[pd.concat([var.group_a, var.group_b]),["INBOX"], var.date]).start()
+            Thread(target=main, daemon=True, args=[pd.concat(
+                [var.group_a, var.group_b]), ["INBOX"], var.date]).start()
             self.autoReply_email_timer.start()
         except Exception as e:
             self.autoReply_timer.start()
@@ -1243,7 +1318,8 @@ class MyMainClass:
             try:
                 client = OpenAI(api_key=var.open_ai_key)
                 if not var.autoReply_prompt or not var.autoReply_prompt.strip():
-                    alert(text="Please enter a prompt.", title="Warning", button="OK")
+                    alert(text="Please enter a prompt.",
+                          title="Warning", button="OK")
                     return
             except Exception as e:
                 logger.error(f"Failed to initialize OpenAI client: {str(e)}")
@@ -1255,7 +1331,8 @@ class MyMainClass:
                 sent_folder = "sent"
                 os.makedirs(sent_folder, exist_ok=True)
                 today_date = datetime.now().strftime("%Y-%m-%d")
-                file_path = os.path.join(sent_folder, f"{today_date}_responses.txt")
+                file_path = os.path.join(
+                    sent_folder, f"{today_date}_responses.txt")
             except Exception as e:
                 logger.error(f"Failed to setup file handling: {str(e)}")
                 return
@@ -1285,7 +1362,8 @@ class MyMainClass:
                             )
                             return
 
-                        new_prompt = prompt.replace("[RECEIVEDEMAIL]", row["body"])
+                        new_prompt = prompt.replace(
+                            "[RECEIVEDEMAIL]", row["body"])
                         try:
                             response = client.chat.completions.create(
                                 model="gpt-4o-mini",
@@ -1320,7 +1398,8 @@ class MyMainClass:
 
                             logger.info(f"Response saved to {file_path}")
                         except Exception as e:
-                            logger.error(f"Failed to generate AI response: {str(e)}")
+                            logger.error(
+                                f"Failed to generate AI response: {str(e)}")
                             continue
 
                     from smtp import ReplyMail
@@ -1395,7 +1474,8 @@ class MyMainClass:
             negative_words = [n.strip() for n in negative_words if n.strip()]
             logger.info(negative_words[0])
             negative_patterns = re.compile(
-                "\\b(" + "|".join(map(re.escape, negative_words)) + ")\\b", re.IGNORECASE
+                "\\b(" + "|".join(map(re.escape, negative_words)) +
+                ")\\b", re.IGNORECASE
             )
             if negative_patterns.search(text):
                 sentiment_score = -1
@@ -1442,7 +1522,8 @@ class MyMainClass:
 
     def update_num_per_address(self):
         try:
-            temp_input = str(GUI.lineEdit_num_per_address.text()).replace(" ", "")
+            temp_input = str(
+                GUI.lineEdit_num_per_address.text()).replace(" ", "")
             if "-" not in temp_input:
                 GUI.lineEdit_num_per_address.setText(
                     temp_input if "-" in temp_input else temp_input + " - "
@@ -1512,7 +1593,8 @@ class MyMainClass:
         var.db_file_loading_config["group_b"] = (
             GUI.checkBox_database_group_b.isChecked()
         )
-        var.db_file_loading_config["target"] = GUI.checkBox_database_target.isChecked()
+        var.db_file_loading_config["target"] = GUI.checkBox_database_target.isChecked(
+        )
 
     def showContextMenu(self, pos):
         print("pos " + str(pos))
@@ -1634,7 +1716,8 @@ class MyMainClass:
                 GUI.model._data.drop(index_labels, inplace=True)
                 GUI.model._data.reset_index(drop=True, inplace=True)
                 GUI.model.layoutChanged.emit()
-                Thread(target=database.db_remove_rows, daemon=True, args=(ids,)).start()
+                Thread(target=database.db_remove_rows,
+                       daemon=True, args=(ids,)).start()
             else:
                 self.logger.warning("Select something")
         GUI.tableView_database.clearSelection()
@@ -1646,7 +1729,7 @@ class MyMainClass:
             # Check if STATUS column exists in the data
             if "STATUS" not in GUI.model._data.columns:
                 return
-            
+
             # Get the checked statuses
             selected_statuses = []
             if GUI.checkBox_safe.isChecked():
@@ -1657,21 +1740,22 @@ class MyMainClass:
                 selected_statuses.append("unknown")
             if GUI.checkBox_not_checked.isChecked():
                 selected_statuses.append("not checked")
-            
+
             # Clear existing selection
             GUI.tableView_database.clearSelection()
-            
+
             # If no checkboxes are checked, return
             if not selected_statuses:
                 return
-            
+
             # Get selection model
             selection_model = GUI.tableView_database.selectionModel()
-            
+
             # Select rows matching the selected statuses
             for row_index in range(GUI.model.rowCount(None)):
-                status_value = str(GUI.model._data.iloc[row_index]["STATUS"]).lower()
-                
+                status_value = str(
+                    GUI.model._data.iloc[row_index]["STATUS"]).lower()
+
                 # Check if this row's status matches any selected status
                 if status_value in selected_statuses:
                     # Select the entire row - get the model index for the row
@@ -1681,7 +1765,7 @@ class MyMainClass:
                         index,
                         QtCore.QItemSelectionModel.Select | QtCore.QItemSelectionModel.Rows
                     )
-            
+
         except Exception as e:
             self.logger.error(f"Error at select_rows_by_status - {e}")
 
@@ -1705,19 +1789,19 @@ class MyMainClass:
             alert(text="Must be a number", title="Alert", button="OK")
 
     def update_target_count(self):
-            if GUI.radioButton_db_target.isChecked():
+        if GUI.radioButton_db_target.isChecked():
+            count = 0
+            try:
+                count = len(
+                    GUI.model._data) if GUI.model._data is not None else 0
+            except Exception:
                 count = 0
-                try:
-                    count = len(GUI.model._data) if GUI.model._data is not None else 0
-                except Exception:
-                    count = 0
-                GUI.label_target_count.setText(f"Targets: {count}")
-                GUI.label_target_count.show()
-                GUI.pushButton_export_targets.show()
-            else:
-                GUI.label_target_count.hide()
-                GUI.pushButton_export_targets.hide()
-
+            GUI.label_target_count.setText(f"Targets: {count}")
+            GUI.label_target_count.show()
+            GUI.pushButton_export_targets.show()
+        else:
+            GUI.label_target_count.hide()
+            GUI.pushButton_export_targets.hide()
 
     def export_targets(self):
         if not GUI.radioButton_db_target.isChecked():
@@ -1802,7 +1886,8 @@ class MyMainClass:
             except Exception as e:
                 self.try_failed += 1
                 self.logger.error(
-                    "error at check_for_subscription: {}".format(traceback.format_exc())
+                    "error at check_for_subscription: {}".format(
+                        traceback.format_exc())
                 )
                 if self.try_failed > 3:
                     quit_application = True
@@ -1868,7 +1953,8 @@ class MyMainClass:
                     button="OK",
                 )
             unread_count = sum(
-                (1 for flag in var.inbox_data[var.inbox_group]["flag"] if flag == "UNSEEN")
+                (1 for flag in var.inbox_data[var.inbox_group]
+                 ["flag"] if flag == "UNSEEN")
             )
             if unread_count > 0:
                 GUI.label_unread_count.setText(str(unread_count))
@@ -1947,7 +2033,8 @@ class MyMainClass:
             if self.compose_font_size > 2:
                 GUI.textBrowser_compose.selectAll()
                 self.compose_font_size -= 1
-                GUI.textBrowser_compose.setFontPointSize(self.compose_font_size)
+                GUI.textBrowser_compose.setFontPointSize(
+                    self.compose_font_size)
 
     def compose_update(self):
         if not GUI.checkBox_compose_preview.isChecked():
@@ -1969,7 +2056,8 @@ class MyMainClass:
                 GUI.checkBox_compose_preview.setCheckState(False)
         else:
             if GUI.radioButton_html.isChecked():
-                GUI.textBrowser_compose.setPlainText(var.compose_email_body_html)
+                GUI.textBrowser_compose.setPlainText(
+                    var.compose_email_body_html)
                 GUI.textBrowser_compose.setReadOnly(False)
             else:
                 GUI.textBrowser_compose.setPlainText(var.compose_email_body)
@@ -2042,8 +2130,8 @@ class MyMainClass:
         GUI.pushButton_send.setEnabled(False)
         if var.send_campaign_run_status:
             result = confirm(
-                text="Are you sure you want to stop the campaign?", 
-                title="Stop Campaign", 
+                text="Are you sure you want to stop the campaign?",
+                title="Stop Campaign",
                 buttons=["OK", "Cancel"]
             )
             if result == "OK":
@@ -2090,7 +2178,8 @@ class MyMainClass:
                 GUI.lable_campaign_status_text.setText("Sending")
             GUI.progressBar_compose.setValue(int(value))
         except Exception as e:
-            logger.error("Error at main.py->update_compose_progressbar : {}".format(e))
+            logger.error(
+                "Error at main.py->update_compose_progressbar : {}".format(e))
 
     def send_campaign(self):
         try:
@@ -2100,7 +2189,8 @@ class MyMainClass:
             var.send_campaign_run_status = True
             GUI.pushButton_send.setText("Stop \nCampaign")
             GUI.pushButton_send.setEnabled(True)
-            var.num_emails_per_address = str(GUI.lineEdit_num_per_address.text())
+            var.num_emails_per_address = str(
+                GUI.lineEdit_num_per_address.text())
             num_emails_per_address_range = {
                 "start": int(var.num_emails_per_address.split("-")[0].strip()),
                 "end": int(var.num_emails_per_address.split("-")[1].strip()),
@@ -2196,7 +2286,8 @@ class MyMainClass:
                     var.download_email_status = True
                     Thread(target=update_config_json, daemon=True).start()
                     dialog.ui = Download(
-                        dialog, var.group_a, folders=["INBOX", '"[Gmail]/Sent Mail"']
+                        dialog, var.group_a, folders=[
+                            "INBOX", '"[Gmail]/Sent Mail"']
                     )
                 else:
                     if GUI.radioButton_group_b.isChecked() and len(var.group_b) > 0:
@@ -2243,7 +2334,8 @@ class MyMainClass:
                 )
             self.inbox_show_changed()
             unread_count = sum(
-                (1 for flag in var.inbox_data[var.inbox_group]["flag"] if flag == "UNSEEN")
+                (1 for flag in var.inbox_data[var.inbox_group]
+                 ["flag"] if flag == "UNSEEN")
             )
             if unread_count > 0:
                 GUI.label_unread_count.setText(str(unread_count))
@@ -2291,54 +2383,60 @@ class MyMainClass:
                 base_data = var.inbox_data_table[var.inbox_group].copy()
             var.inbox_data[var.inbox_group] = base_data
         else:
-            var.inbox_data[var.inbox_group] = pd.DataFrame() 
-        
-        
+            var.inbox_data[var.inbox_group] = pd.DataFrame()
+
         self.sort_inbox_data(self.option)
 
     def display_email_in_table(self):
         try:
             inbox_data = var.inbox_data[var.inbox_group]
             row_count = len(inbox_data)
-            
+
             # Set row count once instead of incrementally
             GUI.tableWidget_inbox.setRowCount(row_count)
-            
+
             # Pre-create reusable objects
             mail_read_icon = QtGui.QIcon(var.mail_read_icon)
             mail_unread_icon = QtGui.QIcon(var.mail_unread_icon)
             checkbox_style = "text-align: center; margin-left:15%; margin-right:10%;"
-            
+
             # Batch processing with enumerate for cleaner iteration
             for row_pos, (_, row_data) in enumerate(inbox_data.iterrows()):
                 # Set text items efficiently
-                GUI.tableWidget_inbox.setItem(row_pos, 2, QTableWidgetItem(row_data.get("from_name", "")))
-                GUI.tableWidget_inbox.setItem(row_pos, 3, QTableWidgetItem(row_data.get("subject", "")))
+                GUI.tableWidget_inbox.setItem(
+                    row_pos, 2, QTableWidgetItem(row_data.get("from_name", "")))
+                GUI.tableWidget_inbox.setItem(
+                    row_pos, 3, QTableWidgetItem(row_data.get("subject", "")))
                 # Safely format the date even if missing or not a datetime
                 date_val = row_data.get("date", "")
                 try:
-                    date_text = date_val.strftime("%d/%b") if hasattr(date_val, "strftime") else str(date_val)
+                    date_text = date_val.strftime(
+                        "%d/%b") if hasattr(date_val, "strftime") else str(date_val)
                 except Exception:
                     date_text = ""
-                GUI.tableWidget_inbox.setItem(row_pos, 4, QTableWidgetItem(date_text))
-                
+                GUI.tableWidget_inbox.setItem(
+                    row_pos, 4, QTableWidgetItem(date_text))
+
                 # Create and configure button
                 button_show_mail = QtWidgets.QPushButton("")
                 button_show_mail.setStyleSheet(var.button_style)
                 button_show_mail.clicked.connect(self.email_show)
-                button_show_mail.setIcon(mail_unread_icon if row_data["flag"] == "UNSEEN" else mail_read_icon)
-                GUI.tableWidget_inbox.setCellWidget(row_pos, 1, button_show_mail)
-                
+                button_show_mail.setIcon(
+                    mail_unread_icon if row_data["flag"] == "UNSEEN" else mail_read_icon)
+                GUI.tableWidget_inbox.setCellWidget(
+                    row_pos, 1, button_show_mail)
+
                 # Create and configure checkbox
-                checkbox_inbox = QtWidgets.QCheckBox(parent=GUI.tableWidget_inbox)
+                checkbox_inbox = QtWidgets.QCheckBox(
+                    parent=GUI.tableWidget_inbox)
                 checkbox_inbox.setStyleSheet(checkbox_style)
                 checkbox_inbox.stateChanged.connect(self.clickBox)
                 GUI.tableWidget_inbox.setCellWidget(row_pos, 0, checkbox_inbox)
-            
+
             # Resize columns once after all data is populated
             for col in range(6):
                 GUI.tableWidget_inbox.resizeColumnToContents(col)
-                
+
         except Exception as e:
             self.logger.error(f"Error at display_email_in_table - {e}")
 
@@ -2365,7 +2463,8 @@ class MyMainClass:
                         matching_row = match.index[0]
                 if matching_row is None:
                     match = var.inbox_data_table[var.inbox_group][
-                        (var.inbox_data_table[var.inbox_group]["from"] == var.inbox_data[var.inbox_group].iloc[row]["from"])
+                        (var.inbox_data_table[var.inbox_group]["from"] ==
+                         var.inbox_data[var.inbox_group].iloc[row]["from"])
                         & (
                             var.inbox_data_table[var.inbox_group]["subject"]
                             == var.inbox_data[var.inbox_group].iloc[row]["subject"]
@@ -2375,7 +2474,8 @@ class MyMainClass:
                     if not match.empty:
                         matching_row = match.index[0]
                 if matching_row is not None:
-                    var.inbox_data_table[var.inbox_group].loc[matching_row, "checkbox_status"] = 1
+                    var.inbox_data_table[var.inbox_group].loc[matching_row,
+                                                              "checkbox_status"] = 1
                 print(var.inbox_data[var.inbox_group].iloc[row]["subject"])
             else:
                 print("Unchecked")
@@ -2394,7 +2494,8 @@ class MyMainClass:
                         matching_row = match.index[0]
                 if matching_row is None:
                     match = var.inbox_data_table[var.inbox_group][
-                        (var.inbox_data_table[var.inbox_group]["from"] == var.inbox_data[var.inbox_group].iloc[row]["from"])
+                        (var.inbox_data_table[var.inbox_group]["from"] ==
+                         var.inbox_data[var.inbox_group].iloc[row]["from"])
                         & (
                             var.inbox_data_table[var.inbox_group]["subject"]
                             == var.inbox_data[var.inbox_group].iloc[row]["subject"]
@@ -2404,7 +2505,8 @@ class MyMainClass:
                     if not match.empty:
                         matching_row = match.index[0]
                 if matching_row is not None:
-                    var.inbox_data_table[var.inbox_group].loc[matching_row, "checkbox_status"] = 0
+                    var.inbox_data_table[var.inbox_group].loc[matching_row,
+                                                              "checkbox_status"] = 0
                 print(var.inbox_data[var.inbox_group].iloc[row]["subject"])
 
     def toggle_all_checkboxes(self, state, header_checkbox):
@@ -2422,7 +2524,8 @@ class MyMainClass:
         except Exception:
             inbox_df = None
         if inbox_df is not None and not inbox_df.empty and "checkbox_status" in inbox_df.columns:
-            var.inbox_data[var.inbox_group].loc[:, "checkbox_status"] = 1 if checked else 0
+            var.inbox_data[var.inbox_group].loc[:,
+                                                "checkbox_status"] = 1 if checked else 0
             table_df = var.inbox_data_table[var.inbox_group]
             if (
                 table_df is not None
@@ -2448,40 +2551,50 @@ class MyMainClass:
         try:
             if var.inbox_data[var.inbox_group].iloc[row]["flag"] == "UNSEEN":
                 imap_set_read = imap.ImapReadFlagEmail(row)
-                Thread(target=imap_set_read.change_flag, daemon=True, args=[]).start()
-                var.inbox_data[var.inbox_group] = var.inbox_data[var.inbox_group].copy()
+                Thread(target=imap_set_read.change_flag,
+                       daemon=True, args=[]).start()
+                var.inbox_data[var.inbox_group] = var.inbox_data[var.inbox_group].copy(
+                )
                 var.inbox_data[var.inbox_group].iloc[row, var.inbox_data[var.inbox_group].columns.get_loc("flag")] = (
                     "SEEN"
                 )
                 matching_row = var.inbox_data_table[var.inbox_group][
-                    (var.inbox_data_table[var.inbox_group]["from"] == var.inbox_data[var.inbox_group].iloc[row]["from"])
+                    (var.inbox_data_table[var.inbox_group]["from"] ==
+                     var.inbox_data[var.inbox_group].iloc[row]["from"])
                     & (
                         var.inbox_data_table[var.inbox_group]["subject"]
                         == var.inbox_data[var.inbox_group].iloc[row]["subject"]
                     )
                     & (var.inbox_data_table[var.inbox_group]["date"] == var.inbox_data[var.inbox_group].iloc[row]["date"])
                 ].index[0]
-                var.inbox_data_table[var.inbox_group].loc[matching_row, "flag"] = "SEEN"
+                var.inbox_data_table[var.inbox_group].loc[matching_row,
+                                                          "flag"] = "SEEN"
                 button_show_mail = QtWidgets.QPushButton("")
                 button_show_mail.setStyleSheet(var.button_style)
                 button_show_mail.clicked.connect(self.email_show)
                 button_show_mail.setIcon(QtGui.QIcon(var.mail_read_icon))
                 GUI.tableWidget_inbox.setCellWidget(row, 1, button_show_mail)
-            GUI.lineEdit_original_recipient.setText(var.inbox_data[var.inbox_group].iloc[row]["to"])
-            var.email_in_view = var.inbox_data[var.inbox_group].iloc[row].to_dict()
+            GUI.lineEdit_original_recipient.setText(
+                var.inbox_data[var.inbox_group].iloc[row]["to"])
+            var.email_in_view = var.inbox_data[var.inbox_group].iloc[row].to_dict(
+            )
             var.email_in_view["original_body"] = var.inbox_data[var.inbox_group].iloc[row]["body"]
             var.email_in_view["original_subject"] = var.inbox_data[var.inbox_group].iloc[row]["subject"]
             self.change_subject()
-            GUI.lineEdit_original_from.setText(var.inbox_data[var.inbox_group].iloc[row]["from"])
+            GUI.lineEdit_original_from.setText(
+                var.inbox_data[var.inbox_group].iloc[row]["from"])
             GUI.textBrowser_show_email.clear()
             if "</body>" in var.inbox_data[var.inbox_group].iloc[row]["body"]:
-                GUI.textBrowser_show_email.setHtml(var.inbox_data[var.inbox_group].iloc[row]["body"])
+                GUI.textBrowser_show_email.setHtml(
+                    var.inbox_data[var.inbox_group].iloc[row]["body"])
             else:
-                tmp = "{}".format(var.inbox_data[var.inbox_group].iloc[row]["body"])
+                tmp = "{}".format(
+                    var.inbox_data[var.inbox_group].iloc[row]["body"])
                 tmp = prepare_html(tmp)
                 GUI.textBrowser_show_email.setHtml(tmp)
             unread_count = sum(
-                (1 for flag in var.inbox_data[var.inbox_group]["flag"] if flag == "UNSEEN")
+                (1 for flag in var.inbox_data[var.inbox_group]
+                 ["flag"] if flag == "UNSEEN")
             )
             if unread_count > 0:
                 GUI.label_unread_count.setText(str(unread_count))
@@ -2491,14 +2604,15 @@ class MyMainClass:
             print("Error at email_show : {}".format(e))
             self.logger.error("Error at email_show - {}".format(e))
 
-
     def date_update(self):
         new_date = GUI.dateEdit_imap_since.date().toString("M/d/yyyy")
         new_date_datetime = pd.to_datetime(new_date, format="%m/%d/%Y")
         date_datetime = pd.to_datetime(var.date, format="%m/%d/%Y")
         if new_date_datetime < date_datetime:
-            self.autoReply_positive_last_date = new_date_datetime.strftime("%Y-%m-%d %H:%M:%S")
-            self.autoReply_all_last_date = new_date_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            self.autoReply_positive_last_date = new_date_datetime.strftime(
+                "%Y-%m-%d %H:%M:%S")
+            self.autoReply_all_last_date = new_date_datetime.strftime(
+                "%Y-%m-%d %H:%M:%S")
         var.date = new_date
 
     def date_sort(self):
@@ -2539,14 +2653,17 @@ class MyMainClass:
         else:
             if option == "A - Z":
                 if "subject" in cols:
-                    inbox_data.sort_values(by="subject", inplace=True, ascending=False)
+                    inbox_data.sort_values(
+                        by="subject", inplace=True, ascending=False)
             else:
                 if option == "Z - A":
                     if "subject" in cols:
-                        inbox_data.sort_values(by="subject", inplace=True, ascending=True)
+                        inbox_data.sort_values(
+                            by="subject", inplace=True, ascending=True)
                 else:
                     if "date" in cols:
-                        inbox_data.sort_values(by="date", inplace=True, ascending=False)
+                        inbox_data.sort_values(
+                            by="date", inplace=True, ascending=False)
         inbox_data.reset_index(drop=True, inplace=True)
         var.inbox_data[var.inbox_group] = inbox_data
         self.display_email_in_table()
@@ -2613,7 +2730,8 @@ class FileWidget(QtWidgets.QWidget):
         layout = QtWidgets.QVBoxLayout(self)
         layout.setAlignment(QtCore.Qt.AlignCenter)
         self.icon_label = QtWidgets.QLabel()
-        self.icon_label.setPixmap(QtGui.QIcon(":/icons/icons/file.svg").pixmap(80, 50))
+        self.icon_label.setPixmap(QtGui.QIcon(
+            ":/icons/icons/file.svg").pixmap(80, 50))
         self.icon_label.setToolTip(os.path.basename(file_path))
         self.close_button = QtWidgets.QPushButton("✖")
         if is_campaign:
@@ -2644,6 +2762,20 @@ if __name__ == "__main__":
     print("ran from here")
 else:
     app = QtWidgets.QApplication(sys.argv)
+    if sys.platform == "darwin":
+        app.setStyle("Fusion")
+        palette = QtGui.QPalette()
+        palette.setColor(QtGui.QPalette.Window, QtGui.QColor("#E3E3E3"))
+        palette.setColor(QtGui.QPalette.WindowText, QtGui.QColor("#333333"))
+        palette.setColor(QtGui.QPalette.Base, QtGui.QColor("#FFFFFF"))
+        palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor("#EFF2F8"))
+        palette.setColor(QtGui.QPalette.Text, QtGui.QColor("#222222"))
+        palette.setColor(QtGui.QPalette.Button, QtGui.QColor("#FFFFFF"))
+        palette.setColor(QtGui.QPalette.ButtonText, QtGui.QColor("#333333"))
+        palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor("#028FC3"))
+        palette.setColor(QtGui.QPalette.HighlightedText,
+                         QtGui.QColor("#FFFFFF"))
+        app.setPalette(palette)
     mainWindow = MainWindow()
     set_icon(mainWindow)
     mainWindow.setWindowFlags(
@@ -2668,12 +2800,12 @@ else:
     from update_checker import update_checker
 
     myMC = MyMainClass()
-    
+
     def signal_handler(signum, frame):
         logger.info(f"Received signal {signum}, shutting down gracefully...")
         var.exit_gracefully(signum, frame)
         app.quit()
-    
+
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     app.exec_()

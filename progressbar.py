@@ -37,7 +37,8 @@ class Download(Ui_Dialog):
         self.size_in_kb = int(round(size / 1024))
         self.file_path = var.update_temp_path
         self.pushButton_cancel.clicked.connect(self.cancel)
-        self.label_status.setText("Dowloaded  {} of {} kb".format(0, self.size_in_kb))
+        self.label_status.setText(
+            "Dowloaded  {} of {} kb".format(0, self.size_in_kb))
         Thread(target=self.download, daemon=True).start()
 
     def update_gui(self, dowloaded, message):
@@ -76,18 +77,27 @@ class Download(Ui_Dialog):
                         if cancel:
                             break
                         downloaded += len(chunk)
-                        print("Dowloaded {}/{}".format(downloaded, self.size), end="\r")
+                        print("Dowloaded {}/{}".format(downloaded,
+                              self.size), end="\r")
                         self.signal.s.emit(int(round(downloaded / 1024)), "")
                         f.write(chunk)
             logger.info("Update downloaded")
-            self.signal.s.emit(int(round(downloaded / 1024)), "Download Finished")
+            self.signal.s.emit(int(round(downloaded / 1024)),
+                               "Download Finished")
             with ZipFile(filepath, "r") as zip_file:
                 zip_file.extractall(path=temp_path)
-            subprocess.Popen([var.update_bat_file_path], shell=True)
-            logger.info("Closing the application.")
-            QtCore.QCoreApplication.quit()
+            if os.name == "nt":
+                subprocess.Popen([var.update_bat_file_path], shell=True)
+                logger.info("Closing the application.")
+                QtCore.QCoreApplication.quit()
+            else:
+                logger.info(
+                    "Update package extracted. Auto-replace is only supported on Windows.")
+                self.signal.s.emit(int(round(downloaded / 1024)),
+                                   "Update extracted. Please relaunch app manually.")
         except:
-            logger.info("Error at download update: {}".format(traceback.format_exc()))
+            logger.info("Error at download update: {}".format(
+                traceback.format_exc()))
 
 
 def set_icon(obj):
@@ -129,7 +139,8 @@ class DeleteEmail(Ui_Dialog):
         if total_email_count != 0 and delete_status == True:
             value = int(var.delete_email_count / total_email_count * 100)
             self.label_status.setText(
-                "Deleted : {}/{}".format(var.delete_email_count, total_email_count)
+                "Deleted : {}/{}".format(var.delete_email_count,
+                                         total_email_count)
             )
             self.progressBar.setValue(value)
         elif not delete_status:
