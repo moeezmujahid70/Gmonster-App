@@ -2,20 +2,35 @@
 from PyInstaller.utils.hooks import copy_metadata, collect_data_files
 import os
 
-cwd = os.getcwd()
+_spec_file = globals().get('__file__')
+spec_dir = os.path.abspath(os.path.dirname(_spec_file)) if _spec_file else os.path.abspath(os.getcwd())
 
-icons_path = os.path.join(cwd, 'icons')
+icons_path = os.path.join(spec_dir, 'icons')
+
+
+def _safe_copy_metadata(package_name, recursive=False):
+    try:
+        return copy_metadata(package_name, recursive=recursive)
+    except Exception:
+        return []
+
+
+def _safe_collect_data_files(package_name):
+    try:
+        return collect_data_files(package_name)
+    except Exception:
+        return []
 
 datas = []
-datas += copy_metadata('apscheduler', recursive=True)
-datas += collect_data_files('textblob.en') # Collecting data for sentiment analysis
-datas += collect_data_files('tzdata')
+datas += _safe_copy_metadata('apscheduler', recursive=True)
+datas += _safe_collect_data_files('textblob.en')
+datas += _safe_collect_data_files('tzdata')
 
 block_cipher = None
 
 
 a = Analysis(['var.py'],
-             pathex=[cwd],
+             pathex=[spec_dir],
              binaries=[],
              datas=datas,
              hiddenimports=[],
@@ -27,10 +42,13 @@ a = Analysis(['var.py'],
              cipher=block_cipher,
              noarchive=False)
 
-a.datas += Tree(icons_path, prefix='icons\\')
+if os.path.isdir(icons_path):
+    a.datas += Tree(icons_path, prefix='icons')
 
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
+
+icon_path = os.path.join(spec_dir, 'icons', 'icon.ico')
 exe = EXE(pyz,
           a.scripts,
           a.binaries,
@@ -44,4 +62,5 @@ exe = EXE(pyz,
           upx=True,
           upx_exclude=[],
           runtime_tmpdir=None,
-          console=False, icon='icons\\icon.ico')
+          console=False,
+          icon=icon_path if os.path.isfile(icon_path) else None)

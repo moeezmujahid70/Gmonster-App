@@ -150,3 +150,17 @@ dmypy.json
 # env files
 *.env
 genv/
+*.log
+Gmonster.app/
+
+# macOS temp/system files
+.DS_Store
+.DS_Store?
+.Spotlight-V100/
+.Trashes/
+.fseventsd/
+.TemporaryItems/
+.DocumentRevisions-V100/
+.AppleDouble
+.LSOverride
+Icon?
