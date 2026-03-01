@@ -38,6 +38,7 @@ import socket
 import re
 import random
 import os
+import html
 global app
 global mainWindow
 global myMC
@@ -1974,12 +1975,22 @@ class MyMainClass:
 
     def change_subject(self):
         try:
-            subject = var.email_in_view["subject"]
-            subject = (
-                subject
-                if "RE: " in subject or "Re: " in subject
-                else "RE: {}".format(subject)
-            )
+            subject = str(var.email_in_view.get("subject", "")).strip()
+            raw_is_sent = var.email_in_view.get("is_sent", None)
+            if isinstance(raw_is_sent, str):
+                is_sent = raw_is_sent.strip().lower() in {
+                    "1",
+                    "true",
+                    "yes",
+                    "y",
+                    "sent",
+                }
+            elif raw_is_sent is None:
+                is_sent = GUI.radioButton_email_sent.isChecked()
+            else:
+                is_sent = bool(raw_is_sent)
+            # if not is_sent and subject and not subject.lower().startswith("re:"):
+            #     subject = "RE: {}".format(subject)
             GUI.textBrowser_subject.setPlainText(subject)
         except Exception as e:
             print("Error while setting subject : {}".format(e))
@@ -2547,6 +2558,174 @@ class MyMainClass:
         )
         header_checkbox.setChecked(all_checked)
 
+    def _normalize_thread_subject(self, subject):
+        text = str(subject or "").strip()
+        while True:
+            updated = re.sub(r"^(\s*(re|fwd|fw)\s*:\s*)",
+                             "", text, flags=re.IGNORECASE)
+            if updated == text:
+                break
+            text = updated.strip()
+        return text.lower()
+
+    def _extract_row_participants(self, row_data):
+        participants = set()
+        for key in ["from_mail", "to_mail", "from", "to", "user"]:
+            value = str(row_data.get(key, "") or "").strip().lower()
+            if value:
+                participants.add(value)
+                for email_match in re.findall(
+                    r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", value
+                ):
+                    participants.add(email_match.lower())
+        return participants
+
+    def _build_thread_view_html(self, thread_df):
+        message_blocks = []
+        for _, row_data in thread_df.iterrows():
+            from_text = html.escape(
+                str(row_data.get("from", "") or row_data.get("from_mail", "")))
+            to_text = html.escape(
+                str(row_data.get("to", "") or row_data.get("to_mail", "")))
+            subject_text = html.escape(str(row_data.get("subject", "")))
+
+            date_value = row_data.get("date", "")
+            if hasattr(date_value, "strftime"):
+                date_text = date_value.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                date_text = str(date_value)
+            date_text = html.escape(date_text)
+
+            body_text = str(row_data.get("body", "") or "")
+            if "</body>" in body_text.lower():
+                body_match = re.search(
+                    r"<body[^>]*>(.*?)</body>",
+                    body_text,
+                    flags=re.IGNORECASE | re.DOTALL,
+                )
+                body_html = body_match.group(1) if body_match else body_text
+            else:
+                body_html = html.escape(body_text).replace("\n", "<br>")
+
+            message_blocks.append(
+                f"""
+                <div style=\"margin:0 0 14px 0; padding:10px; border:1px solid #ddd; background:#fafafa;\">
+                    <div style=\"font-size:12px; color:#444; margin-bottom:8px;\"><b>From:</b> {from_text}</div>
+                    <div style=\"font-size:12px; color:#444; margin-bottom:8px;\"><b>To:</b> {to_text}</div>
+                    <div style=\"font-size:12px; color:#666; margin-bottom:8px;\"><b>Date:</b> {date_text}</div>
+                    <div style=\"font-size:20px; font-weight:600; margin:0 0 10px 0;\">{subject_text}</div>
+                    <div>{body_html}</div>
+                </div>
+                """
+            )
+
+        return (
+            "<html><body style='font-family: Arial, sans-serif; font-size: 14px;'>"
+            + "".join(message_blocks)
+            + "</body></html>"
+        )
+
+    def _deduplicate_thread_messages(self, thread_df):
+        if thread_df is None or thread_df.empty:
+            return thread_df
+
+        deduped = thread_df.copy()
+
+        if "uid" in deduped.columns:
+            uid_values = deduped["uid"].astype(str).str.strip()
+            valid_uid = uid_values.ne("") & uid_values.ne(
+                "nan") & uid_values.ne("none")
+            with_uid = deduped[valid_uid].drop_duplicates(
+                subset=["uid"], keep="first")
+            without_uid = deduped[~valid_uid]
+            deduped = pd.concat([with_uid, without_uid], ignore_index=True)
+
+        if "message-id" in deduped.columns:
+            message_id_values = deduped["message-id"].astype(
+                str).str.strip().str.lower()
+            valid_message_id = (
+                message_id_values.ne("")
+                & message_id_values.ne("nan")
+                & message_id_values.ne("none")
+            )
+            with_message_id = deduped[valid_message_id].drop_duplicates(
+                subset=["message-id"], keep="first"
+            )
+            without_message_id = deduped[~valid_message_id]
+            deduped = pd.concat(
+                [with_message_id, without_message_id], ignore_index=True)
+
+        key_columns = [
+            "from_mail",
+            "to_mail",
+            "from",
+            "to",
+            "subject",
+            "body",
+            "date",
+        ]
+        available_key_columns = [
+            column_name for column_name in key_columns if column_name in deduped.columns
+        ]
+        if available_key_columns:
+            deduped["_thread_dedupe_key"] = deduped[available_key_columns].apply(
+                lambda row: "|".join(
+                    [
+                        str(cell_value or "").strip().lower()
+                        for cell_value in row.values.tolist()
+                    ]
+                ),
+                axis=1,
+            )
+            deduped = deduped.drop_duplicates(
+                subset=["_thread_dedupe_key"], keep="first")
+            deduped = deduped.drop(columns=["_thread_dedupe_key"])
+
+        return deduped.reset_index(drop=True)
+
+    def _get_conversation_thread(self, selected_row_data):
+        inbox_table = var.inbox_data_table[var.inbox_group]
+        if inbox_table is None or inbox_table.empty:
+            return pd.DataFrame([selected_row_data])
+
+        thread_subject = self._normalize_thread_subject(
+            selected_row_data.get("subject", ""))
+        selected_participants = self._extract_row_participants(
+            selected_row_data)
+
+        candidates = inbox_table.copy()
+        if "subject" in candidates.columns:
+            candidates = candidates[
+                candidates["subject"].apply(
+                    self._normalize_thread_subject) == thread_subject
+            ]
+
+        if not candidates.empty and selected_participants:
+            candidates = candidates[
+                candidates.apply(
+                    lambda row: bool(
+                        self._extract_row_participants(
+                            row.to_dict()) & selected_participants
+                    ),
+                    axis=1,
+                )
+            ]
+
+        if candidates.empty:
+            candidates = pd.DataFrame([selected_row_data])
+
+        if "date" in candidates.columns:
+            sort_dates = pd.to_datetime(candidates["date"], errors="coerce")
+            candidates = candidates.assign(_sort_date=sort_dates).sort_values(
+                by="_sort_date", ascending=False
+            )
+        candidates = self._deduplicate_thread_messages(candidates)
+
+        if "_sort_date" in candidates.columns:
+            candidates = candidates.drop(columns=["_sort_date"])
+
+        return candidates.reset_index(drop=True)
+
     def email_show(self, row=0, column=0):
         try:
             if var.inbox_data[var.inbox_group].iloc[row]["flag"] == "UNSEEN":
@@ -2584,14 +2763,11 @@ class MyMainClass:
             GUI.lineEdit_original_from.setText(
                 var.inbox_data[var.inbox_group].iloc[row]["from"])
             GUI.textBrowser_show_email.clear()
-            if "</body>" in var.inbox_data[var.inbox_group].iloc[row]["body"]:
-                GUI.textBrowser_show_email.setHtml(
-                    var.inbox_data[var.inbox_group].iloc[row]["body"])
-            else:
-                tmp = "{}".format(
-                    var.inbox_data[var.inbox_group].iloc[row]["body"])
-                tmp = prepare_html(tmp)
-                GUI.textBrowser_show_email.setHtml(tmp)
+            selected_row_data = var.inbox_data[var.inbox_group].iloc[row].to_dict(
+            )
+            thread_df = self._get_conversation_thread(selected_row_data)
+            GUI.textBrowser_show_email.setHtml(
+                self._build_thread_view_html(thread_df))
             unread_count = sum(
                 (1 for flag in var.inbox_data[var.inbox_group]
                  ["flag"] if flag == "UNSEEN")
