@@ -20,12 +20,20 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if (Test-Path requirements-updated.txt) {
+            pip install -r requirements-updated.txt
+          } else {
+            Get-Content requirements.txt |
+              Where-Object { $_ -notmatch '^(guidata|guiqwt|PythonQwt)\b' } |
+              Set-Content requirements-ci.txt
+            pip install -r requirements-ci.txt
+          }
+          pip install pyinstaller
 
       - name: Build with PyInstaller
         run: |
