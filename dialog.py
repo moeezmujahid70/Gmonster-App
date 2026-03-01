@@ -9,10 +9,12 @@ import os
 import os.path
 import re
 import subprocess
+import platform
+import uuid
 from json import loads, dumps
 from threading import Thread
 import utils
-from pyautogui import alert, password, confirm
+from compat_ui import alert, password, confirm
 import requests
 
 # regex = '^[a-zA-Z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$'
@@ -77,6 +79,55 @@ def threaded(fn):
         return thread
 
     return wrapper
+
+
+def get_system_identifiers():
+    machine_uuid = ""
+    processor_id = ""
+
+    try:
+        if os.name == "nt":
+            machine_uuid = (
+                subprocess.check_output(
+                    "wmic csproduct get uuid", shell=False, **subprocess_args(False)
+                )
+                .decode(errors="ignore")
+                .split("\n")[1]
+                .strip()
+            )
+            processor_id = (
+                subprocess.check_output(
+                    "wmic cpu get ProcessorId", shell=False, **subprocess_args(False)
+                )
+                .decode(errors="ignore")
+                .split("\n")[1]
+                .strip()
+            )
+            return machine_uuid, processor_id
+
+        if sys.platform == "darwin":
+            ioreg_output = subprocess.check_output(
+                ["ioreg", "-rd1", "-c", "IOPlatformExpertDevice"],
+                **subprocess_args(False)
+            ).decode(errors="ignore")
+            match = re.search(
+                r'"IOPlatformUUID"\s*=\s*"([^"]+)"', ioreg_output)
+            if match:
+                machine_uuid = match.group(1).strip()
+        elif os.path.exists("/etc/machine-id"):
+            with open("/etc/machine-id", encoding="utf-8") as handle:
+                machine_uuid = handle.read().strip()
+    except Exception as e:
+        print("Error collecting platform identifiers: {}".format(e))
+
+    desktop_id = getattr(var, "gmonster_desktop_id", "")
+    if desktop_id:
+        machine_uuid = desktop_id
+    elif not machine_uuid:
+        machine_uuid = str(uuid.getnode())
+
+    processor_id = desktop_id or machine_uuid or platform.machine() or "unknown"
+    return machine_uuid, processor_id
 
 
 class Sign_up(su.Ui_Dialog):
@@ -158,22 +209,7 @@ class Sign_in(si.Ui_Dialog):
 def make_sign_up_requests(email, password, endpoint):
     try:
         status = "Internal error"
-        machine_uuid = (
-            subprocess.check_output(
-                "wmic csproduct get uuid", shell=False, **subprocess_args(False)
-            )
-            .decode()
-            .split("\n")[1]
-            .strip()
-        )
-        processor_id = (
-            subprocess.check_output(
-                "wmic cpu get ProcessorId", shell=False, **subprocess_args(False)
-            )
-            .decode()
-            .split("\n")[1]
-            .strip()
-        )
+        machine_uuid, processor_id = get_system_identifiers()
         print(machine_uuid, processor_id)
         url = var.api + "verify/" + endpoint
         myobj = {
@@ -184,7 +220,8 @@ def make_sign_up_requests(email, password, endpoint):
             "version": var.version,
             "type": "main",
         }
-        headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
         data = dumps(myobj).encode("utf-8")
         data = loads(data)
         x = requests.post(url, json=data, headers=headers, timeout=10)
@@ -247,6 +284,7 @@ class myMainClass:
             url = var.api + "verify/version/{}".format(var.version)
             response = requests.post(url, timeout=10)
             data = response.json()
+            self.update_needed = True
             if data['update_needed']:
                 result = confirm(text='New Version Available!!!\nDo you want to download?',
                                  title='Confirmation Window', buttons=['OK', 'Cancel'])
@@ -255,13 +293,11 @@ class myMainClass:
                     self.c.path_picker.emit(
                         data['name'], data['link'], data['size'])
                 else:
-                    mainWindow.close()
                     logger.info("Download rejected")
-            else:
-                self.update_needed = True
             GUI.label.setText("Update checking finished. Now you can login.")
             logger.info("Check Update finished")
         except Exception as e:
+            self.update_needed = True
             logger.error("error at check_update: {}".format(e))
 
     def path(self, name, link, size):
@@ -302,6 +338,20 @@ if __name__ == "__main__":
 else:
     global mainWindow
     app = QtWidgets.QApplication(sys.argv)
+    if sys.platform == "darwin":
+        app.setStyle("Fusion")
+        palette = QtGui.QPalette()
+        palette.setColor(QtGui.QPalette.Window, QtGui.QColor("#E3E3E3"))
+        palette.setColor(QtGui.QPalette.WindowText, QtGui.QColor("#333333"))
+        palette.setColor(QtGui.QPalette.Base, QtGui.QColor("#FFFFFF"))
+        palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor("#EFF2F8"))
+        palette.setColor(QtGui.QPalette.Text, QtGui.QColor("#222222"))
+        palette.setColor(QtGui.QPalette.Button, QtGui.QColor("#FFFFFF"))
+        palette.setColor(QtGui.QPalette.ButtonText, QtGui.QColor("#333333"))
+        palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor("#028FC3"))
+        palette.setColor(QtGui.QPalette.HighlightedText,
+                         QtGui.QColor("#FFFFFF"))
+        app.setPalette(palette)
     mainWindow = QtWidgets.QMainWindow()
     set_icon(mainWindow)
     mainWindow.setWindowFlags(

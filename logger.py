@@ -3,7 +3,6 @@ from logging.handlers import TimedRotatingFileHandler
 import os
 import sys
 import io
-import var
 
 base_dir = "logs"
 logFormatter = logging.Formatter(

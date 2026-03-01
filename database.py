@@ -1,7 +1,18 @@
 global logger
-import logging
-import threading
-from sqlalchemy.ext.declarative import declarative_base
+import re
+from var import logger
+import queue
+import traceback
+import datetime
+import os
+from pyairtable.formulas import match
+from pyairtable import Table
+from compat_ui import alert
+import pandas as pd
+import main
+import var
+import json
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy import (
     create_engine,
     MetaData,
@@ -18,20 +29,10 @@ from sqlalchemy import (
     inspect,
 
 )
-from sqlalchemy.orm import sessionmaker
-import json
-import var
-import main
-import pandas as pd
-from pyautogui import alert
-from pyairtable import Table
-from pyairtable.formulas import match
-import os
-import datetime
-import traceback
-import queue
-from var import logger
-import re
+from sqlalchemy.ext.declarative import declarative_base
+import threading
+import logging
+
 
 db_path = var.base_dir + "/group.DB"
 Base = declarative_base()
@@ -154,7 +155,8 @@ def migrate_database():
 
         with engine.begin() as conn:  # begin() auto-commits/rolls back
             if "STATUS" not in cols:
-                conn.execute(text('ALTER TABLE targets ADD COLUMN "STATUS" VARCHAR DEFAULT \'not checked\''))
+                conn.execute(
+                    text('ALTER TABLE targets ADD COLUMN "STATUS" VARCHAR DEFAULT \'not checked\''))
                 logger.info("STATUS column added successfully")
 
             conn.execute(text("""
@@ -213,7 +215,8 @@ class Database:
             return False
 
     def get_cached_targets(self):
-        results = [item.email for item in self.session.query(CachedTargets).all()]
+        results = [item.email for item in self.session.query(
+            CachedTargets).all()]
         return results
 
     def add_to_cached_targets(self, email):
@@ -227,10 +230,12 @@ class Database:
                 self.session.add(cached_targets)
                 self.session.commit()
             else:
-                self.logger.info("Database.add_to_cached_targets() - Already Exists")
+                self.logger.info(
+                    "Database.add_to_cached_targets() - Already Exists")
         except Exception as e:
             self.session.rollback()
-            self.logger.error(f"Error at Database.add_to_cached_targets() - {e}")
+            self.logger.error(
+                f"Error at Database.add_to_cached_targets() - {e}")
 
     def remove_cached_target(self, email):
         try:
@@ -240,7 +245,8 @@ class Database:
             self.session.commit()
         except Exception as e:
             self.session.rollback()
-            self.logger.error(f"Error at Database.remove_cached_target() - {e}")
+            self.logger.error(
+                f"Error at Database.remove_cached_target() - {e}")
 
     def clear_cached_targets(self):
         try:
@@ -248,7 +254,8 @@ class Database:
             self.session.commit()
         except Exception as e:
             self.session.rollback()
-            self.logger.error(f"Error at Database.clear_cached_targets() - {e}")
+            self.logger.error(
+                f"Error at Database.clear_cached_targets() - {e}")
 
     def get_all_followup(self, campaign_id=None):
         if campaign_id:
@@ -426,6 +433,7 @@ def db_insert_row():
         logger.error(f"Error at var.db_insert_row - {e}")
         return (False, None)
 
+
 def update_target_verified():
     session = get_session()
     try:
@@ -433,7 +441,8 @@ def update_target_verified():
         # Check if STATUS column exists in var.target, if not add it
         if "STATUS" not in var.target.columns:
             var.target["STATUS"] = "not checked"
-        target = var.target[["1", "2", "3", "4", "5", "6", "TONAME", "EMAIL", "STATUS"]].copy()
+        target = var.target[["1", "2", "3", "4", "5",
+                             "6", "TONAME", "EMAIL", "STATUS"]].copy()
         target.fillna(" ", inplace=True)
         # Convert all columns except STATUS to string
         for col in ["1", "2", "3", "4", "5", "6", "TONAME", "EMAIL"]:
@@ -882,7 +891,8 @@ def load_db():
         db_to_pandas(group_a=True, group_b=True, target=True)
         var.command_q.put("self.update_db_table()")
         if result:
-            alert(text="Database Loaded Successfully", title="Alert", button="OK")
+            alert(text="Database Loaded Successfully",
+                  title="Alert", button="OK")
         else:
             raise error
     except Exception as e:
@@ -949,7 +959,8 @@ class PullTargetAirtable(threading.Thread):
                 # alert("Pulling Data Done", title="Success", button="OK")
 
             else:
-                logger.info("Completed pulling data from airtable But It was empty.")
+                logger.info(
+                    "Completed pulling data from airtable But It was empty.")
                 # alert(text="Empty Table", title="Failed", button="OK")
 
         except Exception as e:
