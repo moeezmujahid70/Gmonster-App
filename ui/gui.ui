@@ -237,7 +237,12 @@ QScrollBar:vertical {
                           </item>
                           <item>
                             <property name="text">
-                              <string>Configuration</string>
+                              <string>Settings</string>
+                            </property>
+                          </item>
+                          <item>
+                            <property name="text">
+                              <string>Account</string>
                             </property>
                           </item>
                         </widget>
@@ -8155,6 +8160,438 @@ QCheckBox {
                 <property name="bottomMargin">
                   <number>0</number>
                 </property>
+              </layout>
+            </widget>
+            <widget class="QWidget" name="accountPage">
+              <property name="styleSheet">
+                <string notr="true">background-color: #eff2f8;</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_account">
+                <property name="leftMargin">
+                  <number>30</number>
+                </property>
+                <property name="topMargin">
+                  <number>30</number>
+                </property>
+                <property name="rightMargin">
+                  <number>30</number>
+                </property>
+                <property name="bottomMargin">
+                  <number>30</number>
+                </property>
+                <item>
+                  <widget class="QLabel" name="label_account_title">
+                    <property name="font">
+                      <font>
+                        <family>Arial</family>
+                        <pointsize>22</pointsize>
+                        <bold>true</bold>
+                      </font>
+                    </property>
+                    <property name="styleSheet">
+                      <string notr="true">color: #333; margin-bottom: 10px;</string>
+                    </property>
+                    <property name="text">
+                      <string>Account</string>
+                    </property>
+                  </widget>
+                </item>
+                <item>
+                  <widget class="QFrame" name="frame_account_card">
+                    <property name="styleSheet">
+                      <string notr="true">QFrame#frame_account_card {
+    background-color: #fff;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    padding: 20px;
+}</string>
+                    </property>
+                    <property name="frameShape">
+                      <enum>QFrame::StyledPanel</enum>
+                    </property>
+                    <layout class="QGridLayout" name="gridLayout_account">
+                      <property name="horizontalSpacing">
+                        <number>20</number>
+                      </property>
+                      <property name="verticalSpacing">
+                        <number>14</number>
+                      </property>
+                      <item row="0" column="0">
+                        <widget class="QLabel" name="label_account_email_h">
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>13</pointsize>
+                              <bold>true</bold>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">color: #555;</string>
+                          </property>
+                          <property name="text">
+                            <string>Email</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="0" column="1">
+                        <widget class="QLabel" name="label_account_email_val">
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>13</pointsize>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">color: #222;</string>
+                          </property>
+                          <property name="text">
+                            <string>—</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="1" column="0">
+                        <widget class="QLabel" name="label_account_status_h">
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>13</pointsize>
+                              <bold>true</bold>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">color: #555;</string>
+                          </property>
+                          <property name="text">
+                            <string>Status</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="1" column="1">
+                        <widget class="QLabel" name="label_account_status_val">
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>13</pointsize>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">color: #222;</string>
+                          </property>
+                          <property name="text">
+                            <string>—</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="2" column="0">
+                        <widget class="QLabel" name="label_account_days_left_h">
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>13</pointsize>
+                              <bold>true</bold>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">color: #555;</string>
+                          </property>
+                          <property name="text">
+                            <string>Days Left</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="2" column="1">
+                        <widget class="QLabel" name="label_account_days_left_val">
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>13</pointsize>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">color: #222;</string>
+                          </property>
+                          <property name="text">
+                            <string>—</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="3" column="0">
+                        <widget class="QLabel" name="label_account_acc_limit_h">
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>13</pointsize>
+                              <bold>true</bold>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">color: #555;</string>
+                          </property>
+                          <property name="text">
+                            <string>Accounts Limit</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="3" column="1">
+                        <widget class="QLabel" name="label_account_acc_limit_val">
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>13</pointsize>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">color: #222;</string>
+                          </property>
+                          <property name="text">
+                            <string>—</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="4" column="0" colspan="2">
+                        <widget class="Line" name="line_account_sep1">
+                          <property name="orientation">
+                            <enum>Qt::Horizontal</enum>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="5" column="0" colspan="2">
+                        <widget class="QLabel" name="label_account_verif_title">
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>16</pointsize>
+                              <bold>true</bold>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">color: #333; margin-top: 6px;</string>
+                          </property>
+                          <property name="text">
+                            <string>Email Verification Quota</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="6" column="0">
+                        <widget class="QLabel" name="label_account_verif_limit_h">
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>13</pointsize>
+                              <bold>true</bold>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">color: #555;</string>
+                          </property>
+                          <property name="text">
+                            <string>Monthly Limit</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="6" column="1">
+                        <widget class="QLabel" name="label_account_verif_limit_val">
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>13</pointsize>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">color: #222;</string>
+                          </property>
+                          <property name="text">
+                            <string>—</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="7" column="0">
+                        <widget class="QLabel" name="label_account_verif_used_h">
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>13</pointsize>
+                              <bold>true</bold>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">color: #555;</string>
+                          </property>
+                          <property name="text">
+                            <string>Used</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="7" column="1">
+                        <widget class="QLabel" name="label_account_verif_used_val">
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>13</pointsize>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">color: #222;</string>
+                          </property>
+                          <property name="text">
+                            <string>—</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="8" column="0">
+                        <widget class="QLabel" name="label_account_verif_remaining_h">
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>13</pointsize>
+                              <bold>true</bold>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">color: #555;</string>
+                          </property>
+                          <property name="text">
+                            <string>Remaining</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="8" column="1">
+                        <widget class="QLabel" name="label_account_verif_remaining_val">
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>13</pointsize>
+                              <bold>true</bold>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">color: #028fc3;</string>
+                          </property>
+                          <property name="text">
+                            <string>—</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="9" column="0">
+                        <widget class="QLabel" name="label_account_verif_reset_h">
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>13</pointsize>
+                              <bold>true</bold>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">color: #555;</string>
+                          </property>
+                          <property name="text">
+                            <string>Resets On</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="9" column="1">
+                        <widget class="QLabel" name="label_account_verif_reset_val">
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>13</pointsize>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">color: #222;</string>
+                          </property>
+                          <property name="text">
+                            <string>—</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="10" column="0" colspan="2">
+                        <widget class="QProgressBar" name="progressBar_account_verif">
+                          <property name="minimumSize">
+                            <size>
+                              <width>0</width>
+                              <height>22</height>
+                            </size>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">QProgressBar {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #eee;
+    text-align: center;
+    font-size: 11px;
+    color: #555;
+}
+QProgressBar::chunk {
+    background-color: #028fc3;
+    border-radius: 7px;
+}</string>
+                          </property>
+                          <property name="maximum">
+                            <number>100</number>
+                          </property>
+                          <property name="value">
+                            <number>0</number>
+                          </property>
+                        </widget>
+                      </item>
+                    </layout>
+                  </widget>
+                </item>
+                <item>
+                  <widget class="QPushButton" name="pushButton_account_refresh">
+                    <property name="minimumSize">
+                      <size>
+                        <width>140</width>
+                        <height>40</height>
+                      </size>
+                    </property>
+                    <property name="maximumSize">
+                      <size>
+                        <width>140</width>
+                        <height>40</height>
+                      </size>
+                    </property>
+                    <property name="font">
+                      <font>
+                        <family>Arial</family>
+                        <pointsize>12</pointsize>
+                      </font>
+                    </property>
+                    <property name="styleSheet">
+                      <string notr="true">QPushButton {
+    border: 1px solid #555;
+    border-radius: 3px;
+    background: rgba(0, 138, 191);
+    padding: 5px 28px;
+    color: rgb(255, 255, 255);
+}
+QPushButton:hover {
+    background: rgba(0, 138, 191, 0.6);
+}
+QPushButton:pressed {
+    border-style: inset;
+    background: rgb(0, 138, 191);
+}</string>
+                    </property>
+                    <property name="text">
+                      <string>Refresh</string>
+                    </property>
+                  </widget>
+                </item>
+                <item>
+                  <spacer name="spacer_account_bottom">
+                    <property name="orientation">
+                      <enum>Qt::Vertical</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                      <size>
+                        <width>20</width>
+                        <height>40</height>
+                      </size>
+                    </property>
+                  </spacer>
+                </item>
               </layout>
             </widget>
           </widget>
