@@ -116,6 +116,7 @@ def update_config_json(alternative_name=None):
                 "space_encoding_checkbox": var.space_encoding_checkbox,
                 "test_email": var.test_email,
                 "open_ai_key": var.open_ai_key,
+                "open_ai_model": var.open_ai_model,
                 "airtable": {
                     "api_key": var.AirtableConfig.api_key,
                     "base_id": var.AirtableConfig.base_id,
@@ -191,6 +192,7 @@ def get_config_json():
             "space_encoding_checkbox": var.space_encoding_checkbox,
             "test_email": var.test_email,
             "open_ai_key": var.open_ai_key,
+            "open_ai_model": var.open_ai_model,
             "airtable": {
                 "api_key": var.AirtableConfig.api_key,
                 "base_id": var.AirtableConfig.base_id,

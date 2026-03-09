@@ -207,6 +207,8 @@ space_encoding_checkbox = False
 test_email = ''
 cc_emails = ''
 cc_emails_enabled = False
+open_ai_key = ''
+open_ai_model = 'gpt-5-mini'
 total_email_to_be_sent = 0
 try:
     if os.path.exists(id_file_path):
@@ -231,6 +233,10 @@ try:
         config['space_encoding_checkbox'] = space_encoding_checkbox
     if 'test_email' not in config:
         config['test_email'] = test_email
+    if 'open_ai_key' not in config:
+        config['open_ai_key'] = open_ai_key
+    if 'open_ai_model' not in config:
+        config['open_ai_model'] = open_ai_model
     if 'cc_emails' not in config:
         config['cc_emails'] = cc_emails
     if 'cc_emails_enabled' not in config:
@@ -279,7 +285,8 @@ try:
     inbox_whitelist_checkbox = config['inbox_whitelist_checkbox']
     space_encoding_checkbox = config['space_encoding_checkbox']
     test_email = config['test_email']
-    open_ai_key = config['open_ai_key']
+    open_ai_key = config.get('open_ai_key', '')
+    open_ai_model = config.get('open_ai_model', open_ai_model)
     cc_emails = config['cc_emails']
     cc_emails_enabled = config['cc_emails_enabled']
     AirtableConfig.base_id = config['airtable']['base_id']
