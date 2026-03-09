@@ -39,6 +39,11 @@ import re
 import random
 import os
 import html
+import importlib
+try:
+    qta = importlib.import_module("qtawesome")
+except Exception:
+    qta = None
 global app
 global mainWindow
 global myMC
@@ -48,12 +53,23 @@ global GUI
 quit_application = False
 
 
+def get_effective_openai_key():
+    return (var.open_ai_key or "").strip()
+
+
+def get_effective_openai_model():
+    model_name = (var.open_ai_model or "").strip()
+    if model_name:
+        return model_name
+    return "gpt-5-mini"
+
+
 class AIPromptDialog(QDialog):
     promptSubmitted = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.client = OpenAI(api_key=var.open_ai_key)
+        self.client = None
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setGeometry(300, 200, 400, 300)
@@ -83,9 +99,18 @@ class AIPromptDialog(QDialog):
         if not prompt:
             alert(text="Please enter a prompt.", title="Warning", button="OK")
             return
+        effective_key = get_effective_openai_key()
+        if not effective_key:
+            alert(
+                text="No OpenAI API key found. Add your key in Configuration -> OpenAI key.",
+                title="Warning",
+                button="OK",
+            )
+            return
         try:
+            self.client = OpenAI(api_key=effective_key)
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=get_effective_openai_model(),
                 messages=[
                     {
                         "role": "system",
@@ -94,6 +119,7 @@ class AIPromptDialog(QDialog):
                     {"role": "user", "content": prompt},
                 ],
             )
+            print(f"Using OpenAI model: {get_effective_openai_model()}")
             answer = response.choices[0].message.content
             self.promptSubmitted.emit(answer)
         except Exception as e:
@@ -111,6 +137,9 @@ class MyGui(Ui_MainWindow, QtWidgets.QWidget):
 class MyMainClass:
     def __init__(self):
         self.compose_font_size = 13
+        self.inbox_zoom_level = 0
+        self.setup_openai_config_ui()
+        self.setup_sidebar_icons()
         GUI.checkBox_delete_all.stateChanged.connect(
             lambda state: self.toggle_all_checkboxes(
                 state, GUI.checkBox_delete_all)
@@ -156,6 +185,8 @@ class MyMainClass:
         subscription_thread = Thread(
             target=self.check_for_subscription, daemon=True)
         subscription_thread.start()
+        GUI.pushButton_account_refresh.clicked.connect(
+            self.refresh_account_info)
         self.command_timer = QtCore.QTimer()
         self.command_timer.setInterval(10)
         self.command_timer.timeout.connect(self.run_command)
@@ -237,7 +268,12 @@ class MyMainClass:
             var.autoReply_enabled)
         GUI.radioButton_canned_reply.setChecked(var.autoReply_canned_switch)
         GUI.radioButton_ai_reply.setChecked(~var.autoReply_canned_switch)
+        GUI.lineEdit_open_ai_key.setEchoMode(QtWidgets.QLineEdit.Password)
+        GUI.lineEdit_open_ai_key.setPlaceholderText(
+            "Enter your OpenAI API key"
+        )
         GUI.lineEdit_open_ai_key.setText(var.open_ai_key)
+        GUI.lineEdit_open_ai_model.setText(var.open_ai_model)
         GUI.lineEdit_airtable_table_name.setText(var.AirtableConfig.table_name)
         GUI.lineEdit_airtable_base_id.setText(var.AirtableConfig.base_id)
         GUI.lineEdit_airtable_api_key.setText(var.AirtableConfig.api_key)
@@ -418,6 +454,20 @@ class MyMainClass:
         GUI.pushButton_compose_zoomOut.clicked.connect(
             lambda: self.compose_zoomInOut("zoomOut")
         )
+        try:
+            GUI.pushButton_3.clicked.disconnect()
+        except TypeError:
+            pass
+        try:
+            GUI.pushButton_4.clicked.disconnect()
+        except TypeError:
+            pass
+        GUI.pushButton_3.clicked.connect(
+            lambda: self.inbox_zoomInOut("zoomIn")
+        )
+        GUI.pushButton_4.clicked.connect(
+            lambda: self.inbox_zoomInOut("zoomOut")
+        )
         GUI.checkBox_database_group_a.stateChanged.connect(
             self.update_db_file_upload_config
         )
@@ -428,6 +478,8 @@ class MyMainClass:
             self.update_db_file_upload_config
         )
         GUI.lineEdit_open_ai_key.textChanged.connect(self.change_open_ai_key)
+        GUI.lineEdit_open_ai_model.textChanged.connect(
+            self.change_open_ai_model)
         GUI.pushButton_fire_inbox_webhook.clicked.connect(
             self.start_inbox_stream_thread
         )
@@ -522,6 +574,9 @@ class MyMainClass:
             self.launch_wum()
         elif index == 10:
             GUI.stackedWidget.setCurrentIndex(5)
+        elif index == 11:
+            GUI.stackedWidget.setCurrentIndex(6)
+            self.refresh_account_info()
         else:
             url_mappings = {
                 "Store": "https://gmonster.co/store",
@@ -591,6 +646,138 @@ class MyMainClass:
                 button="OK",
             )
             return
+
+        # --- Email Verification Quota Check ---
+        email_count = len(valid_emails)
+        try:
+            quota_url = f"{var.api}verify/use_email_verification/{var.login_email}"
+            quota_response = requests.post(
+                quota_url, json={"count": email_count}, timeout=15
+            )
+            quota_data = quota_response.json()
+
+            if quota_response.status_code == 429:
+                # Monthly limit reached
+                alert(
+                    text=(
+                        f"Monthly email verification limit reached.\n\n"
+                        f"Limit: {quota_data.get('email_verification_limit', 'N/A')}\n"
+                        f"Used: {quota_data.get('email_verifications_used', 'N/A')}\n"
+                        f"Remaining: {quota_data.get('email_verifications_remaining', 0)}\n"
+                        f"Resets on: {quota_data.get('email_verification_reset_date', 'N/A')}"
+                    ),
+                    title="Verification Limit Reached",
+                    button="OK",
+                )
+                return
+
+            elif quota_response.status_code == 400:
+                error_type = quota_data.get("error", "")
+                if error_type == "not_enough_remaining":
+                    remaining = quota_data.get(
+                        "email_verifications_remaining", 0)
+                    result = confirm(
+                        text=(
+                            f"Not enough email verifications remaining.\n\n"
+                            f"Requested: {email_count}\n"
+                            f"Remaining: {remaining}\n"
+                            f"Limit: {quota_data.get('email_verification_limit', 'N/A')}\n"
+                            f"Used: {quota_data.get('email_verifications_used', 'N/A')}\n"
+                            f"Resets on: {quota_data.get('email_verification_reset_date', 'N/A')}\n\n"
+                            f"Would you like to verify only {remaining} emails instead?"
+                        ),
+                        title="Insufficient Quota",
+                        buttons=["Yes", "No"],
+                    )
+                    if result == "Yes" and remaining > 0:
+                        # Trim valid_emails to the remaining quota and retry
+                        valid_emails = valid_emails[:remaining]
+                        var.target = var.target[var.target["EMAIL"].isin(
+                            valid_emails)].copy()
+                        var.target["STATUS"] = "not checked"
+                        update_target_verified()
+                        self.update_db_table()
+                        # Consume the reduced quota
+                        quota_resp2 = requests.post(
+                            quota_url, json={"count": remaining}, timeout=15
+                        )
+                        if quota_resp2.status_code != 200:
+                            quota_data2 = quota_resp2.json()
+                            alert(
+                                text=(
+                                    quota_data2.get("message")
+                                    or quota_data2.get("error", "Unknown error")
+                                ),
+                                title="Quota Error",
+                                button="OK",
+                            )
+                            return
+                    else:
+                        return
+                else:
+                    alert(
+                        text=(
+                            quota_data.get("message")
+                            or quota_data.get("error", "Unknown error")
+                        ),
+                        title="Quota Error",
+                        button="OK",
+                    )
+                    return
+
+            elif quota_response.status_code in (401, 402, 404):
+                alert(
+                    text=(
+                        quota_data.get("message")
+                        or quota_data.get("error", "Subscription error")
+                    ),
+                    title="Subscription Error",
+                    button="OK",
+                )
+                return
+
+            elif quota_response.status_code != 200:
+                alert(
+                    text=(
+                        f"Error checking verification quota: "
+                        f"{quota_data.get('message') or quota_data.get('error', 'Unknown error')}"
+                    ),
+                    title="Error",
+                    button="OK",
+                )
+                return
+
+            # Success – quota consumed, log remaining balance
+            logger.info(
+                f"Email verification quota consumed: {quota_data.get('consumed', email_count)} | "
+                f"Remaining: {quota_data.get('email_verifications_remaining', 'N/A')} | "
+                f"Used: {quota_data.get('email_verifications_used', 'N/A')}"
+            )
+
+        except requests.exceptions.ConnectionError:
+            alert(
+                text="Cannot reach the server to verify quota. Please check your internet connection.",
+                title="Connection Error",
+                button="OK",
+            )
+            return
+        except requests.RequestException as e:
+            alert(
+                text=f"Error checking verification quota: {str(e)}",
+                title="Error",
+                button="OK",
+            )
+            return
+        except Exception as e:
+            logger.error(f"Unexpected error during quota check: {str(e)}")
+            alert(
+                text=f"Unexpected error checking verification quota: {str(e)}",
+                title="Error",
+                button="OK",
+            )
+            return
+        # --- End Quota Check ---
+
         progress_dialog = QtWidgets.QProgressDialog(
             "Verifying emails...", "Cancel", 0, len(valid_emails), None
         )
@@ -1317,7 +1504,15 @@ class MyMainClass:
         if not var.autoReply_canned_switch:
             logger.info("send auto reply")
             try:
-                client = OpenAI(api_key=var.open_ai_key)
+                effective_key = get_effective_openai_key()
+                if not effective_key:
+                    alert(
+                        text="No OpenAI API key found. Add your key in Configuration -> OpenAI key.",
+                        title="Warning",
+                        button="OK",
+                    )
+                    return
+                client = OpenAI(api_key=effective_key)
                 if not var.autoReply_prompt or not var.autoReply_prompt.strip():
                     alert(text="Please enter a prompt.",
                           title="Warning", button="OK")
@@ -1367,7 +1562,7 @@ class MyMainClass:
                             "[RECEIVEDEMAIL]", row["body"])
                         try:
                             response = client.chat.completions.create(
-                                model="gpt-4o-mini",
+                                model=get_effective_openai_model(),
                                 messages=[
                                     {
                                         "role": "system",
@@ -1545,6 +1740,78 @@ class MyMainClass:
 
     def change_open_ai_key(self):
         var.open_ai_key = GUI.lineEdit_open_ai_key.text().strip().replace(" ", "")
+
+    def change_open_ai_model(self):
+        var.open_ai_model = GUI.lineEdit_open_ai_model.text().strip()
+
+    def setup_openai_config_ui(self):
+        if not hasattr(GUI, "lineEdit_open_ai_model"):
+            GUI.label_open_ai_model = QtWidgets.QLabel(GUI.groupBox_10)
+            font = QtGui.QFont()
+            font.setFamily("Arial")
+            font.setPointSize(12)
+            GUI.label_open_ai_model.setFont(font)
+            GUI.label_open_ai_model.setStyleSheet("margin-left: 5px;")
+            GUI.label_open_ai_model.setText("OpenAI model")
+            GUI.label_open_ai_model.setObjectName("label_open_ai_model")
+            GUI.gridLayout_4.addWidget(GUI.label_open_ai_model, 50, 3, 1, 1)
+
+            GUI.lineEdit_open_ai_model = QtWidgets.QLineEdit(GUI.groupBox_10)
+            GUI.lineEdit_open_ai_model.setMinimumSize(QtCore.QSize(0, 42))
+            font = QtGui.QFont()
+            font.setFamily("Calibri")
+            font.setPointSize(11)
+            GUI.lineEdit_open_ai_model.setFont(font)
+            GUI.lineEdit_open_ai_model.setStyleSheet(
+                "background-color: rgb(255, 255, 255);"
+            )
+            GUI.lineEdit_open_ai_model.setFrame(False)
+            GUI.lineEdit_open_ai_model.setClearButtonEnabled(True)
+            GUI.lineEdit_open_ai_model.setPlaceholderText("e.g. gpt-5-mini")
+            GUI.lineEdit_open_ai_model.setObjectName("lineEdit_open_ai_model")
+            GUI.gridLayout_4.addWidget(GUI.lineEdit_open_ai_model, 50, 4, 1, 2)
+
+        if not hasattr(GUI, "label_open_ai_note"):
+            GUI.label_open_ai_note = QtWidgets.QLabel(GUI.groupBox_10)
+            font = QtGui.QFont()
+            font.setFamily("Arial")
+            font.setPointSize(10)
+            GUI.label_open_ai_note.setFont(font)
+            GUI.label_open_ai_note.setStyleSheet(
+                "color: #666; margin-left: 5px;")
+            GUI.label_open_ai_note.setWordWrap(True)
+            GUI.label_open_ai_note.setText(
+                "To set your desired model, enter your API key. Otherwise, default API and model will be used."
+            )
+            GUI.label_open_ai_note.setObjectName("label_open_ai_note")
+            GUI.gridLayout_4.addWidget(GUI.label_open_ai_note, 52, 3, 1, 4)
+
+    def setup_sidebar_icons(self):
+        if qta is None:
+            return
+        icon_map = {
+            "Inbox": "fa5s.inbox",
+            "Campaign": "fa5s.paper-plane",
+            "Database": "fa5s.database",
+            "Follow-up": "fa5s.reply",
+            "Auto-reply": "fa5s.robot",
+            "Store": "fa5s.shopping-bag",
+            "Leads": "fa5s.user-friends",
+            "Tutorials": "fa5s.book-open",
+            "Support": "fa5s.life-ring",
+            "Warm up": "fa5s.fire",
+            "Settings": "fa5s.cog",
+            "Account": "fa5s.user-circle",
+        }
+        GUI.listWidget.setIconSize(QtCore.QSize(16, 16))
+        for index in range(GUI.listWidget.count()):
+            item = GUI.listWidget.item(index)
+            if item is None:
+                continue
+            icon_name = icon_map.get(item.text())
+            if not icon_name:
+                continue
+            item.setIcon(qta.icon(icon_name, color="#666666"))
 
     def change_target_blacklist(self):
         target_blacklist = GUI.lineEdit_target_blacklist.text().strip().replace(" ", "")
@@ -1900,6 +2167,80 @@ class MyMainClass:
                     )
             sleep(self.time_interval_sub_check)
 
+    def refresh_account_info(self):
+        """Fetch subscription info from API and populate the Account page labels."""
+        GUI.label_account_email_val.setText(var.login_email or "—")
+        try:
+            url = var.api + \
+                "verify/check_for_subscription/{}".format(var.login_email)
+            response = requests.post(url, timeout=10)
+            data = response.json()
+            if response.status_code == 200:
+                status_code = data.get("status")
+                if status_code == 1:
+                    GUI.label_account_status_val.setText("Active")
+                    GUI.label_account_status_val.setStyleSheet(
+                        "color: #2e7d32; font-weight: bold;")
+                    GUI.label_account_days_left_val.setText(
+                        str(data.get("days_left", "—")))
+                    GUI.label_account_acc_limit_val.setText(
+                        str(data.get("accounts_limit", "—")))
+                    limit = data.get("email_verification_limit", 0)
+                    used = data.get("email_verifications_used", 0)
+                    remaining = data.get("email_verifications_remaining", 0)
+                    reset_date = data.get("email_verification_reset_date", "—")
+                    GUI.label_account_verif_limit_val.setText(str(limit))
+                    GUI.label_account_verif_used_val.setText(str(used))
+                    GUI.label_account_verif_remaining_val.setText(
+                        str(remaining))
+                    GUI.label_account_verif_reset_val.setText(str(reset_date))
+                    # Update progress bar
+                    if limit and limit > 0:
+                        pct = int((used / limit) * 100)
+                        GUI.progressBar_account_verif.setValue(pct)
+                        GUI.progressBar_account_verif.setFormat(
+                            f"{used} / {limit}")
+                    else:
+                        GUI.progressBar_account_verif.setValue(0)
+                        GUI.progressBar_account_verif.setFormat("N/A")
+                elif status_code == 2:
+                    GUI.label_account_status_val.setText("Expired")
+                    GUI.label_account_status_val.setStyleSheet(
+                        "color: #c62828; font-weight: bold;")
+                    end_date = data.get("end_date", "—")
+                    GUI.label_account_days_left_val.setText(
+                        f"Expired on {end_date}")
+                    for lbl in [GUI.label_account_acc_limit_val, GUI.label_account_verif_limit_val,
+                                GUI.label_account_verif_used_val, GUI.label_account_verif_remaining_val,
+                                GUI.label_account_verif_reset_val]:
+                        lbl.setText("—")
+                    GUI.progressBar_account_verif.setValue(0)
+                elif status_code == 3:
+                    GUI.label_account_status_val.setText("Deactivated")
+                    GUI.label_account_status_val.setStyleSheet(
+                        "color: #e65100; font-weight: bold;")
+                    end_date = data.get("end_date", "—")
+                    GUI.label_account_days_left_val.setText(
+                        f"Deactivated (end: {end_date})")
+                    for lbl in [GUI.label_account_acc_limit_val, GUI.label_account_verif_limit_val,
+                                GUI.label_account_verif_used_val, GUI.label_account_verif_remaining_val,
+                                GUI.label_account_verif_reset_val]:
+                        lbl.setText("—")
+                    GUI.progressBar_account_verif.setValue(0)
+                else:
+                    GUI.label_account_status_val.setText("Unknown")
+                    GUI.label_account_status_val.setStyleSheet("color: #888;")
+            else:
+                GUI.label_account_status_val.setText("Error")
+                GUI.label_account_status_val.setStyleSheet("color: #c62828;")
+                logger.error(
+                    f"Account info fetch failed: HTTP {response.status_code} - {response.text}")
+        except Exception as e:
+            GUI.label_account_status_val.setText("Connection error")
+            GUI.label_account_status_val.setStyleSheet("color: #c62828;")
+            logger.error(
+                f"Error fetching account info: {traceback.format_exc()}")
+
     def test_send(self):
         dialog = QtWidgets.QDialog()
         dialog.ui = Send(dialog, parent="test")
@@ -2046,6 +2387,23 @@ class MyMainClass:
                 self.compose_font_size -= 1
                 GUI.textBrowser_compose.setFontPointSize(
                     self.compose_font_size)
+
+    def inbox_zoomInOut(self, source):
+        if source == "zoomIn":
+            if self.inbox_zoom_level < 8:
+                self.inbox_zoom_level += 1
+        else:
+            if self.inbox_zoom_level > -6:
+                self.inbox_zoom_level -= 1
+        self.refresh_inbox_email_view()
+
+    def refresh_inbox_email_view(self):
+        if not isinstance(var.email_in_view, dict) or not var.email_in_view:
+            return
+        selected_row_data = dict(var.email_in_view)
+        thread_df = self._get_conversation_thread(selected_row_data)
+        GUI.textBrowser_show_email.setHtml(
+            self._build_thread_view_html(thread_df))
 
     def compose_update(self):
         if not GUI.checkBox_compose_preview.isChecked():
@@ -2581,6 +2939,10 @@ class MyMainClass:
         return participants
 
     def _build_thread_view_html(self, thread_df):
+        zoom_multiplier = 1 + (self.inbox_zoom_level * 0.1)
+        meta_font_size = max(9, int(round(12 * zoom_multiplier)))
+        subject_font_size = max(14, int(round(20 * zoom_multiplier)))
+        base_font_size = max(10, int(round(14 * zoom_multiplier)))
         message_blocks = []
         for _, row_data in thread_df.iterrows():
             from_text = html.escape(
@@ -2610,17 +2972,17 @@ class MyMainClass:
             message_blocks.append(
                 f"""
                 <div style=\"margin:0 0 14px 0; padding:10px; border:1px solid #ddd; background:#fafafa;\">
-                    <div style=\"font-size:12px; color:#444; margin-bottom:8px;\"><b>From:</b> {from_text}</div>
-                    <div style=\"font-size:12px; color:#444; margin-bottom:8px;\"><b>To:</b> {to_text}</div>
-                    <div style=\"font-size:12px; color:#666; margin-bottom:8px;\"><b>Date:</b> {date_text}</div>
-                    <div style=\"font-size:20px; font-weight:600; margin:0 0 10px 0;\">{subject_text}</div>
+                    <div style=\"font-size:{meta_font_size}px; color:#444; margin-bottom:8px;\"><b>From:</b> {from_text}</div>
+                    <div style=\"font-size:{meta_font_size}px; color:#444; margin-bottom:8px;\"><b>To:</b> {to_text}</div>
+                    <div style=\"font-size:{meta_font_size}px; color:#666; margin-bottom:8px;\"><b>Date:</b> {date_text}</div>
+                    <div style=\"font-size:{subject_font_size}px; font-weight:600; margin:0 0 10px 0;\">{subject_text}</div>
                     <div>{body_html}</div>
                 </div>
                 """
             )
 
         return (
-            "<html><body style='font-family: Arial, sans-serif; font-size: 14px;'>"
+            f"<html><body style='font-family: Arial, sans-serif; font-size: {base_font_size}px;'>"
             + "".join(message_blocks)
             + "</body></html>"
         )
