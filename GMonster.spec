@@ -25,6 +25,7 @@ datas = []
 datas += _safe_copy_metadata('apscheduler', recursive=True)
 datas += _safe_collect_data_files('textblob.en')
 datas += _safe_collect_data_files('tzdata')
+datas += _safe_collect_data_files('qtawesome')
 
 block_cipher = None
 
@@ -33,7 +34,7 @@ a = Analysis(['var.py'],
              pathex=[spec_dir],
              binaries=[],
              datas=datas,
-             hiddenimports=[],
+             hiddenimports=['qtawesome'],
              hookspath=[],
              runtime_hooks=[],
              excludes=[],
