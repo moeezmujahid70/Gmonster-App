@@ -17,6 +17,14 @@ import utils
 from compat_ui import alert, password, confirm
 import requests
 
+
+def get_request_timeout():
+    try:
+        return var.API_TIMEOUT
+    except Exception:
+        return (5, 30)
+
+
 # regex = '^[a-zA-Z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$'
 regex = '[^@]+@[^@]+\.[^@]+'
 
@@ -224,11 +232,23 @@ def make_sign_up_requests(email, password, endpoint):
                    "Accept": "application/json"}
         data = dumps(myobj).encode("utf-8")
         data = loads(data)
-        x = requests.post(url, json=data, headers=headers, timeout=10)
+        x = requests.post(
+            url,
+            json=data,
+            headers=headers,
+            timeout=get_request_timeout(),
+        )
         if len(x.text) > 100:
             status = "Error at main server"
         else:
             status = x.text
+        print(status)
+        if endpoint == "register":
+            var.sign_up_label = status
+        else:
+            var.sign_in_label = status
+    except requests.exceptions.Timeout:
+        status = "Server timeout. Please try again in a few moments."
         print(status)
         if endpoint == "register":
             var.sign_up_label = status
@@ -282,7 +302,7 @@ class myMainClass:
     def check_update(self):
         try:
             url = var.api + "verify/version/{}".format(var.version)
-            response = requests.post(url, timeout=10)
+            response = requests.post(url, timeout=get_request_timeout())
             data = response.json()
             self.update_needed = True
             if data['update_needed']:
@@ -296,6 +316,10 @@ class myMainClass:
                     logger.info("Download rejected")
             GUI.label.setText("Update checking finished. Now you can login.")
             logger.info("Check Update finished")
+        except requests.exceptions.Timeout:
+            self.update_needed = True
+            logger.error("error at check_update: request timeout")
+            GUI.label.setText("Update check timed out. You can still login.")
         except Exception as e:
             self.update_needed = True
             logger.error("error at check_update: {}".format(e))

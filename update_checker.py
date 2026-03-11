@@ -18,18 +18,25 @@ class UpdateHandler:
 
     def download(self):
         try:
-            logger.info("Internal Process: Update downloading process starting.")
+            logger.info(
+                "Internal Process: Update downloading process starting.")
             headers = {"user-agent": "Wget/1.16 (linux-gnu)"}
             filepath = "{}/GMonster{}.zip".format(self.file_path, self.name)
             temp_path = f"{self.file_path}"
             if not os.path.exists(temp_path):
                 os.makedirs(temp_path)
-                logger.info("Internal Process: Created temp dir for extraction process")
+                logger.info(
+                    "Internal Process: Created temp dir for extraction process")
             url = var.api + "verify/version/download/{}".format(self.name)
-            response = requests.post(url, timeout=10)
+            response = requests.post(url, timeout=var.API_TIMEOUT)
             data = response.json()
             url = self.link
-            r = requests.get(url, stream=True, headers=headers)
+            r = requests.get(
+                url,
+                stream=True,
+                headers=headers,
+                timeout=var.FILE_DOWNLOAD_TIMEOUT,
+            )
             downloaded = 0
             with open(filepath, "wb") as f:
                 for chunk in r.iter_content(chunk_size=1024):
@@ -44,10 +51,12 @@ class UpdateHandler:
                 logger.info("Internal Process: Closing the application.")
                 var.command_q.put("QtCore.QCoreApplication.quit()")
             else:
-                logger.info("Internal Process: Update extracted. Auto-replace is only supported on Windows.")
+                logger.info(
+                    "Internal Process: Update extracted. Auto-replace is only supported on Windows.")
         except:
             logger.info(
-                "Error at UpdateHandler.download: {}".format(traceback.format_exc())
+                "Error at UpdateHandler.download: {}".format(
+                    traceback.format_exc())
             )
 
 
@@ -56,11 +65,12 @@ def update_checker():
         try:
             time.sleep(300)
             url = var.api + "verify/version/{}".format(var.version)
-            response = requests.post(url, timeout=10)
+            response = requests.post(url, timeout=var.API_TIMEOUT)
             data = response.json()
             if data["update_needed"] and (not var.send_campaign_run_status):
                 logger.info("Internal Process: Updates available.")
-                update_handler = UpdateHandler(data["name"], data["link"], data["size"])
+                update_handler = UpdateHandler(
+                    data["name"], data["link"], data["size"])
                 update_handler.download()
             else:
                 logger.info(

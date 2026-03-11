@@ -183,7 +183,13 @@ limit_of_thread = 100
 login_email = ''
 tracking = {}
 webhook_link = ''
-api = 'https://dev-enzim.pythonanywhere.com/'
+api = 'https://enzim.pythonanywhere.com/'
+API_CONNECT_TIMEOUT = 5
+API_READ_TIMEOUT = 20
+API_TIMEOUT = (API_CONNECT_TIMEOUT, API_READ_TIMEOUT)
+API_SLOW_TIMEOUT = (API_CONNECT_TIMEOUT, 30)
+API_EMAIL_VERIFY_TIMEOUT = (API_CONNECT_TIMEOUT, 100)
+FILE_DOWNLOAD_TIMEOUT = (10, 120)
 gmail_provider = 'https://gmonster.co/product/gmail-accounts/'
 proxy_provider = 'https://gmonster.co/product/gmonster-proxies/'
 campaign_scheduler_cache_path = os.path.join(
@@ -204,6 +210,8 @@ id_file_path = os.path.join(os.getcwd(), base_dir, id_file_name)
 hostname_list = []
 inbox_whitelist_checkbox = False
 space_encoding_checkbox = False
+hide_warmup_emails = False
+warmup_pool_accounts = []
 test_email = ''
 cc_emails = ''
 cc_emails_enabled = False
@@ -231,12 +239,16 @@ try:
         config['inbox_whitelist_checkbox'] = inbox_whitelist_checkbox
     if 'space_encoding_checkbox' not in config:
         config['space_encoding_checkbox'] = space_encoding_checkbox
+    if 'hide_warmup_emails' not in config:
+        config['hide_warmup_emails'] = hide_warmup_emails
     if 'test_email' not in config:
         config['test_email'] = test_email
     if 'open_ai_key' not in config:
         config['open_ai_key'] = open_ai_key
     if 'open_ai_model' not in config:
         config['open_ai_model'] = open_ai_model
+    if 'api' not in config:
+        config['api'] = api
     if 'cc_emails' not in config:
         config['cc_emails'] = cc_emails
     if 'cc_emails_enabled' not in config:
@@ -255,6 +267,7 @@ try:
     delay_between_emails = config['delay_between_emails']
     limit_of_thread = config['limit_of_thread']
     login_email = config['login_email']
+    api = config.get('api', api)
     tracking = config['tracking']
     webhook_link = config['webhook_link']
     check_for_blocks = config['check_for_blocks']
@@ -284,6 +297,7 @@ try:
     hostname_list = config['hostname_list']
     inbox_whitelist_checkbox = config['inbox_whitelist_checkbox']
     space_encoding_checkbox = config['space_encoding_checkbox']
+    hide_warmup_emails = config.get('hide_warmup_emails', False)
     test_email = config['test_email']
     open_ai_key = config.get('open_ai_key', '')
     open_ai_model = config.get('open_ai_model', open_ai_model)

@@ -33,7 +33,7 @@ class CampaignReportWebhook(threading.Thread):
         data = dumps(self.package).encode("utf-8")
         data = loads(data)
         result = requests.post(
-            self.api_link, json=data, headers=self.headers, timeout=10
+            self.api_link, json=data, headers=self.headers, timeout=var.API_TIMEOUT
         )
         self.logger.info("Ending Campaign End Report Webhook session.")
 
@@ -68,7 +68,7 @@ class SendWebhook(threading.Thread):
                     data = dumps(dict_obj).encode("utf-8")
                     data = loads(data)
                     result = requests.post(
-                        self.api_link, json=data, headers=self.headers, timeout=10
+                        self.api_link, json=data, headers=self.headers, timeout=var.API_TIMEOUT
                     )
                     self.logger.info(f"POSTed {dict_obj['data_len']} data to webhook")
                 except Exception as e:
@@ -117,7 +117,7 @@ class SendWebhook_Inbox(threading.Thread):
                     data = dumps(dict_obj).encode("utf-8")
                     data = loads(data)
                     result = requests.post(
-                        self.api_link, json=data, headers=self.headers, timeout=10
+                        self.api_link, json=data, headers=self.headers, timeout=var.API_TIMEOUT
                     )
                     count += 1
                     var.command_q.put(

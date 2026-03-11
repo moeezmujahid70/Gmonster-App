@@ -66,10 +66,15 @@ class Download(Ui_Dialog):
                 os.makedirs(temp_path)
                 logger.info("Created temp dir for extraction process")
             url = var.api + "verify/version/download/{}".format(self.name)
-            response = requests.post(url, timeout=10)
+            response = requests.post(url, timeout=var.API_TIMEOUT)
             data = response.json()
             url = self.link
-            r = requests.get(url, stream=True, headers=headers)
+            r = requests.get(
+                url,
+                stream=True,
+                headers=headers,
+                timeout=var.FILE_DOWNLOAD_TIMEOUT,
+            )
             downloaded = 0
             with open(filepath, "wb") as f:
                 for chunk in r.iter_content(chunk_size=1024):
