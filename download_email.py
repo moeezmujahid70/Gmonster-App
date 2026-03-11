@@ -33,7 +33,8 @@ class Download(Ui_Dialog):
         self.timer.timeout.connect(self.update_gui)
         from imap import main
 
-        Thread(target=main, daemon=True, args=[group, folders, var.date]).start()
+        Thread(target=main, daemon=True, args=[
+               group, folders, var.date]).start()
         self.timer.start()
 
     def update_gui(self):
@@ -43,9 +44,10 @@ class Download(Ui_Dialog):
                     f"Total Email Downloaded : {var.total_email_downloaded}"
                 )
             else:
-                self.label_status.setText(
-                    f"Total Email Downloaded : {var.total_email_downloaded} Accounts failed : {var.email_failed}"
-                )
+                msg = f"Total Email Downloaded : {var.total_email_downloaded} Accounts failed : {var.email_failed}"
+                if var.hide_warmup_emails:
+                    msg += " | Hide warm up filter enabled"
+                self.label_status.setText(msg)
                 self.pushButton_cancel.setText("Close")
             # compute percentage safely (avoid ZeroDivisionError) and pass int to setValue
             try:
