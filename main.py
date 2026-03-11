@@ -185,6 +185,8 @@ class MyMainClass:
         subscription_thread = Thread(
             target=self.check_for_subscription, daemon=True)
         subscription_thread.start()
+        if var.hide_warmup_emails:
+            Thread(target=self._fetch_warmup_pool_accounts, daemon=True).start()
         GUI.pushButton_account_refresh.clicked.connect(
             self.refresh_account_info)
         self.command_timer = QtCore.QTimer()
@@ -231,6 +233,7 @@ class MyMainClass:
         GUI.checkBox_proxy_enabled.setChecked(var.proxy_on)
         GUI.checkBox_inbox_whitelist.setChecked(var.inbox_whitelist_checkbox)
         GUI.checkBox_space_encoding.setChecked(var.space_encoding_checkbox)
+        GUI.checkBox_hide_warmup_emails.setChecked(var.hide_warmup_emails)
         self.auto_fire_responses_webhook_timer = QtCore.QTimer()
         self.auto_fire_responses_webhook_timer.setInterval(
             max(1, int(var.auto_fire_responses_webhook_interval * 3600 * 1000))
@@ -377,6 +380,8 @@ class MyMainClass:
             self.update_checkbox_status)
         GUI.checkBox_enable_cc_emails.stateChanged.connect(
             self.update_checkbox_status)
+        GUI.checkBox_hide_warmup_emails.stateChanged.connect(
+            self.update_hide_warmup_emails)
         GUI.pushButton_email_verify.clicked.connect(self.email_verify)
         GUI.pushButton_select_toggle.toggled.connect(
             self.toggle_checkbox_section)
@@ -652,7 +657,7 @@ class MyMainClass:
         try:
             quota_url = f"{var.api}verify/use_email_verification/{var.login_email}"
             quota_response = requests.post(
-                quota_url, json={"count": email_count}, timeout=15
+                quota_url, json={"count": email_count}, timeout=var.API_SLOW_TIMEOUT
             )
             quota_data = quota_response.json()
 
@@ -699,7 +704,9 @@ class MyMainClass:
                         self.update_db_table()
                         # Consume the reduced quota
                         quota_resp2 = requests.post(
-                            quota_url, json={"count": remaining}, timeout=15
+                            quota_url,
+                            json={"count": remaining},
+                            timeout=var.API_SLOW_TIMEOUT,
                         )
                         if quota_resp2.status_code != 200:
                             quota_data2 = quota_resp2.json()
@@ -847,7 +854,11 @@ class MyMainClass:
 
             try:
                 response = requests.post(
-                    url, headers=headers, json=data, timeout=120)
+                    url,
+                    headers=headers,
+                    json=data,
+                    timeout=var.API_EMAIL_VERIFY_TIMEOUT,
+                )
                 if response.status_code == 200:
                     try:
                         result = response.json()
@@ -912,7 +923,7 @@ class MyMainClass:
                     url = var.api + \
                         "verify/get_proxy/{}".format(var.login_email)
                     try:
-                        response = requests.post(url, timeout=10)
+                        response = requests.post(url, timeout=var.API_TIMEOUT)
                         if response.status_code == 200:
                             next_proxy = response.json()["proxy"]
                             ip, username, password = next_proxy.split()
@@ -1094,7 +1105,12 @@ class MyMainClass:
         url = f"{api_url}/bulk-verify"
         payload = dumps({"emails": emails, "proxy_setting": proxySetting})
         headers = {"Content-Type": "application/json"}
-        response = requests.post(url, data=payload, headers=headers)
+        response = requests.post(
+            url,
+            data=payload,
+            headers=headers,
+            timeout=var.API_SLOW_TIMEOUT,
+        )
         print(response.json())
         return response.json()
 
@@ -1839,6 +1855,38 @@ class MyMainClass:
     def update_checkbox_proxy(self):
         var.proxy_on = GUI.checkBox_proxy_enabled.isChecked()
 
+    def update_hide_warmup_emails(self):
+        var.hide_warmup_emails = GUI.checkBox_hide_warmup_emails.isChecked()
+        if var.hide_warmup_emails:
+            threading.Thread(
+                target=self._fetch_warmup_pool_accounts, daemon=True).start()
+        else:
+            var.warmup_pool_accounts = []
+        self.configuration_save()
+
+    def _fetch_warmup_pool_accounts(self):
+        try:
+            resp = requests.get(
+                f"{var.api}warming/pool_accounts",
+                timeout=var.API_SLOW_TIMEOUT,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                var.warmup_pool_accounts = [
+                    acc['email'].lower()
+                    for acc in data.get('accounts', [])
+                    if acc.get('email')
+                ]
+                self.logger.info(
+                    f"Fetched {len(var.warmup_pool_accounts)} warmup pool accounts"
+                )
+            else:
+                self.logger.error(
+                    f"Failed to fetch warmup pool accounts: {resp.status_code}"
+                )
+        except Exception as e:
+            self.logger.error(f"Error fetching warmup pool accounts: {e}")
+
     def update_checkbox_status(self):
         var.add_custom_hostname = GUI.checkBox_add_custom_hostname.isChecked()
         var.responses_webhook_enabled = GUI.checkBox_responses_webhook.isChecked()
@@ -2104,7 +2152,7 @@ class MyMainClass:
                 url = var.api + "verify/check_for_subscription/{}".format(
                     var.login_email
                 )
-                response = requests.post(url, timeout=10)
+                response = requests.post(url, timeout=var.API_TIMEOUT)
                 print(response, url)
                 data = response.json()
                 print(data)
@@ -2173,7 +2221,7 @@ class MyMainClass:
         try:
             url = var.api + \
                 "verify/check_for_subscription/{}".format(var.login_email)
-            response = requests.post(url, timeout=10)
+            response = requests.post(url, timeout=var.API_TIMEOUT)
             data = response.json()
             if response.status_code == 200:
                 status_code = data.get("status")
@@ -2753,6 +2801,14 @@ class MyMainClass:
             var.inbox_data[var.inbox_group] = base_data
         else:
             var.inbox_data[var.inbox_group] = pd.DataFrame()
+
+        # Filter out warmup pool emails if the setting is enabled
+        if var.hide_warmup_emails and var.warmup_pool_accounts and not var.inbox_data[var.inbox_group].empty:
+            pool_set = set(var.warmup_pool_accounts)
+            var.inbox_data[var.inbox_group] = var.inbox_data[var.inbox_group][
+                ~var.inbox_data[var.inbox_group]['from_mail'].str.lower().isin(
+                    pool_set)
+            ].copy()
 
         self.sort_inbox_data(self.option)
 

@@ -148,6 +148,7 @@ Base.metadata.create_all(engine)
 
 # from sqlalchemy import inspect
 
+
 def migrate_database():
     try:
         insp = inspect(engine)
@@ -501,7 +502,7 @@ def _fetch_accounts_limit():
     try:
         url = var.api + \
             "verify/check_for_subscription/{}".format(var.login_email)
-        response = requests.post(url, timeout=10)
+        response = requests.post(url, timeout=var.API_TIMEOUT)
         if response.status_code == 200:
             data = response.json()
             if data.get("status") == 1:
