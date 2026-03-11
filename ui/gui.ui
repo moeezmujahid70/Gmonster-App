@@ -8129,6 +8129,50 @@ QCheckBox {
                                   </property>
                                 </widget>
                               </item>
+                              <item row="57" column="1" colspan="1">
+                                <spacer name="spacerItem_hide_warmup">
+                                  <property name="orientation">
+                                    <enum>Qt::Vertical</enum>
+                                  </property>
+                                  <property name="sizeHint" stdset="0">
+                                    <size>
+                                      <width>20</width>
+                                      <height>37</height>
+                                    </size>
+                                  </property>
+                                </spacer>
+                              </item>
+                              <item row="58" column="2" colspan="1">
+                                <widget class="QCheckBox" name="checkBox_hide_warmup_emails">
+                                  <property name="font">
+                                    <font>
+                                      <family>Arial</family>
+                                      <pointsize>12</pointsize>
+                                    </font>
+                                  </property>
+                                  <property name="styleSheet">
+                                    <string notr="true">QCheckBox::indicator {
+                width: 0px; /* Hide the circle indicator */
+                height: 0px;
+            }
+QCheckBox {
+                color: #545454;
+                background-color: transparent;
+                border: none;
+            }
+            QCheckBox:checked {
+                font-weight: bold;
+                color: #000;
+    background-color: #d5dff2;  /* Highlight color (Gold) */
+    border-radius: 4px;
+    padding: 2px;
+            }</string>
+                                  </property>
+                                  <property name="text">
+                                    <string>Hide warm up emails</string>
+                                  </property>
+                                </widget>
+                              </item>
                             </layout>
                           </widget>
                         </item>

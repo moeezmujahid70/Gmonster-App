@@ -4043,6 +4043,31 @@ class Ui_MainWindow(object):
 "            }")
         self.checkBox_proxy_enabled.setObjectName("checkBox_proxy_enabled")
         self.gridLayout_4.addWidget(self.checkBox_proxy_enabled, 56, 2, 1, 1)
+        spacerItem94 = QtWidgets.QSpacerItem(20, 37, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.gridLayout_4.addItem(spacerItem94, 57, 1, 1, 1)
+        self.checkBox_hide_warmup_emails = QtWidgets.QCheckBox(self.groupBox_10)
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(12)
+        self.checkBox_hide_warmup_emails.setFont(font)
+        self.checkBox_hide_warmup_emails.setStyleSheet("QCheckBox::indicator {\n"
+"                width: 0px; /* Hide the circle indicator */\n"
+"                height: 0px;\n"
+"            }\n"
+"QCheckBox {\n"
+"                color: #545454;\n"
+"                background-color: transparent;\n"
+"                border: none;\n"
+"            }\n"
+"            QCheckBox:checked {\n"
+"                font-weight: bold;\n"
+"                color: #000;\n"
+"    background-color: #d5dff2;  /* Highlight color (Gold) */\n"
+"    border-radius: 4px;\n"
+"    padding: 2px;\n"
+"            }")
+        self.checkBox_hide_warmup_emails.setObjectName("checkBox_hide_warmup_emails")
+        self.gridLayout_4.addWidget(self.checkBox_hide_warmup_emails, 58, 2, 1, 1)
         self.verticalLayout_4.addWidget(self.groupBox_10)
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
         self.verticalLayout_6.addWidget(self.scrollArea)
@@ -4268,8 +4293,8 @@ class Ui_MainWindow(object):
 "}")
         self.pushButton_account_refresh.setObjectName("pushButton_account_refresh")
         self.verticalLayout_account.addWidget(self.pushButton_account_refresh)
-        spacerItem94 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.verticalLayout_account.addItem(spacerItem94)
+        spacerItem95 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout_account.addItem(spacerItem95)
         self.stackedWidget.addWidget(self.accountPage)
         self.gridLayout.addWidget(self.stackedWidget, 0, 2, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
@@ -4464,6 +4489,7 @@ class Ui_MainWindow(object):
         self.checkBox_space_encoding.setText(_translate("MainWindow", "Random character encoding"))
         self.label_22.setText(_translate("MainWindow", "OpenAI key"))
         self.checkBox_proxy_enabled.setText(_translate("MainWindow", "Proxy enabled"))
+        self.checkBox_hide_warmup_emails.setText(_translate("MainWindow", "Hide warm up emails"))
         self.label_account_title.setText(_translate("MainWindow", "Account"))
         self.label_account_email_h.setText(_translate("MainWindow", "Email"))
         self.label_account_email_val.setText(_translate("MainWindow", "—"))
