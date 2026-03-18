@@ -222,16 +222,6 @@ QScrollBar:vertical {
                           </item>
                           <item>
                             <property name="text">
-                              <string>Tutorials</string>
-                            </property>
-                          </item>
-                          <item>
-                            <property name="text">
-                              <string>Support</string>
-                            </property>
-                          </item>
-                          <item>
-                            <property name="text">
                               <string>Warm up</string>
                             </property>
                           </item>
@@ -8224,21 +8214,84 @@ QCheckBox {
                   <number>30</number>
                 </property>
                 <item>
-                  <widget class="QLabel" name="label_account_title">
-                    <property name="font">
-                      <font>
-                        <family>Arial</family>
-                        <pointsize>22</pointsize>
-                        <bold>true</bold>
-                      </font>
-                    </property>
-                    <property name="styleSheet">
-                      <string notr="true">color: #333; margin-bottom: 10px;</string>
-                    </property>
-                    <property name="text">
-                      <string>Account</string>
-                    </property>
-                  </widget>
+                  <layout class="QHBoxLayout" name="hLayout_account_header">
+                    <item>
+                      <widget class="QLabel" name="label_account_title">
+                        <property name="font">
+                          <font>
+                            <family>Arial</family>
+                            <pointsize>22</pointsize>
+                            <bold>true</bold>
+                          </font>
+                        </property>
+                        <property name="styleSheet">
+                          <string notr="true">color: #333; margin-bottom: 10px;</string>
+                        </property>
+                        <property name="text">
+                          <string>Account</string>
+                        </property>
+                      </widget>
+                    </item>
+                    <item>
+                      <spacer name="spacer_account_header">
+                        <property name="orientation">
+                          <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                          <size>
+                            <width>40</width>
+                            <height>20</height>
+                          </size>
+                        </property>
+                      </spacer>
+                    </item>
+                    <item>
+                      <widget class="QPushButton" name="pushButton_account_refresh">
+                        <property name="minimumSize">
+                          <size>
+                            <width>140</width>
+                            <height>40</height>
+                          </size>
+                        </property>
+                        <property name="maximumSize">
+                          <size>
+                            <width>160</width>
+                            <height>44</height>
+                          </size>
+                        </property>
+                        <property name="font">
+                          <font>
+                            <family>Arial</family>
+                            <pointsize>13</pointsize>
+                            <bold>true</bold>
+                          </font>
+                        </property>
+                        <property name="styleSheet">
+                          <string notr="true">QPushButton {
+    border: 1px solid #028fc3;
+    border-radius: 6px;
+    background-color: #028fc3;
+    color: #fff;
+    padding: 10px 24px;
+    font-family: Arial;
+    font-size: 13px;
+    font-weight: bold;
+}
+QPushButton:hover {
+    background-color: #026fa0;
+    color: #fff;
+}
+QPushButton:pressed {
+    background-color: #015c85;
+    color: #fff;
+}</string>
+                        </property>
+                        <property name="text">
+                          <string>🔄  Refresh</string>
+                        </property>
+                      </widget>
+                    </item>
+                  </layout>
                 </item>
                 <item>
                   <widget class="QFrame" name="frame_account_card">
@@ -8248,6 +8301,12 @@ QCheckBox {
     border-radius: 10px;
     border: 1px solid #ddd;
     padding: 20px;
+}
+QFrame#frame_account_card QWidget {
+    background-color: transparent;
+}
+QFrame#frame_account_card QLabel {
+    background-color: transparent;
 }</string>
                     </property>
                     <property name="frameShape">
@@ -8278,6 +8337,16 @@ QCheckBox {
                         </widget>
                       </item>
                       <item row="0" column="1">
+                        <widget class="Line" name="vline_account_email">
+                          <property name="styleSheet">
+                            <string notr="true">color: #ddd;</string>
+                          </property>
+                          <property name="orientation">
+                            <enum>Qt::Vertical</enum>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="0" column="2">
                         <widget class="QLabel" name="label_account_email_val">
                           <property name="font">
                             <font>
@@ -8311,6 +8380,16 @@ QCheckBox {
                         </widget>
                       </item>
                       <item row="1" column="1">
+                        <widget class="Line" name="vline_account_status">
+                          <property name="styleSheet">
+                            <string notr="true">color: #ddd;</string>
+                          </property>
+                          <property name="orientation">
+                            <enum>Qt::Vertical</enum>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="1" column="2">
                         <widget class="QLabel" name="label_account_status_val">
                           <property name="font">
                             <font>
@@ -8344,6 +8423,16 @@ QCheckBox {
                         </widget>
                       </item>
                       <item row="2" column="1">
+                        <widget class="Line" name="vline_account_days">
+                          <property name="styleSheet">
+                            <string notr="true">color: #ddd;</string>
+                          </property>
+                          <property name="orientation">
+                            <enum>Qt::Vertical</enum>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="2" column="2">
                         <widget class="QLabel" name="label_account_days_left_val">
                           <property name="font">
                             <font>
@@ -8377,6 +8466,16 @@ QCheckBox {
                         </widget>
                       </item>
                       <item row="3" column="1">
+                        <widget class="Line" name="vline_account_limit">
+                          <property name="styleSheet">
+                            <string notr="true">color: #ddd;</string>
+                          </property>
+                          <property name="orientation">
+                            <enum>Qt::Vertical</enum>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="3" column="2">
                         <widget class="QLabel" name="label_account_acc_limit_val">
                           <property name="font">
                             <font>
@@ -8392,14 +8491,14 @@ QCheckBox {
                           </property>
                         </widget>
                       </item>
-                      <item row="4" column="0" colspan="2">
+                      <item row="4" column="0" colspan="3">
                         <widget class="Line" name="line_account_sep1">
                           <property name="orientation">
                             <enum>Qt::Horizontal</enum>
                           </property>
                         </widget>
                       </item>
-                      <item row="5" column="0" colspan="2">
+                      <item row="5" column="0" colspan="3">
                         <widget class="QLabel" name="label_account_verif_title">
                           <property name="font">
                             <font>
@@ -8409,7 +8508,7 @@ QCheckBox {
                             </font>
                           </property>
                           <property name="styleSheet">
-                            <string notr="true">color: #333; margin-top: 6px;</string>
+                            <string notr="true">color: #333;</string>
                           </property>
                           <property name="text">
                             <string>Email Verification Quota</string>
@@ -8434,6 +8533,16 @@ QCheckBox {
                         </widget>
                       </item>
                       <item row="6" column="1">
+                        <widget class="Line" name="vline_account_verif_limit">
+                          <property name="styleSheet">
+                            <string notr="true">color: #ddd;</string>
+                          </property>
+                          <property name="orientation">
+                            <enum>Qt::Vertical</enum>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="6" column="2">
                         <widget class="QLabel" name="label_account_verif_limit_val">
                           <property name="font">
                             <font>
@@ -8467,6 +8576,16 @@ QCheckBox {
                         </widget>
                       </item>
                       <item row="7" column="1">
+                        <widget class="Line" name="vline_account_verif_used">
+                          <property name="styleSheet">
+                            <string notr="true">color: #ddd;</string>
+                          </property>
+                          <property name="orientation">
+                            <enum>Qt::Vertical</enum>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="7" column="2">
                         <widget class="QLabel" name="label_account_verif_used_val">
                           <property name="font">
                             <font>
@@ -8500,6 +8619,16 @@ QCheckBox {
                         </widget>
                       </item>
                       <item row="8" column="1">
+                        <widget class="Line" name="vline_account_verif_rem">
+                          <property name="styleSheet">
+                            <string notr="true">color: #ddd;</string>
+                          </property>
+                          <property name="orientation">
+                            <enum>Qt::Vertical</enum>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="8" column="2">
                         <widget class="QLabel" name="label_account_verif_remaining_val">
                           <property name="font">
                             <font>
@@ -8534,6 +8663,16 @@ QCheckBox {
                         </widget>
                       </item>
                       <item row="9" column="1">
+                        <widget class="Line" name="vline_account_verif_reset">
+                          <property name="styleSheet">
+                            <string notr="true">color: #ddd;</string>
+                          </property>
+                          <property name="orientation">
+                            <enum>Qt::Vertical</enum>
+                          </property>
+                        </widget>
+                      </item>
+                      <item row="9" column="2">
                         <widget class="QLabel" name="label_account_verif_reset_val">
                           <property name="font">
                             <font>
@@ -8549,7 +8688,7 @@ QCheckBox {
                           </property>
                         </widget>
                       </item>
-                      <item row="10" column="0" colspan="2">
+                      <item row="10" column="0" colspan="3">
                         <widget class="QProgressBar" name="progressBar_account_verif">
                           <property name="minimumSize">
                             <size>
@@ -8582,45 +8721,182 @@ QProgressBar::chunk {
                     </layout>
                   </widget>
                 </item>
+
                 <item>
-                  <widget class="QPushButton" name="pushButton_account_refresh">
-                    <property name="minimumSize">
-                      <size>
-                        <width>140</width>
-                        <height>40</height>
-                      </size>
-                    </property>
-                    <property name="maximumSize">
-                      <size>
-                        <width>140</width>
-                        <height>40</height>
-                      </size>
-                    </property>
-                    <property name="font">
-                      <font>
-                        <family>Arial</family>
-                        <pointsize>12</pointsize>
-                      </font>
-                    </property>
+                  <widget class="QFrame" name="frame_account_links">
                     <property name="styleSheet">
-                      <string notr="true">QPushButton {
-    border: 1px solid #555;
-    border-radius: 3px;
-    background: rgba(0, 138, 191);
-    padding: 5px 28px;
-    color: rgb(255, 255, 255);
+                      <string notr="true">QFrame#frame_account_links {
+    background-color: #fff;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    padding: 16px;
 }
-QPushButton:hover {
-    background: rgba(0, 138, 191, 0.6);
+QFrame#frame_account_links QWidget {
+    background-color: transparent;
 }
-QPushButton:pressed {
-    border-style: inset;
-    background: rgb(0, 138, 191);
+QFrame#frame_account_links QLabel {
+    background-color: transparent;
 }</string>
                     </property>
-                    <property name="text">
-                      <string>Refresh</string>
+                    <property name="frameShape">
+                      <enum>QFrame::StyledPanel</enum>
                     </property>
+                    <layout class="QVBoxLayout" name="vLayout_account_links">
+                      <property name="leftMargin">
+                        <number>16</number>
+                      </property>
+                      <property name="topMargin">
+                        <number>16</number>
+                      </property>
+                      <property name="rightMargin">
+                        <number>16</number>
+                      </property>
+                      <property name="bottomMargin">
+                        <number>16</number>
+                      </property>
+                      <property name="spacing">
+                        <number>10</number>
+                      </property>
+                      <item>
+                        <widget class="QLabel" name="label_account_links_title">
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>16</pointsize>
+                              <bold>true</bold>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">color: #333;</string>
+                          </property>
+                          <property name="text">
+                            <string>Support &amp; Resources</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item>
+                        <widget class="Line" name="line_account_links_sep">
+                          <property name="styleSheet">
+                            <string notr="true">color: #eee;</string>
+                          </property>
+                          <property name="orientation">
+                            <enum>Qt::Horizontal</enum>
+                          </property>
+                        </widget>
+                      </item>
+                      <item>
+                        <layout class="QHBoxLayout" name="hLayout_account_links_btns">
+                          <property name="spacing">
+                            <number>14</number>
+                          </property>
+                          <item>
+                            <widget class="QPushButton" name="pushButton_account_tutorials">
+                              <property name="minimumSize">
+                                <size>
+                                  <width>160</width>
+                                  <height>44</height>
+                                </size>
+                              </property>
+                              <property name="maximumSize">
+                                <size>
+                                  <width>200</width>
+                                  <height>44</height>
+                                </size>
+                              </property>
+                              <property name="font">
+                                <font>
+                                  <family>Arial</family>
+                                  <pointsize>13</pointsize>
+                                  <bold>true</bold>
+                                </font>
+                              </property>
+                              <property name="styleSheet">
+                                <string notr="true">QPushButton {
+    border: 1px solid #028fc3;
+    border-radius: 6px;
+    color: #fff;
+    background-color: #028fc3;
+    padding: 10px 24px;
+    font-family: Arial;
+    font-size: 13px;
+    font-weight: bold;
+}
+QPushButton:hover {
+    background-color: #026fa0;
+    color: #fff;
+}
+QPushButton:pressed {
+    background-color: #015c85;
+    color: #fff;
+}</string>
+                              </property>
+                              <property name="text">
+                                <string>📖  Tutorials</string>
+                              </property>
+                            </widget>
+                          </item>
+                          <item>
+                            <widget class="QPushButton" name="pushButton_account_support">
+                              <property name="minimumSize">
+                                <size>
+                                  <width>160</width>
+                                  <height>44</height>
+                                </size>
+                              </property>
+                              <property name="maximumSize">
+                                <size>
+                                  <width>200</width>
+                                  <height>44</height>
+                                </size>
+                              </property>
+                              <property name="font">
+                                <font>
+                                  <family>Arial</family>
+                                  <pointsize>13</pointsize>
+                                  <bold>true</bold>
+                                </font>
+                              </property>
+                              <property name="styleSheet">
+                                <string notr="true">QPushButton {
+    border: 1px solid #028fc3;
+    border-radius: 6px;
+    color: #fff;
+    background-color: #028fc3;
+    padding: 10px 24px;
+    font-family: Arial;
+    font-size: 13px;
+    font-weight: bold;
+}
+QPushButton:hover {
+    background-color: #026fa0;
+    color: #fff;
+}
+QPushButton:pressed {
+    background-color: #015c85;
+    color: #fff;
+}</string>
+                              </property>
+                              <property name="text">
+                                <string>💬  Support</string>
+                              </property>
+                            </widget>
+                          </item>
+                          <item>
+                            <spacer name="spacer_links_right">
+                              <property name="orientation">
+                                <enum>Qt::Horizontal</enum>
+                              </property>
+                              <property name="sizeHint" stdset="0">
+                                <size>
+                                  <width>40</width>
+                                  <height>20</height>
+                                </size>
+                              </property>
+                            </spacer>
+                          </item>
+                        </layout>
+                      </item>
+                    </layout>
                   </widget>
                 </item>
                 <item>

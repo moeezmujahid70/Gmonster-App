@@ -157,10 +157,6 @@ class Ui_MainWindow(object):
         self.listWidget.addItem(item)
         item = QtWidgets.QListWidgetItem()
         self.listWidget.addItem(item)
-        item = QtWidgets.QListWidgetItem()
-        self.listWidget.addItem(item)
-        item = QtWidgets.QListWidgetItem()
-        self.listWidget.addItem(item)
         self.horizontalLayout_28.addWidget(self.listWidget)
         self.verticalLayout_27 = QtWidgets.QVBoxLayout()
         self.verticalLayout_27.setContentsMargins(-1, 10, 0, -1)
@@ -4078,6 +4074,8 @@ class Ui_MainWindow(object):
         self.verticalLayout_account = QtWidgets.QVBoxLayout(self.accountPage)
         self.verticalLayout_account.setContentsMargins(30, 30, 30, 30)
         self.verticalLayout_account.setObjectName("verticalLayout_account")
+        self.hLayout_account_header = QtWidgets.QHBoxLayout()
+        self.hLayout_account_header.setObjectName("hLayout_account_header")
         self.label_account_title = QtWidgets.QLabel(self.accountPage)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -4086,13 +4084,50 @@ class Ui_MainWindow(object):
         self.label_account_title.setFont(font)
         self.label_account_title.setStyleSheet("color: #333; margin-bottom: 10px;")
         self.label_account_title.setObjectName("label_account_title")
-        self.verticalLayout_account.addWidget(self.label_account_title)
+        self.hLayout_account_header.addWidget(self.label_account_title)
+        spacerItem95 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.hLayout_account_header.addItem(spacerItem95)
+        self.pushButton_account_refresh = QtWidgets.QPushButton(self.accountPage)
+        self.pushButton_account_refresh.setMinimumSize(QtCore.QSize(140, 40))
+        self.pushButton_account_refresh.setMaximumSize(QtCore.QSize(160, 44))
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(13)
+        font.setBold(True)
+        self.pushButton_account_refresh.setFont(font)
+        self.pushButton_account_refresh.setStyleSheet("QPushButton {\n"
+"    border: 1px solid #028fc3;\n"
+"    border-radius: 6px;\n"
+"    background-color: #028fc3;\n"
+"    color: #fff;\n"
+"    padding: 10px 24px;\n"
+"    font-family: Arial;\n"
+"    font-size: 13px;\n"
+"    font-weight: bold;\n"
+"}\n"
+"QPushButton:hover {\n"
+"    background-color: #026fa0;\n"
+"    color: #fff;\n"
+"}\n"
+"QPushButton:pressed {\n"
+"    background-color: #015c85;\n"
+"    color: #fff;\n"
+"}")
+        self.pushButton_account_refresh.setObjectName("pushButton_account_refresh")
+        self.hLayout_account_header.addWidget(self.pushButton_account_refresh)
+        self.verticalLayout_account.addLayout(self.hLayout_account_header)
         self.frame_account_card = QtWidgets.QFrame(self.accountPage)
         self.frame_account_card.setStyleSheet("QFrame#frame_account_card {\n"
 "    background-color: #fff;\n"
 "    border-radius: 10px;\n"
 "    border: 1px solid #ddd;\n"
 "    padding: 20px;\n"
+"}\n"
+"QFrame#frame_account_card QWidget {\n"
+"    background-color: transparent;\n"
+"}\n"
+"QFrame#frame_account_card QLabel {\n"
+"    background-color: transparent;\n"
 "}")
         self.frame_account_card.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.frame_account_card.setObjectName("frame_account_card")
@@ -4109,6 +4144,12 @@ class Ui_MainWindow(object):
         self.label_account_email_h.setStyleSheet("color: #555;")
         self.label_account_email_h.setObjectName("label_account_email_h")
         self.gridLayout_account.addWidget(self.label_account_email_h, 0, 0, 1, 1)
+        self.vline_account_email = QtWidgets.QFrame(self.frame_account_card)
+        self.vline_account_email.setStyleSheet("color: #ddd;")
+        self.vline_account_email.setFrameShape(QtWidgets.QFrame.VLine)
+        self.vline_account_email.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.vline_account_email.setObjectName("vline_account_email")
+        self.gridLayout_account.addWidget(self.vline_account_email, 0, 1, 1, 1)
         self.label_account_email_val = QtWidgets.QLabel(self.frame_account_card)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -4116,7 +4157,7 @@ class Ui_MainWindow(object):
         self.label_account_email_val.setFont(font)
         self.label_account_email_val.setStyleSheet("color: #222;")
         self.label_account_email_val.setObjectName("label_account_email_val")
-        self.gridLayout_account.addWidget(self.label_account_email_val, 0, 1, 1, 1)
+        self.gridLayout_account.addWidget(self.label_account_email_val, 0, 2, 1, 1)
         self.label_account_status_h = QtWidgets.QLabel(self.frame_account_card)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -4126,6 +4167,12 @@ class Ui_MainWindow(object):
         self.label_account_status_h.setStyleSheet("color: #555;")
         self.label_account_status_h.setObjectName("label_account_status_h")
         self.gridLayout_account.addWidget(self.label_account_status_h, 1, 0, 1, 1)
+        self.vline_account_status = QtWidgets.QFrame(self.frame_account_card)
+        self.vline_account_status.setStyleSheet("color: #ddd;")
+        self.vline_account_status.setFrameShape(QtWidgets.QFrame.VLine)
+        self.vline_account_status.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.vline_account_status.setObjectName("vline_account_status")
+        self.gridLayout_account.addWidget(self.vline_account_status, 1, 1, 1, 1)
         self.label_account_status_val = QtWidgets.QLabel(self.frame_account_card)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -4133,7 +4180,7 @@ class Ui_MainWindow(object):
         self.label_account_status_val.setFont(font)
         self.label_account_status_val.setStyleSheet("color: #222;")
         self.label_account_status_val.setObjectName("label_account_status_val")
-        self.gridLayout_account.addWidget(self.label_account_status_val, 1, 1, 1, 1)
+        self.gridLayout_account.addWidget(self.label_account_status_val, 1, 2, 1, 1)
         self.label_account_days_left_h = QtWidgets.QLabel(self.frame_account_card)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -4143,6 +4190,12 @@ class Ui_MainWindow(object):
         self.label_account_days_left_h.setStyleSheet("color: #555;")
         self.label_account_days_left_h.setObjectName("label_account_days_left_h")
         self.gridLayout_account.addWidget(self.label_account_days_left_h, 2, 0, 1, 1)
+        self.vline_account_days = QtWidgets.QFrame(self.frame_account_card)
+        self.vline_account_days.setStyleSheet("color: #ddd;")
+        self.vline_account_days.setFrameShape(QtWidgets.QFrame.VLine)
+        self.vline_account_days.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.vline_account_days.setObjectName("vline_account_days")
+        self.gridLayout_account.addWidget(self.vline_account_days, 2, 1, 1, 1)
         self.label_account_days_left_val = QtWidgets.QLabel(self.frame_account_card)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -4150,7 +4203,7 @@ class Ui_MainWindow(object):
         self.label_account_days_left_val.setFont(font)
         self.label_account_days_left_val.setStyleSheet("color: #222;")
         self.label_account_days_left_val.setObjectName("label_account_days_left_val")
-        self.gridLayout_account.addWidget(self.label_account_days_left_val, 2, 1, 1, 1)
+        self.gridLayout_account.addWidget(self.label_account_days_left_val, 2, 2, 1, 1)
         self.label_account_acc_limit_h = QtWidgets.QLabel(self.frame_account_card)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -4160,6 +4213,12 @@ class Ui_MainWindow(object):
         self.label_account_acc_limit_h.setStyleSheet("color: #555;")
         self.label_account_acc_limit_h.setObjectName("label_account_acc_limit_h")
         self.gridLayout_account.addWidget(self.label_account_acc_limit_h, 3, 0, 1, 1)
+        self.vline_account_limit = QtWidgets.QFrame(self.frame_account_card)
+        self.vline_account_limit.setStyleSheet("color: #ddd;")
+        self.vline_account_limit.setFrameShape(QtWidgets.QFrame.VLine)
+        self.vline_account_limit.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.vline_account_limit.setObjectName("vline_account_limit")
+        self.gridLayout_account.addWidget(self.vline_account_limit, 3, 1, 1, 1)
         self.label_account_acc_limit_val = QtWidgets.QLabel(self.frame_account_card)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -4167,21 +4226,21 @@ class Ui_MainWindow(object):
         self.label_account_acc_limit_val.setFont(font)
         self.label_account_acc_limit_val.setStyleSheet("color: #222;")
         self.label_account_acc_limit_val.setObjectName("label_account_acc_limit_val")
-        self.gridLayout_account.addWidget(self.label_account_acc_limit_val, 3, 1, 1, 1)
+        self.gridLayout_account.addWidget(self.label_account_acc_limit_val, 3, 2, 1, 1)
         self.line_account_sep1 = QtWidgets.QFrame(self.frame_account_card)
         self.line_account_sep1.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_account_sep1.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_account_sep1.setObjectName("line_account_sep1")
-        self.gridLayout_account.addWidget(self.line_account_sep1, 4, 0, 1, 2)
+        self.gridLayout_account.addWidget(self.line_account_sep1, 4, 0, 1, 3)
         self.label_account_verif_title = QtWidgets.QLabel(self.frame_account_card)
         font = QtGui.QFont()
         font.setFamily("Arial")
         font.setPointSize(16)
         font.setBold(True)
         self.label_account_verif_title.setFont(font)
-        self.label_account_verif_title.setStyleSheet("color: #333; margin-top: 6px;")
+        self.label_account_verif_title.setStyleSheet("color: #333;")
         self.label_account_verif_title.setObjectName("label_account_verif_title")
-        self.gridLayout_account.addWidget(self.label_account_verif_title, 5, 0, 1, 2)
+        self.gridLayout_account.addWidget(self.label_account_verif_title, 5, 0, 1, 3)
         self.label_account_verif_limit_h = QtWidgets.QLabel(self.frame_account_card)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -4191,6 +4250,12 @@ class Ui_MainWindow(object):
         self.label_account_verif_limit_h.setStyleSheet("color: #555;")
         self.label_account_verif_limit_h.setObjectName("label_account_verif_limit_h")
         self.gridLayout_account.addWidget(self.label_account_verif_limit_h, 6, 0, 1, 1)
+        self.vline_account_verif_limit = QtWidgets.QFrame(self.frame_account_card)
+        self.vline_account_verif_limit.setStyleSheet("color: #ddd;")
+        self.vline_account_verif_limit.setFrameShape(QtWidgets.QFrame.VLine)
+        self.vline_account_verif_limit.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.vline_account_verif_limit.setObjectName("vline_account_verif_limit")
+        self.gridLayout_account.addWidget(self.vline_account_verif_limit, 6, 1, 1, 1)
         self.label_account_verif_limit_val = QtWidgets.QLabel(self.frame_account_card)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -4198,7 +4263,7 @@ class Ui_MainWindow(object):
         self.label_account_verif_limit_val.setFont(font)
         self.label_account_verif_limit_val.setStyleSheet("color: #222;")
         self.label_account_verif_limit_val.setObjectName("label_account_verif_limit_val")
-        self.gridLayout_account.addWidget(self.label_account_verif_limit_val, 6, 1, 1, 1)
+        self.gridLayout_account.addWidget(self.label_account_verif_limit_val, 6, 2, 1, 1)
         self.label_account_verif_used_h = QtWidgets.QLabel(self.frame_account_card)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -4208,6 +4273,12 @@ class Ui_MainWindow(object):
         self.label_account_verif_used_h.setStyleSheet("color: #555;")
         self.label_account_verif_used_h.setObjectName("label_account_verif_used_h")
         self.gridLayout_account.addWidget(self.label_account_verif_used_h, 7, 0, 1, 1)
+        self.vline_account_verif_used = QtWidgets.QFrame(self.frame_account_card)
+        self.vline_account_verif_used.setStyleSheet("color: #ddd;")
+        self.vline_account_verif_used.setFrameShape(QtWidgets.QFrame.VLine)
+        self.vline_account_verif_used.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.vline_account_verif_used.setObjectName("vline_account_verif_used")
+        self.gridLayout_account.addWidget(self.vline_account_verif_used, 7, 1, 1, 1)
         self.label_account_verif_used_val = QtWidgets.QLabel(self.frame_account_card)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -4215,7 +4286,7 @@ class Ui_MainWindow(object):
         self.label_account_verif_used_val.setFont(font)
         self.label_account_verif_used_val.setStyleSheet("color: #222;")
         self.label_account_verif_used_val.setObjectName("label_account_verif_used_val")
-        self.gridLayout_account.addWidget(self.label_account_verif_used_val, 7, 1, 1, 1)
+        self.gridLayout_account.addWidget(self.label_account_verif_used_val, 7, 2, 1, 1)
         self.label_account_verif_remaining_h = QtWidgets.QLabel(self.frame_account_card)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -4225,6 +4296,12 @@ class Ui_MainWindow(object):
         self.label_account_verif_remaining_h.setStyleSheet("color: #555;")
         self.label_account_verif_remaining_h.setObjectName("label_account_verif_remaining_h")
         self.gridLayout_account.addWidget(self.label_account_verif_remaining_h, 8, 0, 1, 1)
+        self.vline_account_verif_rem = QtWidgets.QFrame(self.frame_account_card)
+        self.vline_account_verif_rem.setStyleSheet("color: #ddd;")
+        self.vline_account_verif_rem.setFrameShape(QtWidgets.QFrame.VLine)
+        self.vline_account_verif_rem.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.vline_account_verif_rem.setObjectName("vline_account_verif_rem")
+        self.gridLayout_account.addWidget(self.vline_account_verif_rem, 8, 1, 1, 1)
         self.label_account_verif_remaining_val = QtWidgets.QLabel(self.frame_account_card)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -4233,7 +4310,7 @@ class Ui_MainWindow(object):
         self.label_account_verif_remaining_val.setFont(font)
         self.label_account_verif_remaining_val.setStyleSheet("color: #028fc3;")
         self.label_account_verif_remaining_val.setObjectName("label_account_verif_remaining_val")
-        self.gridLayout_account.addWidget(self.label_account_verif_remaining_val, 8, 1, 1, 1)
+        self.gridLayout_account.addWidget(self.label_account_verif_remaining_val, 8, 2, 1, 1)
         self.label_account_verif_reset_h = QtWidgets.QLabel(self.frame_account_card)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -4243,6 +4320,12 @@ class Ui_MainWindow(object):
         self.label_account_verif_reset_h.setStyleSheet("color: #555;")
         self.label_account_verif_reset_h.setObjectName("label_account_verif_reset_h")
         self.gridLayout_account.addWidget(self.label_account_verif_reset_h, 9, 0, 1, 1)
+        self.vline_account_verif_reset = QtWidgets.QFrame(self.frame_account_card)
+        self.vline_account_verif_reset.setStyleSheet("color: #ddd;")
+        self.vline_account_verif_reset.setFrameShape(QtWidgets.QFrame.VLine)
+        self.vline_account_verif_reset.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.vline_account_verif_reset.setObjectName("vline_account_verif_reset")
+        self.gridLayout_account.addWidget(self.vline_account_verif_reset, 9, 1, 1, 1)
         self.label_account_verif_reset_val = QtWidgets.QLabel(self.frame_account_card)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -4250,7 +4333,7 @@ class Ui_MainWindow(object):
         self.label_account_verif_reset_val.setFont(font)
         self.label_account_verif_reset_val.setStyleSheet("color: #222;")
         self.label_account_verif_reset_val.setObjectName("label_account_verif_reset_val")
-        self.gridLayout_account.addWidget(self.label_account_verif_reset_val, 9, 1, 1, 1)
+        self.gridLayout_account.addWidget(self.label_account_verif_reset_val, 9, 2, 1, 1)
         self.progressBar_account_verif = QtWidgets.QProgressBar(self.frame_account_card)
         self.progressBar_account_verif.setMinimumSize(QtCore.QSize(0, 22))
         self.progressBar_account_verif.setStyleSheet("QProgressBar {\n"
@@ -4268,33 +4351,107 @@ class Ui_MainWindow(object):
         self.progressBar_account_verif.setMaximum(100)
         self.progressBar_account_verif.setProperty("value", 0)
         self.progressBar_account_verif.setObjectName("progressBar_account_verif")
-        self.gridLayout_account.addWidget(self.progressBar_account_verif, 10, 0, 1, 2)
+        self.gridLayout_account.addWidget(self.progressBar_account_verif, 10, 0, 1, 3)
         self.verticalLayout_account.addWidget(self.frame_account_card)
-        self.pushButton_account_refresh = QtWidgets.QPushButton(self.accountPage)
-        self.pushButton_account_refresh.setMinimumSize(QtCore.QSize(140, 40))
-        self.pushButton_account_refresh.setMaximumSize(QtCore.QSize(140, 40))
+        self.frame_account_links = QtWidgets.QFrame(self.accountPage)
+        self.frame_account_links.setStyleSheet("QFrame#frame_account_links {\n"
+"    background-color: #fff;\n"
+"    border-radius: 10px;\n"
+"    border: 1px solid #ddd;\n"
+"    padding: 16px;\n"
+"}\n"
+"QFrame#frame_account_links QWidget {\n"
+"    background-color: transparent;\n"
+"}\n"
+"QFrame#frame_account_links QLabel {\n"
+"    background-color: transparent;\n"
+"}")
+        self.frame_account_links.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        self.frame_account_links.setObjectName("frame_account_links")
+        self.vLayout_account_links = QtWidgets.QVBoxLayout(self.frame_account_links)
+        self.vLayout_account_links.setContentsMargins(16, 16, 16, 16)
+        self.vLayout_account_links.setSpacing(10)
+        self.vLayout_account_links.setObjectName("vLayout_account_links")
+        self.label_account_links_title = QtWidgets.QLabel(self.frame_account_links)
         font = QtGui.QFont()
         font.setFamily("Arial")
-        font.setPointSize(12)
-        self.pushButton_account_refresh.setFont(font)
-        self.pushButton_account_refresh.setStyleSheet("QPushButton {\n"
-"    border: 1px solid #555;\n"
-"    border-radius: 3px;\n"
-"    background: rgba(0, 138, 191);\n"
-"    padding: 5px 28px;\n"
-"    color: rgb(255, 255, 255);\n"
+        font.setPointSize(16)
+        font.setBold(True)
+        self.label_account_links_title.setFont(font)
+        self.label_account_links_title.setStyleSheet("color: #333;")
+        self.label_account_links_title.setObjectName("label_account_links_title")
+        self.vLayout_account_links.addWidget(self.label_account_links_title)
+        self.line_account_links_sep = QtWidgets.QFrame(self.frame_account_links)
+        self.line_account_links_sep.setStyleSheet("color: #eee;")
+        self.line_account_links_sep.setFrameShape(QtWidgets.QFrame.HLine)
+        self.line_account_links_sep.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.line_account_links_sep.setObjectName("line_account_links_sep")
+        self.vLayout_account_links.addWidget(self.line_account_links_sep)
+        self.hLayout_account_links_btns = QtWidgets.QHBoxLayout()
+        self.hLayout_account_links_btns.setSpacing(14)
+        self.hLayout_account_links_btns.setObjectName("hLayout_account_links_btns")
+        self.pushButton_account_tutorials = QtWidgets.QPushButton(self.frame_account_links)
+        self.pushButton_account_tutorials.setMinimumSize(QtCore.QSize(160, 44))
+        self.pushButton_account_tutorials.setMaximumSize(QtCore.QSize(200, 44))
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(13)
+        font.setBold(True)
+        self.pushButton_account_tutorials.setFont(font)
+        self.pushButton_account_tutorials.setStyleSheet("QPushButton {\n"
+"    border: 1px solid #028fc3;\n"
+"    border-radius: 6px;\n"
+"    color: #fff;\n"
+"    background-color: #028fc3;\n"
+"    padding: 10px 24px;\n"
+"    font-family: Arial;\n"
+"    font-size: 13px;\n"
+"    font-weight: bold;\n"
 "}\n"
 "QPushButton:hover {\n"
-"    background: rgba(0, 138, 191, 0.6);\n"
+"    background-color: #026fa0;\n"
+"    color: #fff;\n"
 "}\n"
 "QPushButton:pressed {\n"
-"    border-style: inset;\n"
-"    background: rgb(0, 138, 191);\n"
+"    background-color: #015c85;\n"
+"    color: #fff;\n"
 "}")
-        self.pushButton_account_refresh.setObjectName("pushButton_account_refresh")
-        self.verticalLayout_account.addWidget(self.pushButton_account_refresh)
-        spacerItem95 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.verticalLayout_account.addItem(spacerItem95)
+        self.pushButton_account_tutorials.setObjectName("pushButton_account_tutorials")
+        self.hLayout_account_links_btns.addWidget(self.pushButton_account_tutorials)
+        self.pushButton_account_support = QtWidgets.QPushButton(self.frame_account_links)
+        self.pushButton_account_support.setMinimumSize(QtCore.QSize(160, 44))
+        self.pushButton_account_support.setMaximumSize(QtCore.QSize(200, 44))
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(13)
+        font.setBold(True)
+        self.pushButton_account_support.setFont(font)
+        self.pushButton_account_support.setStyleSheet("QPushButton {\n"
+"    border: 1px solid #028fc3;\n"
+"    border-radius: 6px;\n"
+"    color: #fff;\n"
+"    background-color: #028fc3;\n"
+"    padding: 10px 24px;\n"
+"    font-family: Arial;\n"
+"    font-size: 13px;\n"
+"    font-weight: bold;\n"
+"}\n"
+"QPushButton:hover {\n"
+"    background-color: #026fa0;\n"
+"    color: #fff;\n"
+"}\n"
+"QPushButton:pressed {\n"
+"    background-color: #015c85;\n"
+"    color: #fff;\n"
+"}")
+        self.pushButton_account_support.setObjectName("pushButton_account_support")
+        self.hLayout_account_links_btns.addWidget(self.pushButton_account_support)
+        spacerItem96 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.hLayout_account_links_btns.addItem(spacerItem96)
+        self.vLayout_account_links.addLayout(self.hLayout_account_links_btns)
+        self.verticalLayout_account.addWidget(self.frame_account_links)
+        spacerItem97 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout_account.addItem(spacerItem97)
         self.stackedWidget.addWidget(self.accountPage)
         self.gridLayout.addWidget(self.stackedWidget, 0, 2, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
@@ -4331,14 +4488,10 @@ class Ui_MainWindow(object):
         item = self.listWidget.item(6)
         item.setText(_translate("MainWindow", "Leads"))
         item = self.listWidget.item(7)
-        item.setText(_translate("MainWindow", "Tutorials"))
-        item = self.listWidget.item(8)
-        item.setText(_translate("MainWindow", "Support"))
-        item = self.listWidget.item(9)
         item.setText(_translate("MainWindow", "Warm up"))
-        item = self.listWidget.item(10)
+        item = self.listWidget.item(8)
         item.setText(_translate("MainWindow", "Settings"))
-        item = self.listWidget.item(11)
+        item = self.listWidget.item(9)
         item.setText(_translate("MainWindow", "Account"))
         self.listWidget.setSortingEnabled(__sortingEnabled)
         self.pushButton_fire_inbox_webhook.setText(_translate("MainWindow", "Fire webhook"))
@@ -4491,6 +4644,7 @@ class Ui_MainWindow(object):
         self.checkBox_proxy_enabled.setText(_translate("MainWindow", "Proxy enabled"))
         self.checkBox_hide_warmup_emails.setText(_translate("MainWindow", "Hide warm up emails"))
         self.label_account_title.setText(_translate("MainWindow", "Account"))
+        self.pushButton_account_refresh.setText(_translate("MainWindow", "🔄  Refresh"))
         self.label_account_email_h.setText(_translate("MainWindow", "Email"))
         self.label_account_email_val.setText(_translate("MainWindow", "—"))
         self.label_account_status_h.setText(_translate("MainWindow", "Status"))
@@ -4508,5 +4662,7 @@ class Ui_MainWindow(object):
         self.label_account_verif_remaining_val.setText(_translate("MainWindow", "—"))
         self.label_account_verif_reset_h.setText(_translate("MainWindow", "Resets On"))
         self.label_account_verif_reset_val.setText(_translate("MainWindow", "—"))
-        self.pushButton_account_refresh.setText(_translate("MainWindow", "Refresh"))
+        self.label_account_links_title.setText(_translate("MainWindow", "Support & Resources"))
+        self.pushButton_account_tutorials.setText(_translate("MainWindow", "📖  Tutorials"))
+        self.pushButton_account_support.setText(_translate("MainWindow", "💬  Support"))
 import logo_rc

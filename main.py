@@ -189,6 +189,12 @@ class MyMainClass:
             Thread(target=self._fetch_warmup_pool_accounts, daemon=True).start()
         GUI.pushButton_account_refresh.clicked.connect(
             self.refresh_account_info)
+        GUI.pushButton_account_tutorials.clicked.connect(
+            lambda: webbrowser.open("https://gmonster.co/tutorials")
+        )
+        GUI.pushButton_account_support.clicked.connect(
+            lambda: webbrowser.open("https://gmonster.co/support")
+        )
         self.command_timer = QtCore.QTimer()
         self.command_timer.setInterval(10)
         self.command_timer.timeout.connect(self.run_command)
@@ -573,28 +579,46 @@ class MyMainClass:
             GUI.pushButton_fire_inbox_webhook.show()
 
     def list_clicked(self, index):
-        if index in {4, 0, 1, 3, 2}:
-            GUI.stackedWidget.setCurrentIndex(index)
-        elif index == 9:
+        # ListWidget item → StackedWidget page mapping:
+        # 0: Inbox      → page 0  (stackedWidgetPage1)
+        # 1: Campaign   → page 1  (stackedWidgetPage2)
+        # 2: Database   → page 2  (stackedWidgetPage3)
+        # 3: Follow-up  → page 3  (stackedWidgetPage4)
+        # 4: Auto-reply → page 4  (page)
+        # 5: Store      → open URL
+        # 6: Leads      → open URL
+        # 7: Warm up    → launch_wum()
+        # 8: Settings   → page 5  (stackedWidgetPage5)
+        # 9: Account    → page 6  (accountPage)
+        nav_map = {
+            0: 0,  # Inbox
+            1: 1,  # Campaign
+            2: 2,  # Database
+            3: 3,  # Follow-up
+            4: 4,  # Auto-reply
+            8: 5,  # Settings
+            9: 6,  # Account
+        }
+        url_mappings = {
+            "Store": "https://gmonster.co/store",
+            "Leads": "https://gmonster.co/leads",
+            "Tutorials": "https://gmonster.co/tutorials",
+            "Support": "https://gmonster.co/support",
+        }
+        if index in nav_map:
+            GUI.stackedWidget.setCurrentIndex(nav_map[index])
+            if index == 9:  # Account page
+                self.refresh_account_info()
+        elif index == 7:  # Warm up
             self.launch_wum()
-        elif index == 10:
-            GUI.stackedWidget.setCurrentIndex(5)
-        elif index == 11:
-            GUI.stackedWidget.setCurrentIndex(6)
-            self.refresh_account_info()
         else:
-            url_mappings = {
-                "Store": "https://gmonster.co/store",
-                "Leads": "https://gmonster.co/leads",
-                "Tutorials": "https://gmonster.co/tutorials",
-                "Support": "https://gmonster.co/support"
-            }
             item = GUI.listWidget.item(index)
-            item_text = item.text()
-            if item_text in url_mappings:
-                webbrowser.open(url_mappings[item_text])
-            else:
-                print("Invalid Index")
+            if item:
+                item_text = item.text()
+                if item_text in url_mappings:
+                    webbrowser.open(url_mappings[item_text])
+                else:
+                    print(f"Invalid Index: {index} ({item_text})")
 
     def email_verify(self):
         emails = var.target["EMAIL"].tolist() if not var.target.empty else []
