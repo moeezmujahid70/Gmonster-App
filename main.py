@@ -237,7 +237,6 @@ class MyMainClass:
         )
         GUI.checkBox_enable_cc_emails.setChecked(var.cc_emails_enabled)
         GUI.checkBox_proxy_enabled.setChecked(var.proxy_on)
-        GUI.checkBox_inbox_whitelist.setChecked(var.inbox_whitelist_checkbox)
         GUI.checkBox_space_encoding.setChecked(var.space_encoding_checkbox)
         GUI.checkBox_hide_warmup_emails.setChecked(var.hide_warmup_emails)
         self.auto_fire_responses_webhook_timer = QtCore.QTimer()
@@ -382,8 +381,6 @@ class MyMainClass:
         )
         GUI.checkBox_space_encoding.stateChanged.connect(
             self.update_checkbox_status)
-        GUI.checkBox_inbox_whitelist.stateChanged.connect(
-            self.update_checkbox_status)
         GUI.checkBox_enable_cc_emails.stateChanged.connect(
             self.update_checkbox_status)
         GUI.checkBox_hide_warmup_emails.stateChanged.connect(
@@ -423,8 +420,6 @@ class MyMainClass:
             QtGui.QDesktopServices.openUrl)
         GUI.textBrowser_compose.textChanged.connect(self.compose_update)
         GUI.textEdit_reply.textChanged.connect(self.update_rely_text)
-        GUI.label_desktop_app_id.setText(
-            f"Desktop ID: {var.gmonster_desktop_id}")
         GUI.label_desktop_app_id2.setText(var.gmonster_desktop_id)
         GUI.lineEdit_number_of_threads.textChanged.connect(
             self.update_limit_of_thread)
@@ -1871,9 +1866,11 @@ class MyMainClass:
     def change_inbox_whitelist(self):
         inbox_whitelist = GUI.lineEdit_inbox_whitelist.text().strip().replace(" ", "")
         if inbox_whitelist:
+            var.inbox_whitelist_checkbox = True
             var.inbox_whitelist = inbox_whitelist.split(",")
             var.inbox_whitelist = list(filter(None, var.inbox_whitelist))
         else:
+            var.inbox_whitelist_checkbox = False
             var.inbox_whitelist = list()
 
     def update_checkbox_proxy(self):
@@ -1923,7 +1920,8 @@ class MyMainClass:
             GUI.checkBox_auto_fire_responses_webhook.isChecked()
         )
         var.space_encoding_checkbox = GUI.checkBox_space_encoding.isChecked()
-        var.inbox_whitelist_checkbox = GUI.checkBox_inbox_whitelist.isChecked()
+        var.inbox_whitelist_checkbox = bool(
+            GUI.lineEdit_inbox_whitelist.text().strip())
         var.cc_emails_enabled = GUI.checkBox_enable_cc_emails.isChecked()
 
     def update_db_file_upload_config(self):

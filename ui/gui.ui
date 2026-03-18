@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='UTF-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <ui version="4.0">
   <class>MainWindow</class>
   <widget class="QMainWindow" name="MainWindow">
@@ -268,7 +268,7 @@ QScrollBar:vertical {
                                 <string notr="true">color: #028fc3</string>
                               </property>
                               <property name="text">
-                                <string notr="true"/>
+                                <string notr="true" />
                               </property>
                             </widget>
                           </item>
@@ -386,7 +386,7 @@ QPushButton:hover {
 }</string>
                               </property>
                               <property name="text">
-                                <string notr="true"/>
+                                <string notr="true" />
                               </property>
                             </widget>
                           </item>
@@ -473,7 +473,7 @@ QProgressBar::chunk {
 font-size: 12px;</string>
                               </property>
                               <property name="text">
-                                <string notr="true"/>
+                                <string notr="true" />
                               </property>
                             </widget>
                           </item>
@@ -484,7 +484,7 @@ font-size: 12px;</string>
 font-size: 12px;</string>
                               </property>
                               <property name="text">
-                                <string notr="true"/>
+                                <string notr="true" />
                               </property>
                               <property name="alignment">
                                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -607,7 +607,7 @@ font-size: 12px;</string>
 </string>
                     </property>
                     <property name="title">
-                      <string/>
+                      <string />
                     </property>
                     <layout class="QVBoxLayout" name="verticalLayout_19">
                       <item>
@@ -1077,7 +1077,7 @@ padding-left: 30px;</string>
                             </font>
                           </property>
                           <property name="text">
-                            <string notr="true"/>
+                            <string notr="true" />
                           </property>
                           <property name="alignment">
                             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -1181,7 +1181,7 @@ QScrollBar:vertical {
                           </property>
                           <column>
                             <property name="text">
-                              <string/>
+                              <string />
                             </property>
                           </column>
                           <column>
@@ -1234,7 +1234,7 @@ QScrollBar:vertical {
                           </column>
                           <column>
                             <property name="text">
-                              <string/>
+                              <string />
                             </property>
                           </column>
                           <attribute name="horizontalHeaderVisible">
@@ -1260,7 +1260,7 @@ QScrollBar:vertical {
                             </font>
                           </property>
                           <property name="text">
-                            <string notr="true"/>
+                            <string notr="true" />
                           </property>
                           <property name="alignment">
                             <set>Qt::AlignCenter</set>
@@ -1277,7 +1277,7 @@ QScrollBar:vertical {
 </string>
                     </property>
                     <property name="title">
-                      <string/>
+                      <string />
                     </property>
                     <layout class="QVBoxLayout" name="verticalLayout_26" stretch="0,5,2,0">
                       <property name="spacing">
@@ -1435,7 +1435,7 @@ QPushButton:pressed {
                                     <string notr="true">border:none;</string>
                                   </property>
                                   <property name="title">
-                                    <string/>
+                                    <string />
                                   </property>
                                   <layout class="QGridLayout" name="gridLayout_11">
                                     <item row="0" column="1">
@@ -1444,7 +1444,7 @@ QPushButton:pressed {
                                           <string notr="true">color: #555;</string>
                                         </property>
                                         <property name="text">
-                                          <string notr="true"/>
+                                          <string notr="true" />
                                         </property>
                                       </widget>
                                     </item>
@@ -1497,7 +1497,7 @@ QPushButton:pressed {
                                     <string notr="true">border:none;</string>
                                   </property>
                                   <property name="title">
-                                    <string/>
+                                    <string />
                                   </property>
                                   <layout class="QGridLayout" name="gridLayout_12">
                                     <item row="0" column="1">
@@ -1506,7 +1506,7 @@ QPushButton:pressed {
                                           <string notr="true">color: #555;</string>
                                         </property>
                                         <property name="text">
-                                          <string notr="true"/>
+                                          <string notr="true" />
                                         </property>
                                       </widget>
                                     </item>
@@ -1757,7 +1757,7 @@ QPushButton:hover {
 }</string>
                                         </property>
                                         <property name="text">
-                                          <string notr="true"/>
+                                          <string notr="true" />
                                         </property>
                                       </widget>
                                     </item>
@@ -1954,7 +1954,7 @@ QPushButton:hover {
 }</string>
                                   </property>
                                   <property name="text">
-                                    <string notr="true"/>
+                                    <string notr="true" />
                                   </property>
                                 </widget>
                               </item>
@@ -2077,7 +2077,7 @@ QPushButton:pressed {
             </widget>
             <widget class="QWidget" name="stackedWidgetPage2">
               <property name="styleSheet">
-                <string notr="true"/>
+                <string notr="true" />
               </property>
               <layout class="QHBoxLayout" name="horizontalLayout_12" stretch="2,0">
                 <property name="spacing">
@@ -2677,7 +2677,7 @@ QCheckBox:checked {
 </string>
                                     </property>
                                     <property name="text">
-                                      <string notr="true"/>
+                                      <string notr="true" />
                                     </property>
                                   </widget>
                                 </item>
@@ -2977,7 +2977,7 @@ QPushButton:pressed {
 padding-right: 20px;</string>
                     </property>
                     <property name="title">
-                      <string/>
+                      <string />
                     </property>
                     <layout class="QVBoxLayout" name="verticalLayout_12">
                       <item>
@@ -3006,7 +3006,7 @@ padding-right: 20px;</string>
                                     <string notr="true">border: none;</string>
                                   </property>
                                   <property name="title">
-                                    <string/>
+                                    <string />
                                   </property>
                                   <layout class="QGridLayout" name="gridLayout_3">
                                     <item row="0" column="0">
@@ -3145,7 +3145,7 @@ QPushButton:pressed {
 border: none;</string>
                                       </property>
                                       <property name="text">
-                                        <string notr="true"/>
+                                        <string notr="true" />
                                       </property>
                                       <property name="maxLength">
                                         <number>32767</number>
@@ -3343,7 +3343,7 @@ QPushButton:hover {
 }</string>
                               </property>
                               <property name="text">
-                                <string notr="true"/>
+                                <string notr="true" />
                               </property>
                             </widget>
                           </item>
@@ -3558,7 +3558,7 @@ Campaign</string>
                       <string notr="true">background-color: #eff2f8;</string>
                     </property>
                     <property name="title">
-                      <string/>
+                      <string />
                     </property>
                     <layout class="QVBoxLayout" name="verticalLayout_13">
                       <item>
@@ -3597,10 +3597,10 @@ Campaign</string>
                                 </size>
                               </property>
                               <property name="styleSheet">
-                                <string notr="true"/>
+                                <string notr="true" />
                               </property>
                               <property name="text">
-                                <string notr="true"/>
+                                <string notr="true" />
                               </property>
                               <property name="checked">
                                 <bool>true</bool>
@@ -3667,10 +3667,10 @@ QRadioButton {
                                 </size>
                               </property>
                               <property name="styleSheet">
-                                <string notr="true"/>
+                                <string notr="true" />
                               </property>
                               <property name="text">
-                                <string notr="true"/>
+                                <string notr="true" />
                               </property>
                               <property name="checked">
                                 <bool>true</bool>
@@ -3734,10 +3734,10 @@ QRadioButton {
                                 </size>
                               </property>
                               <property name="styleSheet">
-                                <string notr="true"/>
+                                <string notr="true" />
                               </property>
                               <property name="text">
-                                <string notr="true"/>
+                                <string notr="true" />
                               </property>
                               <property name="checked">
                                 <bool>true</bool>
@@ -4389,7 +4389,7 @@ QScrollBar:vertical {
 </string>
                     </property>
                     <property name="title">
-                      <string/>
+                      <string />
                     </property>
                     <layout class="QVBoxLayout" name="verticalLayout_14">
                       <item>
@@ -4552,7 +4552,7 @@ QCheckBox {
                       <string notr="true">background-color: #fff;</string>
                     </property>
                     <property name="title">
-                      <string/>
+                      <string />
                     </property>
                     <layout class="QHBoxLayout" name="horizontalLayout_18">
                       <item>
@@ -4591,7 +4591,7 @@ QCheckBox {
                                 <string notr="true">border: none;</string>
                               </property>
                               <property name="title">
-                                <string/>
+                                <string />
                               </property>
                               <layout class="QVBoxLayout" name="verticalLayout_7">
                                 <item>
@@ -4701,7 +4701,7 @@ QPushButton:pressed {
 border: none;</string>
                               </property>
                               <property name="text">
-                                <string notr="true"/>
+                                <string notr="true" />
                               </property>
                               <property name="frame">
                                 <bool>false</bool>
@@ -4947,7 +4947,7 @@ QPushButton:pressed {
 </string>
                     </property>
                     <property name="title">
-                      <string/>
+                      <string />
                     </property>
                     <layout class="QVBoxLayout" name="verticalLayout_20">
                       <item>
@@ -5387,7 +5387,7 @@ QRadioButton {
                       <string notr="true">background-color: #fff;</string>
                     </property>
                     <property name="title">
-                      <string/>
+                      <string />
                     </property>
                     <layout class="QHBoxLayout" name="horizontalLayout_31">
                       <item>
@@ -5426,7 +5426,7 @@ QRadioButton {
                                 <string notr="true">border: none;</string>
                               </property>
                               <property name="title">
-                                <string/>
+                                <string />
                               </property>
                               <layout class="QVBoxLayout" name="verticalLayout_31">
                                 <item>
@@ -5720,6 +5720,26 @@ QPushButton:pressed {
             <widget class="QWidget" name="stackedWidgetPage5">
               <property name="styleSheet">
                 <string notr="true">background-color: #eff2f8;
+
+
+QCheckBox::indicator {
+    width: 14px;
+    height: 14px;
+    border: 1px solid #777;
+    border-radius: 2px;
+}
+QCheckBox::indicator:checked {
+    background-color: #028fc3;
+    border-color: #028fc3;
+}
+QCheckBox {
+    spacing: 8px;
+    font-size: 12px;
+    color: #333;
+}
+QCheckBox:hover {
+    color: #000;
+}
 </string>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -5818,7 +5838,7 @@ QWidget#groupBox_10 {
 }</string>
                             </property>
                             <property name="title">
-                              <string/>
+                              <string />
                             </property>
                             <layout class="QGridLayout" name="gridLayout_4">
                               <item row="3" column="0" colspan="2">
@@ -6372,7 +6392,7 @@ QPushButton:pressed {
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="16" column="2" colspan="2">
+                              <item row="21" column="2">
                                 <widget class="QLabel" name="label_11">
                                   <property name="minimumSize">
                                     <size>
@@ -6444,21 +6464,28 @@ QPushButton:pressed {
                                     </font>
                                   </property>
                                   <property name="styleSheet">
-                                    <string notr="true">QCheckBox::indicator {
-                width: 0px; /* Hide the circle indicator */
-                height: 0px;
-            }
+                                    <string notr="true">
 QCheckBox {
-                color: #545454;
-                background-color: transparent;
-                border: none;
-            }
-            QCheckBox:checked {
-                font-weight: bold;
-                color: #000;
-    background-color: #d5dff2;  /* Highlight color (Gold) */
-    border-radius: 4px;
-            }</string>
+    padding: 8px 16px;
+    background-color: #e2e8f0;
+    color: #4a5568;
+    border-radius: 16px;
+    font-weight: bold;
+    border: 1px solid #cbd5e1;
+}
+QCheckBox::indicator {
+    width: 0px;
+    height: 0px;
+}
+QCheckBox:hover {
+    background-color: #cbd5e1;
+}
+QCheckBox:checked {
+    background-color: #028fc3;
+    color: #ffffff;
+    border: 1px solid #028fc3;
+}
+</string>
                                   </property>
                                   <property name="text">
                                     <string>Auto fire responses webhook</string>
@@ -6485,7 +6512,7 @@ QCheckBox {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="17" column="2" colspan="2">
+                              <item row="17" column="2">
                                 <widget class="QLabel" name="label_12">
                                   <property name="minimumSize">
                                     <size>
@@ -6529,7 +6556,7 @@ QCheckBox {
                                     </font>
                                   </property>
                                   <property name="text">
-                                    <string>Blacklist</string>
+                                    <string>Inbox</string>
                                   </property>
                                 </widget>
                               </item>
@@ -6589,22 +6616,28 @@ QCheckBox {
                                     </font>
                                   </property>
                                   <property name="styleSheet">
-                                    <string notr="true">QCheckBox::indicator {
-                width: 0px; /* Hide the circle indicator */
-                height: 0px;
-            }
+                                    <string notr="true">
 QCheckBox {
-                color: #545454;
-                background-color: transparent;
-                border: none;
-            }/* Style when checked */
-QCheckBox:checked {
+    padding: 8px 16px;
+    background-color: #e2e8f0;
+    color: #4a5568;
+    border-radius: 16px;
     font-weight: bold;
-    color: #000;
-    background-color: #d5dff2;  /* Highlight color (Gold) */
-    border-radius: 4px;
-    padding: 2px;
-}</string>
+    border: 1px solid #cbd5e1;
+}
+QCheckBox::indicator {
+    width: 0px;
+    height: 0px;
+}
+QCheckBox:hover {
+    background-color: #cbd5e1;
+}
+QCheckBox:checked {
+    background-color: #028fc3;
+    color: #ffffff;
+    border: 1px solid #028fc3;
+}
+</string>
                                   </property>
                                   <property name="text">
                                     <string>Responses webhook enabled</string>
@@ -6651,7 +6684,7 @@ QCheckBox:checked {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="16" column="4" colspan="2">
+                              <item row="21" column="4" colspan="2">
                                 <widget class="QLineEdit" name="lineEdit_target_blacklist">
                                   <property name="minimumSize">
                                     <size>
@@ -6714,7 +6747,7 @@ QCheckBox:checked {
                               <item row="14" column="0" colspan="2">
                                 <widget class="Line" name="line_9">
                                   <property name="styleSheet">
-                                    <string notr="true"/>
+                                    <string notr="true" />
                                   </property>
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
@@ -6880,7 +6913,7 @@ QCheckBox:checked {
                                     </font>
                                   </property>
                                   <property name="text">
-                                    <string>Whitelist</string>
+                                    <string>Target</string>
                                   </property>
                                 </widget>
                               </item>
@@ -6923,44 +6956,7 @@ QCheckBox:checked {
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="23" column="2" colspan="2">
-                                <widget class="QCheckBox" name="checkBox_inbox_whitelist">
-                                  <property name="minimumSize">
-                                    <size>
-                                      <width>0</width>
-                                      <height>25</height>
-                                    </size>
-                                  </property>
-                                  <property name="font">
-                                    <font>
-                                      <family>Arial</family>
-                                      <pointsize>12</pointsize>
-                                    </font>
-                                  </property>
-                                  <property name="styleSheet">
-                                    <string notr="true">QCheckBox::indicator {
-                width: 0px; /* Hide the circle indicator */
-                height: 0px;
-            }
-QCheckBox {
-                color: #545454;
-                background-color: transparent;
-                border: none;
-            }
-            QCheckBox:checked {
-                font-weight: bold;
-                color: #000;
-    background-color: #d5dff2;  /* Highlight color (Gold) */
-    border-radius: 4px;
-    padding: 2px;
-            }</string>
-                                  </property>
-                                  <property name="text">
-                                    <string>Enable inbox whitelist</string>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="21" column="2" colspan="2">
+                              <item row="16" column="2">
                                 <widget class="QLabel" name="label_20">
                                   <property name="minimumSize">
                                     <size>
@@ -6997,22 +6993,28 @@ QCheckBox {
                                     </font>
                                   </property>
                                   <property name="styleSheet">
-                                    <string notr="true">QCheckBox::indicator {
-                width: 0px; /* Hide the circle indicator */
-                height: 0px;
-            }
+                                    <string notr="true">
 QCheckBox {
-                color: #545454;
-                background-color: transparent;
-                border: none;
-            }
-            QCheckBox:checked {
-                font-weight: bold;
-                color: #000;
-    background-color: #d5dff2;  /* Highlight color (Gold) */
-    border-radius: 4px;
-    padding: 2px;
-            }</string>
+    padding: 8px 16px;
+    background-color: #e2e8f0;
+    color: #4a5568;
+    border-radius: 16px;
+    font-weight: bold;
+    border: 1px solid #cbd5e1;
+}
+QCheckBox::indicator {
+    width: 0px;
+    height: 0px;
+}
+QCheckBox:hover {
+    background-color: #cbd5e1;
+}
+QCheckBox:checked {
+    background-color: #028fc3;
+    color: #ffffff;
+    border: 1px solid #028fc3;
+}
+</string>
                                   </property>
                                   <property name="text">
                                     <string>Enable CC emails</string>
@@ -7045,7 +7047,7 @@ QCheckBox {
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="21" column="4" rowspan="2" colspan="2">
+                              <item row="16" column="4" colspan="2">
                                 <widget class="QLineEdit" name="lineEdit_inbox_whitelist">
                                   <property name="minimumSize">
                                     <size>
@@ -7181,7 +7183,7 @@ QCheckBox {
                                     </font>
                                   </property>
                                   <property name="text">
-                                    <string>Clear cached</string>
+                                    <string>Clear cache</string>
                                   </property>
                                 </widget>
                               </item>
@@ -7308,7 +7310,7 @@ QPushButton:pressed {
     }</string>
                                   </property>
                                   <property name="text">
-                                    <string>Clear cached targets from DB</string>
+                                    <string>Clear cache</string>
                                   </property>
                                 </widget>
                               </item>
@@ -7331,23 +7333,7 @@ QPushButton:pressed {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="41" column="4" colspan="1">
-                                <widget class="QLabel" name="label_desktop_app_id">
-                                  <property name="font">
-                                    <font>
-                                      <family>Arial</family>
-                                      <pointsize>12</pointsize>
-                                    </font>
-                                  </property>
-                                  <property name="text">
-                                    <string notr="true"/>
-                                  </property>
-                                  <property name="textInteractionFlags">
-                                    <set>Qt::TextBrowserInteraction</set>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="42" column="4" colspan="2">
+                              <item row="43" column="4" colspan="2">
                                 <widget class="QPushButton" name="pushButton_schedule_campaign">
                                   <property name="minimumSize">
                                     <size>
@@ -7389,7 +7375,7 @@ QPushButton:pressed {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="43" column="4" colspan="2">
+                              <item row="44" column="4" colspan="2">
                                 <widget class="QComboBox" name="comboBox_scheduled_campaign_list">
                                   <property name="minimumSize">
                                     <size>
@@ -7416,7 +7402,7 @@ background: #fff;
                                   </property>
                                 </widget>
                               </item>
-                              <item row="45" column="4" colspan="2">
+                              <item row="40" column="4" colspan="2">
                                 <widget class="QPushButton" name="pushButton_database_load_target_from_airtable">
                                   <property name="minimumSize">
                                     <size>
@@ -7471,7 +7457,7 @@ QPushButton:pressed {
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="43" column="2" colspan="2">
+                              <item row="44" column="2" colspan="2">
                                 <widget class="QLabel" name="label_63">
                                   <property name="minimumSize">
                                     <size>
@@ -7558,30 +7544,35 @@ QPushButton:pressed {
                                     </font>
                                   </property>
                                   <property name="styleSheet">
-                                    <string notr="true">QCheckBox::indicator {
-                width: 0px; /* Hide the circle indicator */
-                height: 0px;
-            }
+                                    <string notr="true">
 QCheckBox {
-                color: #545454;
-                background-color: transparent;
-                border: none;
-            }
-            QCheckBox:checked {
-                font-weight: bold;
-                color: #000;
-    background-color: #d5dff2;  /* Highlight color (Gold) */
-    border-radius: 4px;
-    padding: 2px;
-    margin-left: 3px;
-            }</string>
+    padding: 8px 16px;
+    background-color: #e2e8f0;
+    color: #4a5568;
+    border-radius: 16px;
+    font-weight: bold;
+    border: 1px solid #cbd5e1;
+}
+QCheckBox::indicator {
+    width: 0px;
+    height: 0px;
+}
+QCheckBox:hover {
+    background-color: #cbd5e1;
+}
+QCheckBox:checked {
+    background-color: #028fc3;
+    color: #ffffff;
+    border: 1px solid #028fc3;
+}
+</string>
                                   </property>
                                   <property name="text">
                                     <string>Mark sent Airtable</string>
                                   </property>
                                 </widget>
                               </item>
-                              <item row="40" column="4" colspan="2">
+                              <item row="43" column="4" colspan="2">
                                 <widget class="QDateTimeEdit" name="dateTimeEdit_campaign_scheduler">
                                   <property name="font">
                                     <font>
@@ -7617,7 +7608,7 @@ QDateTimeEdit::down-button:hover {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="45" column="2" colspan="2">
+                              <item row="40" column="2" colspan="2">
                                 <widget class="QCheckBox" name="checkBox_continuous_loading_airtable">
                                   <property name="minimumSize">
                                     <size>
@@ -7632,23 +7623,28 @@ QDateTimeEdit::down-button:hover {
                                     </font>
                                   </property>
                                   <property name="styleSheet">
-                                    <string notr="true">QCheckBox::indicator {
-                width: 0px; /* Hide the circle indicator */
-                height: 0px;
-            }
+                                    <string notr="true">
 QCheckBox {
-                color: #545454;
-                background-color: transparent;
-                border: none;
-            }
-            QCheckBox:checked {
-                font-weight: bold;
-                color: #000;
-    background-color: #d5dff2;  /* Highlight color (Gold) */
-    border-radius: 4px;
-    padding: 2px;
-    margin-right: 3px;
-            }</string>
+    padding: 8px 16px;
+    background-color: #e2e8f0;
+    color: #4a5568;
+    border-radius: 16px;
+    font-weight: bold;
+    border: 1px solid #cbd5e1;
+}
+QCheckBox::indicator {
+    width: 0px;
+    height: 0px;
+}
+QCheckBox:hover {
+    background-color: #cbd5e1;
+}
+QCheckBox:checked {
+    background-color: #028fc3;
+    color: #ffffff;
+    border: 1px solid #028fc3;
+}
+</string>
                                   </property>
                                   <property name="text">
                                     <string>Continuous loading</string>
@@ -7728,23 +7724,28 @@ QPushButton:pressed {
                                     </font>
                                   </property>
                                   <property name="styleSheet">
-                                    <string notr="true">QCheckBox::indicator {
-                width: 0px; /* Hide the circle indicator */
-                height: 0px;
-            }
+                                    <string notr="true">
 QCheckBox {
-                color: #545454;
-                background-color: transparent;
-                border: none;
-            }
-            QCheckBox:checked {
-                font-weight: bold;
-                color: #000;
-    background-color: #d5dff2;  /* Highlight color (Gold) */
-    border-radius: 4px;
-    padding: 2px;
-    margin-right: 3px;
-            }</string>
+    padding: 8px 16px;
+    background-color: #e2e8f0;
+    color: #4a5568;
+    border-radius: 16px;
+    font-weight: bold;
+    border: 1px solid #cbd5e1;
+}
+QCheckBox::indicator {
+    width: 0px;
+    height: 0px;
+}
+QCheckBox:hover {
+    background-color: #cbd5e1;
+}
+QCheckBox:checked {
+    background-color: #028fc3;
+    color: #ffffff;
+    border: 1px solid #028fc3;
+}
+</string>
                                   </property>
                                   <property name="text">
                                     <string>Use desktop ID</string>
@@ -7764,7 +7765,7 @@ QCheckBox {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="54" column="2" colspan="2">
+                              <item row="56" column="2" colspan="2">
                                 <widget class="QLabel" name="label_19">
                                   <property name="font">
                                     <font>
@@ -7780,7 +7781,7 @@ QCheckBox {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="54" column="4" colspan="2">
+                              <item row="56" column="4" colspan="2">
                                 <widget class="QLabel" name="label_desktop_app_id2">
                                   <property name="font">
                                     <font>
@@ -7789,7 +7790,7 @@ QCheckBox {
                                     </font>
                                   </property>
                                   <property name="text">
-                                    <string notr="true"/>
+                                    <string notr="true" />
                                   </property>
                                   <property name="textInteractionFlags">
                                     <set>Qt::TextBrowserInteraction</set>
@@ -7982,23 +7983,28 @@ QPushButton:pressed {
                                     </font>
                                   </property>
                                   <property name="styleSheet">
-                                    <string notr="true">QCheckBox::indicator {
-                width: 0px; /* Hide the circle indicator */
-                height: 0px;
-            }
+                                    <string notr="true">
 QCheckBox {
-                color: #545454;
-                background-color: transparent;
-                border: none;
-            }
-            QCheckBox:checked {
-                font-weight: bold;
-                color: #000;
-    background-color: #d5dff2;  /* Highlight color (Gold) */
-    border-radius: 4px;
-    padding: 2px;
-    margin-right: 3px;
-            }</string>
+    padding: 8px 16px;
+    background-color: #e2e8f0;
+    color: #4a5568;
+    border-radius: 16px;
+    font-weight: bold;
+    border: 1px solid #cbd5e1;
+}
+QCheckBox::indicator {
+    width: 0px;
+    height: 0px;
+}
+QCheckBox:hover {
+    background-color: #cbd5e1;
+}
+QCheckBox:checked {
+    background-color: #028fc3;
+    color: #ffffff;
+    border: 1px solid #028fc3;
+}
+</string>
                                   </property>
                                   <property name="text">
                                     <string>Random character encoding</string>
@@ -8088,7 +8094,7 @@ QCheckBox {
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="56" column="2" colspan="1">
+                              <item row="54" column="2" colspan="1">
                                 <widget class="QCheckBox" name="checkBox_proxy_enabled">
                                   <property name="font">
                                     <font>
@@ -8097,22 +8103,28 @@ QCheckBox {
                                     </font>
                                   </property>
                                   <property name="styleSheet">
-                                    <string notr="true">QCheckBox::indicator {
-                width: 0px; /* Hide the circle indicator */
-                height: 0px;
-            }
+                                    <string notr="true">
 QCheckBox {
-                color: #545454;
-                background-color: transparent;
-                border: none;
-            }
-            QCheckBox:checked {
-                font-weight: bold;
-                color: #000;
-    background-color: #d5dff2;  /* Highlight color (Gold) */
-    border-radius: 4px;
-    padding: 2px;
-            }</string>
+    padding: 8px 16px;
+    background-color: #e2e8f0;
+    color: #4a5568;
+    border-radius: 16px;
+    font-weight: bold;
+    border: 1px solid #cbd5e1;
+}
+QCheckBox::indicator {
+    width: 0px;
+    height: 0px;
+}
+QCheckBox:hover {
+    background-color: #cbd5e1;
+}
+QCheckBox:checked {
+    background-color: #028fc3;
+    color: #ffffff;
+    border: 1px solid #028fc3;
+}
+</string>
                                   </property>
                                   <property name="text">
                                     <string>Proxy enabled</string>
@@ -8132,7 +8144,7 @@ QCheckBox {
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="58" column="2" colspan="1">
+                              <item row="55" column="2" colspan="1">
                                 <widget class="QCheckBox" name="checkBox_hide_warmup_emails">
                                   <property name="font">
                                     <font>
@@ -8141,29 +8153,76 @@ QCheckBox {
                                     </font>
                                   </property>
                                   <property name="styleSheet">
-                                    <string notr="true">QCheckBox::indicator {
-                width: 0px; /* Hide the circle indicator */
-                height: 0px;
-            }
+                                    <string notr="true">
 QCheckBox {
-                color: #545454;
-                background-color: transparent;
-                border: none;
-            }
-            QCheckBox:checked {
-                font-weight: bold;
-                color: #000;
-    background-color: #d5dff2;  /* Highlight color (Gold) */
-    border-radius: 4px;
-    padding: 2px;
-            }</string>
+    padding: 8px 16px;
+    background-color: #e2e8f0;
+    color: #4a5568;
+    border-radius: 16px;
+    font-weight: bold;
+    border: 1px solid #cbd5e1;
+}
+QCheckBox::indicator {
+    width: 0px;
+    height: 0px;
+}
+QCheckBox:hover {
+    background-color: #cbd5e1;
+}
+QCheckBox:checked {
+    background-color: #028fc3;
+    color: #ffffff;
+    border: 1px solid #028fc3;
+}
+</string>
                                   </property>
                                   <property name="text">
                                     <string>Hide warm up emails</string>
                                   </property>
                                 </widget>
                               </item>
-                            </layout>
+                            <item row="41" column="0" colspan="2">
+                                <widget class="Line" name="line_52_sch">
+                                  <property name="orientation">
+                                    <enum>Qt::Horizontal</enum>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item row="41" column="2" colspan="2">
+                                <widget class="Line" name="line_78_sch">
+                                  <property name="orientation">
+                                    <enum>Qt::Horizontal</enum>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item row="41" column="4" colspan="3">
+                                <widget class="Line" name="line_79_sch">
+                                  <property name="orientation">
+                                    <enum>Qt::Horizontal</enum>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item row="41" column="7">
+                                <widget class="Line" name="line_80_sch">
+                                  <property name="orientation">
+                                    <enum>Qt::Horizontal</enum>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item row="42" column="0" colspan="2">
+                                <widget class="QLabel" name="label_campaign_scheduler_title">
+                                  <property name="font">
+                                    <font>
+                                      <family>Arial</family>
+                                      <pointsize>14</pointsize>
+                                    </font>
+                                  </property>
+                                  <property name="text">
+                                    <string>Campaign Scheduler</string>
+                                  </property>
+                                </widget>
+                              </item>
+                              </layout>
                           </widget>
                         </item>
                         <property name="leftMargin">
@@ -8923,7 +8982,7 @@ QPushButton:pressed {
     </widget>
   </widget>
   <resources>
-    <include location="logo.qrc"/>
+    <include location="logo.qrc" />
    </resources>
   <connections>
     <connection>

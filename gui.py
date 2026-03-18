@@ -2945,6 +2945,26 @@ class Ui_MainWindow(object):
         self.stackedWidget.addWidget(self.page)
         self.stackedWidgetPage5 = QtWidgets.QWidget()
         self.stackedWidgetPage5.setStyleSheet("background-color: #eff2f8;\n"
+"\n"
+"\n"
+"QCheckBox::indicator {\n"
+"    width: 14px;\n"
+"    height: 14px;\n"
+"    border: 1px solid #777;\n"
+"    border-radius: 2px;\n"
+"}\n"
+"QCheckBox::indicator:checked {\n"
+"    background-color: #028fc3;\n"
+"    border-color: #028fc3;\n"
+"}\n"
+"QCheckBox {\n"
+"    spacing: 8px;\n"
+"    font-size: 12px;\n"
+"    color: #333;\n"
+"}\n"
+"QCheckBox:hover {\n"
+"    color: #000;\n"
+"}\n"
 "")
         self.stackedWidgetPage5.setObjectName("stackedWidgetPage5")
         self.verticalLayout_6 = QtWidgets.QVBoxLayout(self.stackedWidgetPage5)
@@ -3221,7 +3241,7 @@ class Ui_MainWindow(object):
         self.label_11.setFont(font)
         self.label_11.setStyleSheet("margin-left: 5px;")
         self.label_11.setObjectName("label_11")
-        self.gridLayout_4.addWidget(self.label_11, 16, 2, 1, 2)
+        self.gridLayout_4.addWidget(self.label_11, 21, 2, 1, 1)
         spacerItem63 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.gridLayout_4.addItem(spacerItem63, 10, 0, 1, 1)
         self.label_25 = QtWidgets.QLabel(self.groupBox_10)
@@ -3239,21 +3259,28 @@ class Ui_MainWindow(object):
         font.setFamily("Arial")
         font.setPointSize(12)
         self.checkBox_auto_fire_responses_webhook.setFont(font)
-        self.checkBox_auto_fire_responses_webhook.setStyleSheet("QCheckBox::indicator {\n"
-"                width: 0px; /* Hide the circle indicator */\n"
-"                height: 0px;\n"
-"            }\n"
+        self.checkBox_auto_fire_responses_webhook.setStyleSheet("\n"
 "QCheckBox {\n"
-"                color: #545454;\n"
-"                background-color: transparent;\n"
-"                border: none;\n"
-"            }\n"
-"            QCheckBox:checked {\n"
-"                font-weight: bold;\n"
-"                color: #000;\n"
-"    background-color: #d5dff2;  /* Highlight color (Gold) */\n"
-"    border-radius: 4px;\n"
-"            }")
+"    padding: 8px 16px;\n"
+"    background-color: #e2e8f0;\n"
+"    color: #4a5568;\n"
+"    border-radius: 16px;\n"
+"    font-weight: bold;\n"
+"    border: 1px solid #cbd5e1;\n"
+"}\n"
+"QCheckBox::indicator {\n"
+"    width: 0px;\n"
+"    height: 0px;\n"
+"}\n"
+"QCheckBox:hover {\n"
+"    background-color: #cbd5e1;\n"
+"}\n"
+"QCheckBox:checked {\n"
+"    background-color: #028fc3;\n"
+"    color: #ffffff;\n"
+"    border: 1px solid #028fc3;\n"
+"}\n"
+"")
         self.checkBox_auto_fire_responses_webhook.setObjectName("checkBox_auto_fire_responses_webhook")
         self.gridLayout_4.addWidget(self.checkBox_auto_fire_responses_webhook, 12, 2, 1, 2)
         spacerItem64 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
@@ -3271,7 +3298,7 @@ class Ui_MainWindow(object):
         self.label_12.setFont(font)
         self.label_12.setStyleSheet("margin-left: 5px;")
         self.label_12.setObjectName("label_12")
-        self.gridLayout_4.addWidget(self.label_12, 17, 2, 1, 2)
+        self.gridLayout_4.addWidget(self.label_12, 17, 2, 1, 1)
         spacerItem65 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.gridLayout_4.addItem(spacerItem65, 11, 7, 1, 1)
         self.label_27 = QtWidgets.QLabel(self.groupBox_10)
@@ -3303,22 +3330,28 @@ class Ui_MainWindow(object):
         font = QtGui.QFont()
         font.setPointSize(12)
         self.checkBox_responses_webhook.setFont(font)
-        self.checkBox_responses_webhook.setStyleSheet("QCheckBox::indicator {\n"
-"                width: 0px; /* Hide the circle indicator */\n"
-"                height: 0px;\n"
-"            }\n"
+        self.checkBox_responses_webhook.setStyleSheet("\n"
 "QCheckBox {\n"
-"                color: #545454;\n"
-"                background-color: transparent;\n"
-"                border: none;\n"
-"            }/* Style when checked */\n"
-"QCheckBox:checked {\n"
+"    padding: 8px 16px;\n"
+"    background-color: #e2e8f0;\n"
+"    color: #4a5568;\n"
+"    border-radius: 16px;\n"
 "    font-weight: bold;\n"
-"    color: #000;\n"
-"    background-color: #d5dff2;  /* Highlight color (Gold) */\n"
-"    border-radius: 4px;\n"
-"    padding: 2px;\n"
-"}")
+"    border: 1px solid #cbd5e1;\n"
+"}\n"
+"QCheckBox::indicator {\n"
+"    width: 0px;\n"
+"    height: 0px;\n"
+"}\n"
+"QCheckBox:hover {\n"
+"    background-color: #cbd5e1;\n"
+"}\n"
+"QCheckBox:checked {\n"
+"    background-color: #028fc3;\n"
+"    color: #ffffff;\n"
+"    border: 1px solid #028fc3;\n"
+"}\n"
+"")
         self.checkBox_responses_webhook.setObjectName("checkBox_responses_webhook")
         self.gridLayout_4.addWidget(self.checkBox_responses_webhook, 11, 2, 1, 2)
         self.line_12 = QtWidgets.QFrame(self.groupBox_10)
@@ -3344,7 +3377,7 @@ class Ui_MainWindow(object):
         self.lineEdit_target_blacklist.setStyleSheet("background-color: rgb(255, 255, 255);")
         self.lineEdit_target_blacklist.setFrame(False)
         self.lineEdit_target_blacklist.setObjectName("lineEdit_target_blacklist")
-        self.gridLayout_4.addWidget(self.lineEdit_target_blacklist, 16, 4, 1, 2)
+        self.gridLayout_4.addWidget(self.lineEdit_target_blacklist, 21, 4, 1, 2)
         spacerItem69 = QtWidgets.QSpacerItem(199, 10, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.gridLayout_4.addItem(spacerItem69, 18, 0, 1, 2)
         self.lineEdit_auto_fire_responses_webhook_interval = QtWidgets.QLineEdit(self.groupBox_10)
@@ -3426,30 +3459,6 @@ class Ui_MainWindow(object):
         self.gridLayout_4.addItem(spacerItem77, 23, 0, 1, 1)
         spacerItem78 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.gridLayout_4.addItem(spacerItem78, 27, 0, 1, 1)
-        self.checkBox_inbox_whitelist = QtWidgets.QCheckBox(self.groupBox_10)
-        self.checkBox_inbox_whitelist.setMinimumSize(QtCore.QSize(0, 25))
-        font = QtGui.QFont()
-        font.setFamily("Arial")
-        font.setPointSize(12)
-        self.checkBox_inbox_whitelist.setFont(font)
-        self.checkBox_inbox_whitelist.setStyleSheet("QCheckBox::indicator {\n"
-"                width: 0px; /* Hide the circle indicator */\n"
-"                height: 0px;\n"
-"            }\n"
-"QCheckBox {\n"
-"                color: #545454;\n"
-"                background-color: transparent;\n"
-"                border: none;\n"
-"            }\n"
-"            QCheckBox:checked {\n"
-"                font-weight: bold;\n"
-"                color: #000;\n"
-"    background-color: #d5dff2;  /* Highlight color (Gold) */\n"
-"    border-radius: 4px;\n"
-"    padding: 2px;\n"
-"            }")
-        self.checkBox_inbox_whitelist.setObjectName("checkBox_inbox_whitelist")
-        self.gridLayout_4.addWidget(self.checkBox_inbox_whitelist, 23, 2, 1, 2)
         self.label_20 = QtWidgets.QLabel(self.groupBox_10)
         self.label_20.setMinimumSize(QtCore.QSize(0, 25))
         font = QtGui.QFont()
@@ -3458,29 +3467,35 @@ class Ui_MainWindow(object):
         self.label_20.setFont(font)
         self.label_20.setStyleSheet("margin-left: 5px;")
         self.label_20.setObjectName("label_20")
-        self.gridLayout_4.addWidget(self.label_20, 21, 2, 1, 2)
+        self.gridLayout_4.addWidget(self.label_20, 16, 2, 1, 1)
         self.checkBox_enable_cc_emails = QtWidgets.QCheckBox(self.groupBox_10)
         self.checkBox_enable_cc_emails.setMinimumSize(QtCore.QSize(0, 25))
         font = QtGui.QFont()
         font.setFamily("Arial")
         font.setPointSize(12)
         self.checkBox_enable_cc_emails.setFont(font)
-        self.checkBox_enable_cc_emails.setStyleSheet("QCheckBox::indicator {\n"
-"                width: 0px; /* Hide the circle indicator */\n"
-"                height: 0px;\n"
-"            }\n"
+        self.checkBox_enable_cc_emails.setStyleSheet("\n"
 "QCheckBox {\n"
-"                color: #545454;\n"
-"                background-color: transparent;\n"
-"                border: none;\n"
-"            }\n"
-"            QCheckBox:checked {\n"
-"                font-weight: bold;\n"
-"                color: #000;\n"
-"    background-color: #d5dff2;  /* Highlight color (Gold) */\n"
-"    border-radius: 4px;\n"
-"    padding: 2px;\n"
-"            }")
+"    padding: 8px 16px;\n"
+"    background-color: #e2e8f0;\n"
+"    color: #4a5568;\n"
+"    border-radius: 16px;\n"
+"    font-weight: bold;\n"
+"    border: 1px solid #cbd5e1;\n"
+"}\n"
+"QCheckBox::indicator {\n"
+"    width: 0px;\n"
+"    height: 0px;\n"
+"}\n"
+"QCheckBox:hover {\n"
+"    background-color: #cbd5e1;\n"
+"}\n"
+"QCheckBox:checked {\n"
+"    background-color: #028fc3;\n"
+"    color: #ffffff;\n"
+"    border: 1px solid #028fc3;\n"
+"}\n"
+"")
         self.checkBox_enable_cc_emails.setObjectName("checkBox_enable_cc_emails")
         self.gridLayout_4.addWidget(self.checkBox_enable_cc_emails, 28, 2, 1, 2)
         spacerItem79 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
@@ -3496,7 +3511,7 @@ class Ui_MainWindow(object):
         self.lineEdit_inbox_whitelist.setStyleSheet("background-color: rgb(255, 255, 255);")
         self.lineEdit_inbox_whitelist.setFrame(False)
         self.lineEdit_inbox_whitelist.setObjectName("lineEdit_inbox_whitelist")
-        self.gridLayout_4.addWidget(self.lineEdit_inbox_whitelist, 21, 4, 2, 2)
+        self.gridLayout_4.addWidget(self.lineEdit_inbox_whitelist, 16, 4, 1, 2)
         self.line_17 = QtWidgets.QFrame(self.groupBox_10)
         self.line_17.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_17.setFrameShadow(QtWidgets.QFrame.Sunken)
@@ -3630,15 +3645,6 @@ class Ui_MainWindow(object):
         self.label_61.setFont(font)
         self.label_61.setObjectName("label_61")
         self.gridLayout_4.addWidget(self.label_61, 37, 2, 1, 2)
-        self.label_desktop_app_id = QtWidgets.QLabel(self.groupBox_10)
-        font = QtGui.QFont()
-        font.setFamily("Arial")
-        font.setPointSize(12)
-        self.label_desktop_app_id.setFont(font)
-        self.label_desktop_app_id.setText("")
-        self.label_desktop_app_id.setTextInteractionFlags(QtCore.Qt.TextBrowserInteraction)
-        self.label_desktop_app_id.setObjectName("label_desktop_app_id")
-        self.gridLayout_4.addWidget(self.label_desktop_app_id, 41, 4, 1, 1)
         self.pushButton_schedule_campaign = QtWidgets.QPushButton(self.groupBox_10)
         self.pushButton_schedule_campaign.setMinimumSize(QtCore.QSize(290, 40))
         self.pushButton_schedule_campaign.setMaximumSize(QtCore.QSize(290, 16777215))
@@ -3662,7 +3668,7 @@ class Ui_MainWindow(object):
 "    background: rgb(0, 138, 191);\n"
 "    }")
         self.pushButton_schedule_campaign.setObjectName("pushButton_schedule_campaign")
-        self.gridLayout_4.addWidget(self.pushButton_schedule_campaign, 42, 4, 1, 2)
+        self.gridLayout_4.addWidget(self.pushButton_schedule_campaign, 43, 4, 1, 2)
         self.comboBox_scheduled_campaign_list = QtWidgets.QComboBox(self.groupBox_10)
         self.comboBox_scheduled_campaign_list.setMinimumSize(QtCore.QSize(0, 42))
         self.comboBox_scheduled_campaign_list.setMaximumSize(QtCore.QSize(16777215, 42))
@@ -3676,7 +3682,7 @@ class Ui_MainWindow(object):
 "    min-height: 30px;\n"
 "    max-height: 30px;")
         self.comboBox_scheduled_campaign_list.setObjectName("comboBox_scheduled_campaign_list")
-        self.gridLayout_4.addWidget(self.comboBox_scheduled_campaign_list, 43, 4, 1, 2)
+        self.gridLayout_4.addWidget(self.comboBox_scheduled_campaign_list, 44, 4, 1, 2)
         self.pushButton_database_load_target_from_airtable = QtWidgets.QPushButton(self.groupBox_10)
         self.pushButton_database_load_target_from_airtable.setMinimumSize(QtCore.QSize(290, 40))
         self.pushButton_database_load_target_from_airtable.setMaximumSize(QtCore.QSize(290, 16777215))
@@ -3700,7 +3706,7 @@ class Ui_MainWindow(object):
 "    background: rgb(0, 138, 191);\n"
 "    }")
         self.pushButton_database_load_target_from_airtable.setObjectName("pushButton_database_load_target_from_airtable")
-        self.gridLayout_4.addWidget(self.pushButton_database_load_target_from_airtable, 45, 4, 1, 2)
+        self.gridLayout_4.addWidget(self.pushButton_database_load_target_from_airtable, 40, 4, 1, 2)
         spacerItem84 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.gridLayout_4.addItem(spacerItem84, 46, 0, 1, 2)
         self.label_63 = QtWidgets.QLabel(self.groupBox_10)
@@ -3711,7 +3717,7 @@ class Ui_MainWindow(object):
         self.label_63.setFont(font)
         self.label_63.setStyleSheet("margin-left: 5px;")
         self.label_63.setObjectName("label_63")
-        self.gridLayout_4.addWidget(self.label_63, 43, 2, 1, 2)
+        self.gridLayout_4.addWidget(self.label_63, 44, 2, 1, 2)
         self.line_30 = QtWidgets.QFrame(self.groupBox_10)
         self.line_30.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_30.setFrameShadow(QtWidgets.QFrame.Sunken)
@@ -3747,23 +3753,28 @@ class Ui_MainWindow(object):
         font.setFamily("Arial")
         font.setPointSize(12)
         self.checkBox_mark_sent_airtable.setFont(font)
-        self.checkBox_mark_sent_airtable.setStyleSheet("QCheckBox::indicator {\n"
-"                width: 0px; /* Hide the circle indicator */\n"
-"                height: 0px;\n"
-"            }\n"
+        self.checkBox_mark_sent_airtable.setStyleSheet("\n"
 "QCheckBox {\n"
-"                color: #545454;\n"
-"                background-color: transparent;\n"
-"                border: none;\n"
-"            }\n"
-"            QCheckBox:checked {\n"
-"                font-weight: bold;\n"
-"                color: #000;\n"
-"    background-color: #d5dff2;  /* Highlight color (Gold) */\n"
-"    border-radius: 4px;\n"
-"    padding: 2px;\n"
-"    margin-left: 3px;\n"
-"            }")
+"    padding: 8px 16px;\n"
+"    background-color: #e2e8f0;\n"
+"    color: #4a5568;\n"
+"    border-radius: 16px;\n"
+"    font-weight: bold;\n"
+"    border: 1px solid #cbd5e1;\n"
+"}\n"
+"QCheckBox::indicator {\n"
+"    width: 0px;\n"
+"    height: 0px;\n"
+"}\n"
+"QCheckBox:hover {\n"
+"    background-color: #cbd5e1;\n"
+"}\n"
+"QCheckBox:checked {\n"
+"    background-color: #028fc3;\n"
+"    color: #ffffff;\n"
+"    border: 1px solid #028fc3;\n"
+"}\n"
+"")
         self.checkBox_mark_sent_airtable.setObjectName("checkBox_mark_sent_airtable")
         self.gridLayout_4.addWidget(self.checkBox_mark_sent_airtable, 39, 4, 1, 2)
         self.dateTimeEdit_campaign_scheduler = QtWidgets.QDateTimeEdit(self.groupBox_10)
@@ -3794,32 +3805,37 @@ class Ui_MainWindow(object):
 "}")
         self.dateTimeEdit_campaign_scheduler.setButtonSymbols(QtWidgets.QAbstractSpinBox.UpDownArrows)
         self.dateTimeEdit_campaign_scheduler.setObjectName("dateTimeEdit_campaign_scheduler")
-        self.gridLayout_4.addWidget(self.dateTimeEdit_campaign_scheduler, 40, 4, 1, 2)
+        self.gridLayout_4.addWidget(self.dateTimeEdit_campaign_scheduler, 43, 4, 1, 2)
         self.checkBox_continuous_loading_airtable = QtWidgets.QCheckBox(self.groupBox_10)
         self.checkBox_continuous_loading_airtable.setMinimumSize(QtCore.QSize(0, 25))
         font = QtGui.QFont()
         font.setFamily("Arial")
         font.setPointSize(12)
         self.checkBox_continuous_loading_airtable.setFont(font)
-        self.checkBox_continuous_loading_airtable.setStyleSheet("QCheckBox::indicator {\n"
-"                width: 0px; /* Hide the circle indicator */\n"
-"                height: 0px;\n"
-"            }\n"
+        self.checkBox_continuous_loading_airtable.setStyleSheet("\n"
 "QCheckBox {\n"
-"                color: #545454;\n"
-"                background-color: transparent;\n"
-"                border: none;\n"
-"            }\n"
-"            QCheckBox:checked {\n"
-"                font-weight: bold;\n"
-"                color: #000;\n"
-"    background-color: #d5dff2;  /* Highlight color (Gold) */\n"
-"    border-radius: 4px;\n"
-"    padding: 2px;\n"
-"    margin-right: 3px;\n"
-"            }")
+"    padding: 8px 16px;\n"
+"    background-color: #e2e8f0;\n"
+"    color: #4a5568;\n"
+"    border-radius: 16px;\n"
+"    font-weight: bold;\n"
+"    border: 1px solid #cbd5e1;\n"
+"}\n"
+"QCheckBox::indicator {\n"
+"    width: 0px;\n"
+"    height: 0px;\n"
+"}\n"
+"QCheckBox:hover {\n"
+"    background-color: #cbd5e1;\n"
+"}\n"
+"QCheckBox:checked {\n"
+"    background-color: #028fc3;\n"
+"    color: #ffffff;\n"
+"    border: 1px solid #028fc3;\n"
+"}\n"
+"")
         self.checkBox_continuous_loading_airtable.setObjectName("checkBox_continuous_loading_airtable")
-        self.gridLayout_4.addWidget(self.checkBox_continuous_loading_airtable, 45, 2, 1, 2)
+        self.gridLayout_4.addWidget(self.checkBox_continuous_loading_airtable, 40, 2, 1, 2)
         self.lineEdit_airtable_table_name = QtWidgets.QLineEdit(self.groupBox_10)
         self.lineEdit_airtable_table_name.setMinimumSize(QtCore.QSize(0, 42))
         self.lineEdit_airtable_table_name.setStyleSheet("background-color: rgb(255, 255, 255);")
@@ -3856,23 +3872,28 @@ class Ui_MainWindow(object):
         font.setFamily("Arial")
         font.setPointSize(12)
         self.checkBox_airtable_use_desktop_id.setFont(font)
-        self.checkBox_airtable_use_desktop_id.setStyleSheet("QCheckBox::indicator {\n"
-"                width: 0px; /* Hide the circle indicator */\n"
-"                height: 0px;\n"
-"            }\n"
+        self.checkBox_airtable_use_desktop_id.setStyleSheet("\n"
 "QCheckBox {\n"
-"                color: #545454;\n"
-"                background-color: transparent;\n"
-"                border: none;\n"
-"            }\n"
-"            QCheckBox:checked {\n"
-"                font-weight: bold;\n"
-"                color: #000;\n"
-"    background-color: #d5dff2;  /* Highlight color (Gold) */\n"
-"    border-radius: 4px;\n"
-"    padding: 2px;\n"
-"    margin-right: 3px;\n"
-"            }")
+"    padding: 8px 16px;\n"
+"    background-color: #e2e8f0;\n"
+"    color: #4a5568;\n"
+"    border-radius: 16px;\n"
+"    font-weight: bold;\n"
+"    border: 1px solid #cbd5e1;\n"
+"}\n"
+"QCheckBox::indicator {\n"
+"    width: 0px;\n"
+"    height: 0px;\n"
+"}\n"
+"QCheckBox:hover {\n"
+"    background-color: #cbd5e1;\n"
+"}\n"
+"QCheckBox:checked {\n"
+"    background-color: #028fc3;\n"
+"    color: #ffffff;\n"
+"    border: 1px solid #028fc3;\n"
+"}\n"
+"")
         self.checkBox_airtable_use_desktop_id.setObjectName("checkBox_airtable_use_desktop_id")
         self.gridLayout_4.addWidget(self.checkBox_airtable_use_desktop_id, 39, 2, 1, 2)
         self.label_32 = QtWidgets.QLabel(self.groupBox_10)
@@ -3889,7 +3910,7 @@ class Ui_MainWindow(object):
         self.label_19.setFont(font)
         self.label_19.setStyleSheet("margin-left: 5px;")
         self.label_19.setObjectName("label_19")
-        self.gridLayout_4.addWidget(self.label_19, 54, 2, 1, 2)
+        self.gridLayout_4.addWidget(self.label_19, 56, 2, 1, 2)
         self.label_desktop_app_id2 = QtWidgets.QLabel(self.groupBox_10)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -3898,7 +3919,7 @@ class Ui_MainWindow(object):
         self.label_desktop_app_id2.setText("")
         self.label_desktop_app_id2.setTextInteractionFlags(QtCore.Qt.TextBrowserInteraction)
         self.label_desktop_app_id2.setObjectName("label_desktop_app_id2")
-        self.gridLayout_4.addWidget(self.label_desktop_app_id2, 54, 4, 1, 2)
+        self.gridLayout_4.addWidget(self.label_desktop_app_id2, 56, 4, 1, 2)
         self.line_22 = QtWidgets.QFrame(self.groupBox_10)
         self.line_22.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_22.setFrameShadow(QtWidgets.QFrame.Sunken)
@@ -3967,23 +3988,28 @@ class Ui_MainWindow(object):
         font.setFamily("Arial")
         font.setPointSize(12)
         self.checkBox_space_encoding.setFont(font)
-        self.checkBox_space_encoding.setStyleSheet("QCheckBox::indicator {\n"
-"                width: 0px; /* Hide the circle indicator */\n"
-"                height: 0px;\n"
-"            }\n"
+        self.checkBox_space_encoding.setStyleSheet("\n"
 "QCheckBox {\n"
-"                color: #545454;\n"
-"                background-color: transparent;\n"
-"                border: none;\n"
-"            }\n"
-"            QCheckBox:checked {\n"
-"                font-weight: bold;\n"
-"                color: #000;\n"
-"    background-color: #d5dff2;  /* Highlight color (Gold) */\n"
-"    border-radius: 4px;\n"
-"    padding: 2px;\n"
-"    margin-right: 3px;\n"
-"            }")
+"    padding: 8px 16px;\n"
+"    background-color: #e2e8f0;\n"
+"    color: #4a5568;\n"
+"    border-radius: 16px;\n"
+"    font-weight: bold;\n"
+"    border: 1px solid #cbd5e1;\n"
+"}\n"
+"QCheckBox::indicator {\n"
+"    width: 0px;\n"
+"    height: 0px;\n"
+"}\n"
+"QCheckBox:hover {\n"
+"    background-color: #cbd5e1;\n"
+"}\n"
+"QCheckBox:checked {\n"
+"    background-color: #028fc3;\n"
+"    color: #ffffff;\n"
+"    border: 1px solid #028fc3;\n"
+"}\n"
+"")
         self.checkBox_space_encoding.setObjectName("checkBox_space_encoding")
         self.gridLayout_4.addWidget(self.checkBox_space_encoding, 53, 2, 1, 2)
         spacerItem92 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
@@ -4021,24 +4047,30 @@ class Ui_MainWindow(object):
         font.setFamily("Arial")
         font.setPointSize(12)
         self.checkBox_proxy_enabled.setFont(font)
-        self.checkBox_proxy_enabled.setStyleSheet("QCheckBox::indicator {\n"
-"                width: 0px; /* Hide the circle indicator */\n"
-"                height: 0px;\n"
-"            }\n"
+        self.checkBox_proxy_enabled.setStyleSheet("\n"
 "QCheckBox {\n"
-"                color: #545454;\n"
-"                background-color: transparent;\n"
-"                border: none;\n"
-"            }\n"
-"            QCheckBox:checked {\n"
-"                font-weight: bold;\n"
-"                color: #000;\n"
-"    background-color: #d5dff2;  /* Highlight color (Gold) */\n"
-"    border-radius: 4px;\n"
-"    padding: 2px;\n"
-"            }")
+"    padding: 8px 16px;\n"
+"    background-color: #e2e8f0;\n"
+"    color: #4a5568;\n"
+"    border-radius: 16px;\n"
+"    font-weight: bold;\n"
+"    border: 1px solid #cbd5e1;\n"
+"}\n"
+"QCheckBox::indicator {\n"
+"    width: 0px;\n"
+"    height: 0px;\n"
+"}\n"
+"QCheckBox:hover {\n"
+"    background-color: #cbd5e1;\n"
+"}\n"
+"QCheckBox:checked {\n"
+"    background-color: #028fc3;\n"
+"    color: #ffffff;\n"
+"    border: 1px solid #028fc3;\n"
+"}\n"
+"")
         self.checkBox_proxy_enabled.setObjectName("checkBox_proxy_enabled")
-        self.gridLayout_4.addWidget(self.checkBox_proxy_enabled, 56, 2, 1, 1)
+        self.gridLayout_4.addWidget(self.checkBox_proxy_enabled, 54, 2, 1, 1)
         spacerItem94 = QtWidgets.QSpacerItem(20, 37, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.gridLayout_4.addItem(spacerItem94, 57, 1, 1, 1)
         self.checkBox_hide_warmup_emails = QtWidgets.QCheckBox(self.groupBox_10)
@@ -4046,24 +4078,57 @@ class Ui_MainWindow(object):
         font.setFamily("Arial")
         font.setPointSize(12)
         self.checkBox_hide_warmup_emails.setFont(font)
-        self.checkBox_hide_warmup_emails.setStyleSheet("QCheckBox::indicator {\n"
-"                width: 0px; /* Hide the circle indicator */\n"
-"                height: 0px;\n"
-"            }\n"
+        self.checkBox_hide_warmup_emails.setStyleSheet("\n"
 "QCheckBox {\n"
-"                color: #545454;\n"
-"                background-color: transparent;\n"
-"                border: none;\n"
-"            }\n"
-"            QCheckBox:checked {\n"
-"                font-weight: bold;\n"
-"                color: #000;\n"
-"    background-color: #d5dff2;  /* Highlight color (Gold) */\n"
-"    border-radius: 4px;\n"
-"    padding: 2px;\n"
-"            }")
+"    padding: 8px 16px;\n"
+"    background-color: #e2e8f0;\n"
+"    color: #4a5568;\n"
+"    border-radius: 16px;\n"
+"    font-weight: bold;\n"
+"    border: 1px solid #cbd5e1;\n"
+"}\n"
+"QCheckBox::indicator {\n"
+"    width: 0px;\n"
+"    height: 0px;\n"
+"}\n"
+"QCheckBox:hover {\n"
+"    background-color: #cbd5e1;\n"
+"}\n"
+"QCheckBox:checked {\n"
+"    background-color: #028fc3;\n"
+"    color: #ffffff;\n"
+"    border: 1px solid #028fc3;\n"
+"}\n"
+"")
         self.checkBox_hide_warmup_emails.setObjectName("checkBox_hide_warmup_emails")
-        self.gridLayout_4.addWidget(self.checkBox_hide_warmup_emails, 58, 2, 1, 1)
+        self.gridLayout_4.addWidget(self.checkBox_hide_warmup_emails, 55, 2, 1, 1)
+        self.line_52_sch = QtWidgets.QFrame(self.groupBox_10)
+        self.line_52_sch.setFrameShape(QtWidgets.QFrame.HLine)
+        self.line_52_sch.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.line_52_sch.setObjectName("line_52_sch")
+        self.gridLayout_4.addWidget(self.line_52_sch, 41, 0, 1, 2)
+        self.line_78_sch = QtWidgets.QFrame(self.groupBox_10)
+        self.line_78_sch.setFrameShape(QtWidgets.QFrame.HLine)
+        self.line_78_sch.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.line_78_sch.setObjectName("line_78_sch")
+        self.gridLayout_4.addWidget(self.line_78_sch, 41, 2, 1, 2)
+        self.line_79_sch = QtWidgets.QFrame(self.groupBox_10)
+        self.line_79_sch.setFrameShape(QtWidgets.QFrame.HLine)
+        self.line_79_sch.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.line_79_sch.setObjectName("line_79_sch")
+        self.gridLayout_4.addWidget(self.line_79_sch, 41, 4, 1, 3)
+        self.line_80_sch = QtWidgets.QFrame(self.groupBox_10)
+        self.line_80_sch.setFrameShape(QtWidgets.QFrame.HLine)
+        self.line_80_sch.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.line_80_sch.setObjectName("line_80_sch")
+        self.gridLayout_4.addWidget(self.line_80_sch, 41, 7, 1, 1)
+        self.label_campaign_scheduler_title = QtWidgets.QLabel(self.groupBox_10)
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(14)
+        self.label_campaign_scheduler_title.setFont(font)
+        self.label_campaign_scheduler_title.setObjectName("label_campaign_scheduler_title")
+        self.gridLayout_4.addWidget(self.label_campaign_scheduler_title, 42, 0, 1, 2)
         self.verticalLayout_4.addWidget(self.groupBox_10)
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
         self.verticalLayout_6.addWidget(self.scrollArea)
@@ -4614,18 +4679,17 @@ class Ui_MainWindow(object):
         self.label_25.setText(_translate("MainWindow", "Webhook interval"))
         self.checkBox_auto_fire_responses_webhook.setText(_translate("MainWindow", "Auto fire responses webhook"))
         self.label_12.setText(_translate("MainWindow", "Inbox blacklist"))
-        self.label_27.setText(_translate("MainWindow", "Blacklist"))
+        self.label_27.setText(_translate("MainWindow", "Inbox"))
         self.checkBox_responses_webhook.setText(_translate("MainWindow", "Responses webhook enabled"))
         self.label_31.setText(_translate("MainWindow", "CC"))
         self.label_21.setText(_translate("MainWindow", "CC emails"))
-        self.label_30.setText(_translate("MainWindow", "Whitelist"))
-        self.checkBox_inbox_whitelist.setText(_translate("MainWindow", "Enable inbox whitelist"))
+        self.label_30.setText(_translate("MainWindow", "Target"))
         self.label_20.setText(_translate("MainWindow", "Inbox whitelist"))
         self.checkBox_enable_cc_emails.setText(_translate("MainWindow", "Enable CC emails"))
-        self.label_42.setText(_translate("MainWindow", "Clear cached"))
+        self.label_42.setText(_translate("MainWindow", "Clear cache"))
         self.label_33.setText(_translate("MainWindow", "Airtable configuration"))
         self.label_60.setText(_translate("MainWindow", "Base ID"))
-        self.pushButton_clear_cached_targets.setText(_translate("MainWindow", "Clear cached targets from DB"))
+        self.pushButton_clear_cached_targets.setText(_translate("MainWindow", "Clear cache"))
         self.label_61.setText(_translate("MainWindow", "API key"))
         self.pushButton_schedule_campaign.setText(_translate("MainWindow", "Schedule"))
         self.pushButton_database_load_target_from_airtable.setText(_translate("MainWindow", "Load target from Airtable"))
@@ -4643,6 +4707,7 @@ class Ui_MainWindow(object):
         self.label_22.setText(_translate("MainWindow", "OpenAI key"))
         self.checkBox_proxy_enabled.setText(_translate("MainWindow", "Proxy enabled"))
         self.checkBox_hide_warmup_emails.setText(_translate("MainWindow", "Hide warm up emails"))
+        self.label_campaign_scheduler_title.setText(_translate("MainWindow", "Campaign Scheduler"))
         self.label_account_title.setText(_translate("MainWindow", "Account"))
         self.pushButton_account_refresh.setText(_translate("MainWindow", "🔄  Refresh"))
         self.label_account_email_h.setText(_translate("MainWindow", "Email"))
