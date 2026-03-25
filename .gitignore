@@ -4,8 +4,8 @@ build
 dist
 gmail_app
 test
-logs/
-database/
+data/
+# scripts/updater.bat
 sent
 output_php
 .qt_for_python
