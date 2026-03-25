@@ -133,8 +133,8 @@ def update_config_json(alternative_name=None):
         }
         if alternative_name:
             with open(
-                var.campaign_scheduler_cache_path +
-                    f"/{alternative_name}.json", "w"
+                os.path.join(var.campaign_scheduler_cache_path,
+                             f"{alternative_name}.json"), "w"
             ) as json_file:
                 json.dump(data, json_file, indent=4)
             logger.info("Scheduler Campaign config saved")

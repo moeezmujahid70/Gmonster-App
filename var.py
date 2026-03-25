@@ -21,7 +21,7 @@ global scheduler
 
 def override_where():
     """ overrides certifi.core.where to return actual location of cacert.pem"""
-    return os.path.abspath(os.path.join(os.getcwd(), 'database', 'cacert.pem'))
+    return os.path.abspath(os.path.join(os.getcwd(), 'data', 'gmonster_config', 'cacert.pem'))
 
 
 if hasattr(sys, 'frozen'):
@@ -88,10 +88,56 @@ try:
 except Exception as e:
     print(e)
 version = '2.2r'
-base_dir = 'database'
-followup_report_file_path = 'followup_report.csv'
+DATA_DIR = os.path.join(os.getcwd(), 'data')
+DATA_SHEETS_DIR = os.path.join(DATA_DIR, 'sheets')
+DATA_EMAIL_DIR = os.path.join(DATA_DIR, 'email')
+DATA_EMAIL_VERIFICATION_DIR = os.path.join(
+    DATA_EMAIL_DIR, 'email_verification')
+DATA_EMAIL_TOOLS_DIR = os.path.join(DATA_EMAIL_DIR, 'tools')
+DATA_EMAIL_RESULTS_DIR = os.path.join(DATA_EMAIL_DIR, 'results')
+DATA_ARCHIVE_DIR = os.path.join(DATA_DIR, 'archive')
+DATA_LOGS_DIR = os.path.join(DATA_DIR, 'logs')
+DATA_LOGS_GMONSTER_DIR = os.path.join(DATA_LOGS_DIR, 'gmonster')
+DATA_LOGS_WUM_DIR = os.path.join(DATA_LOGS_DIR, 'wum')
+DATA_LOGS_APP_DIR = os.path.join(DATA_LOGS_DIR, 'app')
+DATA_GMONSTER_CONFIG_DIR = os.path.join(DATA_DIR, 'gmonster_config')
+DATA_BACKUPS_DIR = os.path.join(DATA_DIR, 'backups')
+SCRIPTS_DIR = os.path.join(os.getcwd(), 'scripts')
+
+for _path in [
+    DATA_DIR,
+    DATA_SHEETS_DIR,
+    DATA_EMAIL_DIR,
+    DATA_EMAIL_VERIFICATION_DIR,
+    DATA_EMAIL_TOOLS_DIR,
+    DATA_EMAIL_RESULTS_DIR,
+    DATA_ARCHIVE_DIR,
+    DATA_LOGS_DIR,
+    DATA_LOGS_GMONSTER_DIR,
+    DATA_LOGS_WUM_DIR,
+    DATA_LOGS_APP_DIR,
+    DATA_GMONSTER_CONFIG_DIR,
+    DATA_BACKUPS_DIR,
+    SCRIPTS_DIR,
+]:
+    os.makedirs(_path, exist_ok=True)
+
+base_dir = DATA_GMONSTER_CONFIG_DIR
+followup_report_file_path = os.path.join(
+    DATA_EMAIL_RESULTS_DIR, 'followup_report.csv')
+report_file_path = os.path.join(DATA_EMAIL_RESULTS_DIR, 'report.csv')
+database_csv_file_path = os.path.join(DATA_EMAIL_RESULTS_DIR, 'database.csv')
+verify_blacklist_file_path = os.path.join(
+    DATA_GMONSTER_CONFIG_DIR, 'verify_blacklist.txt')
+blacklist_file_path = os.path.join(DATA_GMONSTER_CONFIG_DIR, 'blacklist.txt')
+autoreply_address_file_path = os.path.join(
+    DATA_GMONSTER_CONFIG_DIR, 'autoReply_address.txt')
+group_db_path = os.path.join(DATA_GMONSTER_CONFIG_DIR, 'group.DB')
+jobs_db_path = os.path.join(DATA_GMONSTER_CONFIG_DIR, 'jobs.sqlite')
+config_file_path = os.path.join(DATA_GMONSTER_CONFIG_DIR, 'config.json')
+cacert_file_path = os.path.join(DATA_GMONSTER_CONFIG_DIR, 'cacert.pem')
 update_temp_path = 'temp'
-update_bat_file_path = os.path.join(os.getcwd(), base_dir, 'updater.bat')
+update_bat_file_path = os.path.join(SCRIPTS_DIR, 'updater.bat')
 if os.name == 'nt':
     try:
         with open(update_bat_file_path, 'w') as file:
@@ -104,7 +150,7 @@ compose_email_body = "{Hey|Hi|Hello} [TONAME|Something],\n\nI'm reaching out to 
 compose_email_body_html = "<html>\n    <body>\n        <p>{Hey|Hi|Hello} [TONAME|Something],<br>\n        I'm reaching out to you because i {noticed|came across|found|visited} you website {the other day|yesterday} and thought you'd be interested in a {collaboration|partnership}.<br>\n        {Hope you don't mind my outreach!|Looking forward to your reply!}<br>\n        </p>\n    </body>\n</html>\n"
 body_type = 'Normal'
 jobstores = {'default': SQLAlchemyJobStore(
-    url=f'sqlite:///{base_dir}/jobs.sqlite')}
+    url=f'sqlite:///{jobs_db_path}')}
 logger.info('Logger Started')
 scheduler = BackgroundScheduler(logger=logger)
 scheduler.start()
@@ -193,10 +239,10 @@ FILE_DOWNLOAD_TIMEOUT = (10, 120)
 gmail_provider = 'https://gmonster.co/product/gmail-accounts/'
 proxy_provider = 'https://gmonster.co/product/gmonster-proxies/'
 campaign_scheduler_cache_path = os.path.join(
-    os.path.join(os.getcwd(), base_dir, 'campaign_scheduler'))
+    DATA_GMONSTER_CONFIG_DIR, 'campaign_scheduler')
 try:
     if not os.path.exists(campaign_scheduler_cache_path):
-        os.mkdir(campaign_scheduler_cache_path)
+        os.makedirs(campaign_scheduler_cache_path, exist_ok=True)
 except Exception as e:
     logger.error(f'Error while creating campaign_scheduler folder - {e}')
 responses_webhook_enabled = False
@@ -206,7 +252,7 @@ inbox_blacklist = []
 inbox_whitelist = []
 gmonster_desktop_id = ''
 id_file_name = 'gmonster_id'
-id_file_path = os.path.join(os.getcwd(), base_dir, id_file_name)
+id_file_path = os.path.join(DATA_GMONSTER_CONFIG_DIR, id_file_name)
 hostname_list = []
 inbox_whitelist_checkbox = False
 space_encoding_checkbox = False
@@ -228,7 +274,6 @@ try:
             file.write(gmonster_desktop_id)
 except Exception as e:
     logger.info('Exception occurred at id file loading : {}'.format(e))
-config_file_path = '{}/config.json'.format(base_dir)
 try:
     with open(config_file_path) as json_file:
         data = load(json_file)
@@ -328,7 +373,7 @@ stop_delete = False
 group_a = pd.DataFrame()
 group_b = pd.DataFrame()
 target = pd.DataFrame()
-db_path = 'database/group.db'
+db_path = group_db_path
 if __name__ == '__main__':
     myapp = SingleInstance()
     if myapp.already_running():

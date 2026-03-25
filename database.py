@@ -1,19 +1,7 @@
 global logger
-import re
-from var import logger
-import queue
-import traceback
-import datetime
-import os
-from pyairtable.formulas import match
-from pyairtable import Table
-from compat_ui import alert
-import pandas as pd
-import main
-import var
-import json
-import requests
-from sqlalchemy.orm import sessionmaker
+import logging
+import threading
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import (
     create_engine,
     MetaData,
@@ -30,13 +18,24 @@ from sqlalchemy import (
     inspect,
 
 )
-from sqlalchemy.ext.declarative import declarative_base
-import threading
-import logging
+from sqlalchemy.orm import sessionmaker
+import requests
+import json
+import var
+import main
+import pandas as pd
+from compat_ui import alert
+from pyairtable import Table
+from pyairtable.formulas import match
+import os
+import datetime
+import traceback
+import queue
+from var import logger
+import re
 
 
-
-db_path = var.base_dir + "/group.DB"
+db_path = var.group_db_path
 Base = declarative_base()
 engine = create_engine(
     f"sqlite:///{db_path}", connect_args={"check_same_thread": False}
@@ -538,9 +537,10 @@ def file_to_db():
     try:
         if var.db_file_loading_config["group_a"]:
             clear_table(group_a=True)
-            if os.path.exists(var.base_dir + "/group_a.xlsx"):
+            group_a_path = os.path.join(var.DATA_SHEETS_DIR, "group_a.xlsx")
+            if os.path.exists(group_a_path):
                 group_a = pd.read_excel(
-                    var.base_dir + "/group_a.xlsx",
+                    group_a_path,
                     engine="openpyxl",
                     sheet_name="group_a",
                 )
@@ -602,9 +602,10 @@ def file_to_db():
     try:
         if var.db_file_loading_config["group_b"]:
             clear_table(group_b=True)
-            if os.path.exists(var.base_dir + "/group_b.xlsx"):
+            group_b_path = os.path.join(var.DATA_SHEETS_DIR, "group_b.xlsx")
+            if os.path.exists(group_b_path):
                 group_b = pd.read_excel(
-                    var.base_dir + "/group_b.xlsx",
+                    group_b_path,
                     engine="openpyxl",
                     sheet_name="group_b",
                 )
@@ -666,9 +667,10 @@ def file_to_db():
     try:
         if var.db_file_loading_config["target"]:
             clear_table(target=True)
-            if os.path.exists(var.base_dir + "/target.xlsx"):
+            target_path = os.path.join(var.DATA_SHEETS_DIR, "target.xlsx")
+            if os.path.exists(target_path):
                 target = pd.read_excel(
-                    var.base_dir + "/target.xlsx",
+                    target_path,
                     engine="openpyxl",
                     sheet_name="target",
                 )
@@ -753,7 +755,7 @@ def update_mail_server_config(objects):
             var.mail_server[mail_vendor] = new_domain_config
             var.data["config"]["mail_server"] = var.mail_server
             with open(
-                f"{var.base_dir}/config.json", "w", encoding="utf-8"
+                var.config_file_path, "w", encoding="utf-8"
             ) as json_file:
                 json.dump(var.data, json_file, indent=4)
 

@@ -640,8 +640,8 @@ class MyMainClass:
 
             return True
 
-        if os.path.exists("database/verify_blacklist.txt"):
-            with open("database/verify_blacklist.txt", "r") as f:
+        if os.path.exists(var.verify_blacklist_file_path):
+            with open(var.verify_blacklist_file_path, "r") as f:
                 blacklist = f.readlines()
                 blacklist = [line.strip() for line in blacklist]
         else:
@@ -1023,7 +1023,7 @@ class MyMainClass:
         bad_emails = total_emails - verified_emails
 
         try:
-            verification_folder = "Email verification"
+            verification_folder = var.DATA_EMAIL_VERIFICATION_DIR
             os.makedirs(verification_folder, exist_ok=True)
             current_date = datetime.now().strftime("%Y-%m-%d-%H-%M")
             excel_filename = os.path.join(
@@ -1656,7 +1656,7 @@ class MyMainClass:
             self.autoReply_finished = True
 
     def get_duplicate_autoReply_state(self, from_mail):
-        file_path = "database/autoReply_address.txt"
+        file_path = var.autoreply_address_file_path
         try:
             with open(file_path, "r") as file:
                 addresses = set((line.strip() for line in file))
@@ -1684,11 +1684,11 @@ class MyMainClass:
         blob = TextBlob(text)
         sentiment_score = blob.sentiment.polarity
         try:
-            with open("database/blacklist.txt", "r") as file:
+            with open(var.blacklist_file_path, "r") as file:
                 negative_words = file.read().strip().splitlines()
         except FileNotFoundError:
             logger.info(
-                "Warning: 'database/blacklist.txt' not found. Using default negative words."
+                f"Warning: '{var.blacklist_file_path}' not found. Using default negative words."
             )
             negative_words = [
                 "no",

@@ -1073,7 +1073,7 @@ def save_report():
     try:
         field_names = ["TARGET", "FROMEMAIL", "STATUS", "CAMPAIGN", "DATE"]
         with open(
-            var.base_dir + "/report.csv", "a", newline="", encoding="utf-8"
+            var.report_file_path, "a", newline="", encoding="utf-8"
         ) as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=field_names)
             writer.writeheader()
@@ -1148,9 +1148,7 @@ def follow_up(campaign_id: str):
                     field_names = ["TARGET", "FROMEMAIL",
                                    "STATUS", "CAMPAIGN", "DATE"]
                     with open(
-                        os.path.join(
-                            os.getcwd(), var.base_dir, var.followup_report_file_path
-                        ),
+                        var.followup_report_file_path,
                         "a",
                         newline="",
                         encoding="utf-8",

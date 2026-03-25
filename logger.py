@@ -4,7 +4,7 @@ import os
 import sys
 import io
 
-base_dir = "logs"
+base_dir = os.path.join("data", "logs", "gmonster")
 logFormatter = logging.Formatter(
     "%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s"
 )
