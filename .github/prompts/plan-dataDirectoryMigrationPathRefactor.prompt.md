@@ -23,7 +23,7 @@ Replace the legacy database directory with the new data hierarchy in staged orde
 
 1. Physical migration to new layout (after step 3 is ready)
 1. Create:
-1. data/sheets, data/email_verification, data/tools, data/results, data/archive, data/logs/gmonster, data/logs/wum, data/logs/app, data/gmonster_config, data/gmonster_config/campaign_scheduler, data/backups, scripts.
+1. data/sheets, data/email_verification, data/tools, data/results, data/logs/gmonster, data/logs/wum, data/logs/app, data/gmonster_config, data/gmonster_config/campaign_scheduler, data/backups, scripts.
 1. Move files contextually:
 1. group_a.xlsx, group_b.xlsx, target.xlsx to data/sheets.
 1. email_verify.exe and email_verify_befi.exe to data/email/tools.
@@ -33,7 +33,7 @@ Replace the legacy database directory with the new data hierarchy in staged orde
 1. updater.bat to scripts/updater.bat.
 1. Move root verification outputs from Email verification to data/email/email_verification.
 1. Move runtime logs from logs to data/logs/gmonster.
-1. Keep wum_config unchanged as requested.
+1. Move wum_config under data/wum_config.
 1. Remove legacy database folder only after validation passes.
 
 1. Non-runtime references and docs
@@ -67,6 +67,6 @@ Replace the legacy database directory with the new data hierarchy in staged orde
 ### Confirmed decisions included in this plan
 
 1. SQLite runtime files go to data/gmonster_config.
-1. Keep root wum_config unchanged.
+1. Move wum_config under data/wum_config.
 1. Runtime logs move to data/logs/gmonster.
 1. updater.bat moves to scripts/updater.bat.
