@@ -216,6 +216,9 @@ class MyMainClass:
         date = QtCore.QDate.fromString(var.date, "M/d/yyyy")
         GUI.dateEdit_imap_since.setDate(date)
         GUI.dateEdit_imap_since.dateChanged.connect(self.date_update)
+        GUI.dateTimeEdit_campaign_scheduler.setDateTime(
+            QtCore.QDateTime.currentDateTime()
+        )
         GUI.radioButton_group_a.clicked.connect(self.select_inbox_group)
         GUI.radioButton_group_b.clicked.connect(self.select_inbox_group)
         self.option = GUI.pushButton_sort_date.text()
@@ -508,9 +511,7 @@ class MyMainClass:
             ).start()
         )
         GUI.pushButton_schedule_campaign.clicked.connect(
-            lambda: threading.Thread(
-                target=self.schedule_campaign, daemon=True, args=[]
-            ).start()
+            lambda: self._start_schedule_campaign()
         )
         GUI.pushButton_schedule_campaign_remove.clicked.connect(
             lambda: threading.Thread(
@@ -596,7 +597,6 @@ class MyMainClass:
         }
         url_mappings = {
             "Store": "https://gmonster.co/store",
-            "Leads": "https://gmonster.co/leads",
             "Tutorials": "https://gmonster.co/tutorials",
             "Support": "https://gmonster.co/support",
         }
@@ -604,6 +604,9 @@ class MyMainClass:
             GUI.stackedWidget.setCurrentIndex(nav_map[index])
             if index == 9:  # Account page
                 self.refresh_account_info()
+        elif index == 6:  # Leads
+            self.show_leads_popup()
+            GUI.listWidget.setCurrentRow(-1)
         elif index == 7:  # Warm up
             self.launch_wum()
         else:
@@ -1155,6 +1158,49 @@ class MyMainClass:
         alert(text="WUM executable not found for this platform.",
               title="Warning", button="OK")
 
+    def show_leads_popup(self):
+        msg = QMessageBox()
+        msg.setWindowTitle("Leads")
+        msg.setText("Choose a lead generation option:")
+        gmaps_btn = msg.addButton(
+            "Google Maps Scraper", QMessageBox.ActionRole)
+        more_leads_btn = msg.addButton("More Leads", QMessageBox.ActionRole)
+        msg.addButton(QMessageBox.Cancel)
+        msg.exec_()
+        clicked = msg.clickedButton()
+        if clicked == gmaps_btn:
+            self.launch_gmaps_scraper()
+        elif clicked == more_leads_btn:
+            webbrowser.open("https://gmonster.co/leads")
+
+    def launch_gmaps_scraper(self):
+        if var.gmaps_scraper_process and var.gmaps_scraper_process.poll() is None:
+            webbrowser.open(var.gmaps_scraper_url)
+            return
+
+        scraper_path = os.path.join(os.getcwd(), var.gmaps_scraper_exe_path)
+        data_dir = os.path.join(os.getcwd(), 'data', 'gmaps')
+        os.makedirs(data_dir, exist_ok=True)
+
+        if os.path.exists(scraper_path):
+            var.gmaps_scraper_process = subprocess.Popen(
+                [scraper_path, '-data-folder', data_dir]
+            )
+            webbrowser.open(var.gmaps_scraper_url)
+            return
+
+        if sys.platform == "darwin":
+            mac_path = os.path.join(os.getcwd(), "google_maps_scraper.app")
+            if os.path.exists(mac_path):
+                var.gmaps_scraper_process = subprocess.Popen(
+                    ["open", mac_path])
+                webbrowser.open(var.gmaps_scraper_url)
+                return
+
+        alert(text="Google Maps Scraper executable not found.\n"
+                   "Please place the binary in the application directory.",
+              title="Warning", button="OK")
+
     def update_auto_fire_responses_webhook_interval(self, data):
         if is_number(data):
             var.auto_fire_responses_webhook_interval = int(data)
@@ -1207,23 +1253,44 @@ class MyMainClass:
         logger.info("Continuous Loading airtable timer stopped")
         self.continuous_loading_airtable_timer.stop()
 
-    def schedule_campaign(self):
+    def _start_schedule_campaign(self):
         try:
-            group_selected = (
-                "group_a" if GUI.radioButton_campaign_group_a.isChecked() else "group_b"
-            )
-            group = (
-                var.group_a
-                if GUI.radioButton_campaign_group_a.isChecked()
-                else var.group_b
-            )
-            var.num_emails_per_address = str(
-                GUI.lineEdit_num_per_address.text())
+            num_per_addr_text = GUI.lineEdit_num_per_address.text().strip()
+            delay_text = GUI.lineEdit_delay_between_emails.text().strip()
+
+            if "-" not in num_per_addr_text or "-" not in delay_text:
+                alert(
+                    text="Please set 'Emails per address' and 'Delay between emails' "
+                         "in the Campaign tab first (e.g. 5-10).",
+                    title="Campaign Scheduler", button="OK",
+                )
+                return
+
+            group_a_selected = GUI.radioButton_campaign_group_a.isChecked()
+            group = var.group_a if group_a_selected else var.group_b
+
+            if group.empty:
+                alert(
+                    text="No email accounts loaded in the selected group. "
+                         "Please add accounts in the Campaign tab first.",
+                    title="Campaign Scheduler", button="OK",
+                )
+                return
+
+            if var.target.empty:
+                alert(
+                    text="No target database loaded. "
+                         "Please load targets in the Database tab first.",
+                    title="Campaign Scheduler", button="OK",
+                )
+                return
+
+            var.num_emails_per_address = num_per_addr_text
             num_emails_per_address_range = {
                 "start": int(var.num_emails_per_address.split("-")[0].strip()),
                 "end": int(var.num_emails_per_address.split("-")[1].strip()),
             }
-            var.delay_between_emails = GUI.lineEdit_delay_between_emails.text()
+            var.delay_between_emails = delay_text
             delay_start = int(var.delay_between_emails.split("-")[0].strip())
             delay_end = int(var.delay_between_emails.split("-")[1].strip())
             len_group = len(group)
@@ -1244,14 +1311,29 @@ class MyMainClass:
             maximum_duration = maximum_duration / 3600
             scheduled_time = GUI.dateTimeEdit_campaign_scheduler.dateTime().toPyDateTime()
 
-            result = confirm(f"This campaign is going to take approximately "
-                             f"{maximum_duration:.4f} hours to complete AT MAX.\n"
-                             f"And this campaign will be scheduled at "
-                             f"{scheduled_time.strftime('%m/%d/%Y, %H:%M:%S')}. "
-                             f"\nAre you sure?",
-                             title="Campaign Scheduler", buttons=['OK', 'Cancel'])
+            if scheduled_time <= datetime.now():
+                alert(
+                    text="Scheduled time must be in the future. "
+                         "Please select a future date and time.",
+                    title="Campaign Scheduler", button="OK",
+                )
+                return
 
-            if result == 'OK':
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Question)
+            msg.setWindowTitle("Campaign Scheduler")
+            msg.setText(
+                f"This campaign is going to take approximately "
+                f"{maximum_duration:.4f} hours to complete AT MAX.\n"
+                f"And this campaign will be scheduled at "
+                f"{scheduled_time.strftime('%m/%d/%Y, %H:%M:%S')}.\n"
+                f"Are you sure?"
+            )
+            ok_btn = msg.addButton("OK", QMessageBox.AcceptRole)
+            msg.addButton("Cancel", QMessageBox.RejectRole)
+            msg.exec_()
+
+            if msg.clickedButton() == ok_btn:
                 config_filename = str(uuid.uuid4()) + f"-{var.campaign_group}"
                 Thread(
                     target=update_config_json,
@@ -1274,6 +1356,10 @@ class MyMainClass:
             logger.error(
                 f"Error at {self.__class__.__name__}: {traceback.format_exc()}"
             )
+            alert(
+                text=f"Failed to schedule campaign: {e}",
+                title="Campaign Scheduler", button="OK",
+            )
 
     def set_campaign_config(self):
         GUI.lineEdit_num_per_address.setText(str(var.num_emails_per_address))
@@ -1283,20 +1369,40 @@ class MyMainClass:
 
     def remove_schedule_campaign(self, job_id):
         try:
+            if not job_id:
+                alert(text="No scheduled campaign selected.",
+                      title="Warning", button="OK")
+                return
             logger.info(f"Removing job {job_id} from list")
             var.scheduler.remove_job(job_id=job_id)
+            config_file = os.path.join(
+                var.campaign_scheduler_cache_path, f"{job_id}.json")
+            if os.path.exists(config_file):
+                os.remove(config_file)
+                logger.info(f"Removed config file: {config_file}")
             self.reset_schedule_campaign_job_list()
             logger.info(f"Removed successfully job {job_id} from list")
         except Exception as e:
             logger.error(f"Error at remove_schedule_campaign: {e}")
+            alert(text=f"Failed to remove scheduled campaign: {e}",
+                  title="Warning", button="OK")
 
     def reset_schedule_campaign_job_list(self):
-        var.command_q.put("GUI.comboBox_scheduled_campaign_list.clear()")
-        for item in var.scheduler.get_jobs():
-            text = f"{item.next_run_time} - {item.id}"
-            var.command_q.put(
-                f"GUI.comboBox_scheduled_campaign_list.addItem('{text}', userData='{item.id}')"
-            )
+        jobs = var.scheduler.get_jobs()
+        logger.info(f"Refreshing job list: {len(jobs)} jobs found")
+        if threading.current_thread() is threading.main_thread():
+            GUI.comboBox_scheduled_campaign_list.clear()
+            for item in jobs:
+                text = f"{item.next_run_time} - {item.id}"
+                GUI.comboBox_scheduled_campaign_list.addItem(text, userData=item.id)
+                logger.info(f"Added job to combobox: {text}")
+        else:
+            var.command_q.put("GUI.comboBox_scheduled_campaign_list.clear()")
+            for item in var.scheduler.get_jobs():
+                text = f"{item.next_run_time} - {item.id}"
+                var.command_q.put(
+                    f"GUI.comboBox_scheduled_campaign_list.addItem('{text}', userData='{item.id}')"
+                )
 
     def run_scheduled_campaign(self, config_filename: str):
         try:
@@ -1316,11 +1422,18 @@ class MyMainClass:
                     ]
                     var.delay_between_emails = data["config"]["delay_between_emails"]
                     var.limit_of_thread = data["config"]["limit_of_thread"]
-                self.set_campaign_config()
+                var.command_q.put(
+                    f"GUI.lineEdit_num_per_address.setText('{var.num_emails_per_address}')")
+                var.command_q.put(
+                    f"GUI.lineEdit_delay_between_emails.setText('{var.delay_between_emails}')")
+                var.command_q.put(
+                    f"GUI.lineEdit_number_of_threads.setText('{var.limit_of_thread}')")
                 if campaign_group == "group_a":
-                    GUI.radioButton_campaign_group_a.setChecked(True)
+                    var.command_q.put(
+                        "GUI.radioButton_campaign_group_a.setChecked(True)")
                 else:
-                    GUI.radioButton_campaign_group_b.setChecked(True)
+                    var.command_q.put(
+                        "GUI.radioButton_campaign_group_b.setChecked(True)")
                 if var.AirtableConfig.continuous_loading:
                     pull_target_airtable = database.PullTargetAirtable()
                     pull_target_airtable.start()
@@ -1329,7 +1442,7 @@ class MyMainClass:
                 var.stop_send_campaign = False
                 var.thread_open_campaign = 0
                 var.send_campaign_email_count = 0
-                self.send_button_visibility(on=False)
+                var.command_q.put("GUI.pushButton_send.setEnabled(False)")
                 self.send_campaign()
             else:
                 logger.info(

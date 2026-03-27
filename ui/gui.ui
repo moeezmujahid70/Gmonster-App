@@ -7333,7 +7333,7 @@ QPushButton:pressed {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="43" column="4" colspan="2">
+                              <item row="44" column="4" colspan="2">
                                 <widget class="QPushButton" name="pushButton_schedule_campaign">
                                   <property name="minimumSize">
                                     <size>
@@ -7375,7 +7375,7 @@ QPushButton:pressed {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="44" column="4" colspan="2">
+                              <item row="45" column="4" colspan="2">
                                 <widget class="QComboBox" name="comboBox_scheduled_campaign_list">
                                   <property name="minimumSize">
                                     <size>
@@ -7444,7 +7444,7 @@ QPushButton:pressed {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="46" column="0" colspan="2">
+                              <item row="47" column="0" colspan="2">
                                 <spacer name="spacerItem84">
                                   <property name="orientation">
                                     <enum>Qt::Vertical</enum>
@@ -7457,7 +7457,7 @@ QPushButton:pressed {
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="44" column="2" colspan="2">
+                              <item row="45" column="2" colspan="2">
                                 <widget class="QLabel" name="label_63">
                                   <property name="minimumSize">
                                     <size>
@@ -7479,28 +7479,28 @@ QPushButton:pressed {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="47" column="2" colspan="2">
+                              <item row="48" column="2" colspan="2">
                                 <widget class="Line" name="line_30">
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
                                   </property>
                                 </widget>
                               </item>
-                              <item row="47" column="4" colspan="3">
+                              <item row="48" column="4" colspan="3">
                                 <widget class="Line" name="line_31">
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
                                   </property>
                                 </widget>
                               </item>
-                              <item row="47" column="7">
+                              <item row="48" column="7">
                                 <widget class="Line" name="line_32">
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
                                   </property>
                                 </widget>
                               </item>
-                              <item row="47" column="0" colspan="2">
+                              <item row="48" column="0" colspan="2">
                                 <widget class="Line" name="line_29">
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
@@ -7580,31 +7580,48 @@ QCheckBox:checked {
                                     </font>
                                   </property>
                                   <property name="styleSheet">
-                                    <string notr="true">QDateTimeEdit{
+                                    <string notr="true">QDateTimeEdit {
     font-size: 15px;
-color: #545454;
-background: #fff;
-    border: 1px solid;
-    border-color: #aaa;
+    color: #545454;
+    background: #fff;
+    border: 1px solid #aaa;
     border-radius: 5px;
     padding: 5px;
     min-height: 30px;
     max-height: 30px;
 }
-QDateTimeEdit::up-button {
-    width: 20px; /* Adjust button width */
+/* Calendar popup styling */
+QCalendarWidget QToolButton {
+    color: #ffffff;
+    background-color: #eff2f8;
+    border: none;
+    font-size: 14px;
 }
-QDateTimeEdit::down-button {
-    width: 20px;
+QCalendarWidget QToolButton:hover {
+    background-color: #eff2f8;
 }
-/* Optional: Adjust hover effect */
-QDateTimeEdit::up-button:hover, 
-QDateTimeEdit::down-button:hover {
-    background-color: #ddd; /* Light gray background on hover */
+QCalendarWidget QSpinBox {
+    width: 100px;
+    color: #888;
+    font-size: 14px;
+}
+QCalendarWidget QWidget {
+    background-color: #ffffff;
+}
+QCalendarWidget QAbstractItemView {
+    background-color: #ffffff;
+    selection-background-color: #0078D4;
+    selection-color: #ffffff;
 }</string>
                                   </property>
                                   <property name="buttonSymbols">
                                     <enum>QAbstractSpinBox::UpDownArrows</enum>
+                                  </property>
+                                  <property name="calendarPopup">
+                                    <bool>true</bool>
+                                  </property>
+                                  <property name="displayFormat">
+                                    <string>dd MM yyyy hh:mm AP</string>
                                   </property>
                                 </widget>
                               </item>
@@ -7667,7 +7684,7 @@ QCheckBox:checked {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="44" column="4" colspan="2">
+                              <item row="46" column="4" colspan="2">
                                 <widget class="QPushButton" name="pushButton_schedule_campaign_remove">
                                   <property name="minimumSize">
                                     <size>
@@ -8206,6 +8223,28 @@ QCheckBox:checked {
                                 <widget class="Line" name="line_80_sch">
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item row="43" column="2" colspan="2">
+                                <widget class="QLabel" name="label_schedule_datetime">
+                                  <property name="minimumSize">
+                                    <size>
+                                      <width>0</width>
+                                      <height>25</height>
+                                    </size>
+                                  </property>
+                                  <property name="font">
+                                    <font>
+                                      <family>Arial</family>
+                                      <pointsize>12</pointsize>
+                                    </font>
+                                  </property>
+                                  <property name="styleSheet">
+                                    <string notr="true">margin-left: 5px;</string>
+                                  </property>
+                                  <property name="text">
+                                    <string>Date &amp; Time</string>
                                   </property>
                                 </widget>
                               </item>

@@ -178,6 +178,10 @@ class AirtableConfig:
 
 
 wum_exe_path = 'WUM.exe' if os.name == 'nt' else 'WUM'
+gmaps_scraper_exe_path = 'google_maps_scraper.exe' if os.name == 'nt' else 'google_maps_scraper'
+gmaps_scraper_port = 8080
+gmaps_scraper_url = 'http://localhost:8080'
+gmaps_scraper_process = None
 CONFUSABLES_CHARACTER = ['\u2003', '\u2002', '\u2001', '\u2000']
 add_custom_hostname = False
 window_title = 'GMonster'

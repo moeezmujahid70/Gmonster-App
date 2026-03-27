@@ -3668,7 +3668,7 @@ class Ui_MainWindow(object):
 "    background: rgb(0, 138, 191);\n"
 "    }")
         self.pushButton_schedule_campaign.setObjectName("pushButton_schedule_campaign")
-        self.gridLayout_4.addWidget(self.pushButton_schedule_campaign, 43, 4, 1, 2)
+        self.gridLayout_4.addWidget(self.pushButton_schedule_campaign, 44, 4, 1, 2)
         self.comboBox_scheduled_campaign_list = QtWidgets.QComboBox(self.groupBox_10)
         self.comboBox_scheduled_campaign_list.setMinimumSize(QtCore.QSize(0, 42))
         self.comboBox_scheduled_campaign_list.setMaximumSize(QtCore.QSize(16777215, 42))
@@ -3682,7 +3682,7 @@ class Ui_MainWindow(object):
 "    min-height: 30px;\n"
 "    max-height: 30px;")
         self.comboBox_scheduled_campaign_list.setObjectName("comboBox_scheduled_campaign_list")
-        self.gridLayout_4.addWidget(self.comboBox_scheduled_campaign_list, 44, 4, 1, 2)
+        self.gridLayout_4.addWidget(self.comboBox_scheduled_campaign_list, 45, 4, 1, 2)
         self.pushButton_database_load_target_from_airtable = QtWidgets.QPushButton(self.groupBox_10)
         self.pushButton_database_load_target_from_airtable.setMinimumSize(QtCore.QSize(290, 40))
         self.pushButton_database_load_target_from_airtable.setMaximumSize(QtCore.QSize(290, 16777215))
@@ -3708,7 +3708,7 @@ class Ui_MainWindow(object):
         self.pushButton_database_load_target_from_airtable.setObjectName("pushButton_database_load_target_from_airtable")
         self.gridLayout_4.addWidget(self.pushButton_database_load_target_from_airtable, 40, 4, 1, 2)
         spacerItem84 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.gridLayout_4.addItem(spacerItem84, 46, 0, 1, 2)
+        self.gridLayout_4.addItem(spacerItem84, 47, 0, 1, 2)
         self.label_63 = QtWidgets.QLabel(self.groupBox_10)
         self.label_63.setMinimumSize(QtCore.QSize(0, 25))
         font = QtGui.QFont()
@@ -3717,27 +3717,27 @@ class Ui_MainWindow(object):
         self.label_63.setFont(font)
         self.label_63.setStyleSheet("margin-left: 5px;")
         self.label_63.setObjectName("label_63")
-        self.gridLayout_4.addWidget(self.label_63, 44, 2, 1, 2)
+        self.gridLayout_4.addWidget(self.label_63, 45, 2, 1, 2)
         self.line_30 = QtWidgets.QFrame(self.groupBox_10)
         self.line_30.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_30.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_30.setObjectName("line_30")
-        self.gridLayout_4.addWidget(self.line_30, 47, 2, 1, 2)
+        self.gridLayout_4.addWidget(self.line_30, 48, 2, 1, 2)
         self.line_31 = QtWidgets.QFrame(self.groupBox_10)
         self.line_31.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_31.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_31.setObjectName("line_31")
-        self.gridLayout_4.addWidget(self.line_31, 47, 4, 1, 3)
+        self.gridLayout_4.addWidget(self.line_31, 48, 4, 1, 3)
         self.line_32 = QtWidgets.QFrame(self.groupBox_10)
         self.line_32.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_32.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_32.setObjectName("line_32")
-        self.gridLayout_4.addWidget(self.line_32, 47, 7, 1, 1)
+        self.gridLayout_4.addWidget(self.line_32, 48, 7, 1, 1)
         self.line_29 = QtWidgets.QFrame(self.groupBox_10)
         self.line_29.setFrameShape(QtWidgets.QFrame.HLine)
         self.line_29.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_29.setObjectName("line_29")
-        self.gridLayout_4.addWidget(self.line_29, 47, 0, 1, 2)
+        self.gridLayout_4.addWidget(self.line_29, 48, 0, 1, 2)
         self.label_62 = QtWidgets.QLabel(self.groupBox_10)
         self.label_62.setMinimumSize(QtCore.QSize(0, 25))
         font = QtGui.QFont()
@@ -3781,29 +3781,41 @@ class Ui_MainWindow(object):
         font = QtGui.QFont()
         font.setPointSize(-1)
         self.dateTimeEdit_campaign_scheduler.setFont(font)
-        self.dateTimeEdit_campaign_scheduler.setStyleSheet("QDateTimeEdit{\n"
+        self.dateTimeEdit_campaign_scheduler.setStyleSheet("QDateTimeEdit {\n"
 "    font-size: 15px;\n"
-"color: #545454;\n"
-"background: #fff;\n"
-"    border: 1px solid;\n"
-"    border-color: #aaa;\n"
+"    color: #545454;\n"
+"    background: #fff;\n"
+"    border: 1px solid #aaa;\n"
 "    border-radius: 5px;\n"
 "    padding: 5px;\n"
 "    min-height: 30px;\n"
 "    max-height: 30px;\n"
 "}\n"
-"QDateTimeEdit::up-button {\n"
-"    width: 20px; /* Adjust button width */\n"
+"/* Calendar popup styling */\n"
+"QCalendarWidget QToolButton {\n"
+"    color: #ffffff;\n"
+"    background-color: #eff2f8;\n"
+"    border: none;\n"
+"    font-size: 14px;\n"
 "}\n"
-"QDateTimeEdit::down-button {\n"
-"    width: 20px;\n"
+"QCalendarWidget QToolButton:hover {\n"
+"    background-color: #eff2f8;\n"
 "}\n"
-"/* Optional: Adjust hover effect */\n"
-"QDateTimeEdit::up-button:hover, \n"
-"QDateTimeEdit::down-button:hover {\n"
-"    background-color: #ddd; /* Light gray background on hover */\n"
+"QCalendarWidget QSpinBox {\n"
+"    width: 100px;\n"
+"    color: #888;\n"
+"    font-size: 14px;\n"
+"}\n"
+"QCalendarWidget QWidget {\n"
+"    background-color: #ffffff;\n"
+"}\n"
+"QCalendarWidget QAbstractItemView {\n"
+"    background-color: #ffffff;\n"
+"    selection-background-color: #0078D4;\n"
+"    selection-color: #ffffff;\n"
 "}")
         self.dateTimeEdit_campaign_scheduler.setButtonSymbols(QtWidgets.QAbstractSpinBox.UpDownArrows)
+        self.dateTimeEdit_campaign_scheduler.setCalendarPopup(True)
         self.dateTimeEdit_campaign_scheduler.setObjectName("dateTimeEdit_campaign_scheduler")
         self.gridLayout_4.addWidget(self.dateTimeEdit_campaign_scheduler, 43, 4, 1, 2)
         self.checkBox_continuous_loading_airtable = QtWidgets.QCheckBox(self.groupBox_10)
@@ -3865,7 +3877,7 @@ class Ui_MainWindow(object):
 "    background: rgb(0, 138, 191);\n"
 "    }")
         self.pushButton_schedule_campaign_remove.setObjectName("pushButton_schedule_campaign_remove")
-        self.gridLayout_4.addWidget(self.pushButton_schedule_campaign_remove, 44, 4, 1, 2)
+        self.gridLayout_4.addWidget(self.pushButton_schedule_campaign_remove, 46, 4, 1, 2)
         self.checkBox_airtable_use_desktop_id = QtWidgets.QCheckBox(self.groupBox_10)
         self.checkBox_airtable_use_desktop_id.setMinimumSize(QtCore.QSize(0, 25))
         font = QtGui.QFont()
@@ -4122,6 +4134,15 @@ class Ui_MainWindow(object):
         self.line_80_sch.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_80_sch.setObjectName("line_80_sch")
         self.gridLayout_4.addWidget(self.line_80_sch, 41, 7, 1, 1)
+        self.label_schedule_datetime = QtWidgets.QLabel(self.groupBox_10)
+        self.label_schedule_datetime.setMinimumSize(QtCore.QSize(0, 25))
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(12)
+        self.label_schedule_datetime.setFont(font)
+        self.label_schedule_datetime.setStyleSheet("margin-left: 5px;")
+        self.label_schedule_datetime.setObjectName("label_schedule_datetime")
+        self.gridLayout_4.addWidget(self.label_schedule_datetime, 43, 2, 1, 2)
         self.label_campaign_scheduler_title = QtWidgets.QLabel(self.groupBox_10)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -4696,6 +4717,7 @@ class Ui_MainWindow(object):
         self.label_63.setText(_translate("MainWindow", "Scheduled campaign"))
         self.label_62.setText(_translate("MainWindow", "Table name"))
         self.checkBox_mark_sent_airtable.setText(_translate("MainWindow", "Mark sent Airtable"))
+        self.dateTimeEdit_campaign_scheduler.setDisplayFormat(_translate("MainWindow", "dd MM yyyy hh:mm AP"))
         self.checkBox_continuous_loading_airtable.setText(_translate("MainWindow", "Continuous loading"))
         self.pushButton_schedule_campaign_remove.setText(_translate("MainWindow", "Remove"))
         self.checkBox_airtable_use_desktop_id.setText(_translate("MainWindow", "Use desktop ID"))
@@ -4707,6 +4729,7 @@ class Ui_MainWindow(object):
         self.label_22.setText(_translate("MainWindow", "OpenAI key"))
         self.checkBox_proxy_enabled.setText(_translate("MainWindow", "Proxy enabled"))
         self.checkBox_hide_warmup_emails.setText(_translate("MainWindow", "Hide warm up emails"))
+        self.label_schedule_datetime.setText(_translate("MainWindow", "Date & Time"))
         self.label_campaign_scheduler_title.setText(_translate("MainWindow", "Campaign Scheduler"))
         self.label_account_title.setText(_translate("MainWindow", "Account"))
         self.pushButton_account_refresh.setText(_translate("MainWindow", "🔄  Refresh"))
