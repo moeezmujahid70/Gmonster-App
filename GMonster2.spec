@@ -5,6 +5,9 @@ import os
 cwd = os.getcwd()
 
 icons_path = os.path.join(cwd, 'icons')
+gmaps_scraper_assets_path = os.path.join(
+    cwd, 'data', 'tools', 'google_maps_scraper'
+)
 
 datas = []
 datas += copy_metadata('apscheduler', recursive=True)
@@ -28,6 +31,11 @@ a = Analysis(['var.py'],
              noarchive=False)
 
 a.datas += Tree(icons_path, prefix='icons\\')
+if os.path.isdir(gmaps_scraper_assets_path):
+    a.datas += Tree(
+        gmaps_scraper_assets_path,
+        prefix='data\\tools\\google_maps_scraper'
+    )
 
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
