@@ -6,6 +6,9 @@ _spec_file = globals().get('__file__')
 spec_dir = os.path.abspath(os.path.dirname(_spec_file)) if _spec_file else os.path.abspath(os.getcwd())
 
 icons_path = os.path.join(spec_dir, 'icons')
+gmaps_scraper_assets_path = os.path.join(
+    spec_dir, 'data', 'tools', 'google_maps_scraper'
+)
 
 
 def _safe_copy_metadata(package_name, recursive=False):
@@ -45,6 +48,11 @@ a = Analysis(['var.py'],
 
 if os.path.isdir(icons_path):
     a.datas += Tree(icons_path, prefix='icons')
+if os.path.isdir(gmaps_scraper_assets_path):
+    a.datas += Tree(
+        gmaps_scraper_assets_path,
+        prefix='data/tools/google_maps_scraper'
+    )
 
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)

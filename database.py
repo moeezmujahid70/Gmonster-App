@@ -1,7 +1,19 @@
 global logger
-import logging
-import threading
-from sqlalchemy.ext.declarative import declarative_base
+import re
+from var import logger
+import queue
+import traceback
+import datetime
+import os
+from pyairtable.formulas import match
+from pyairtable import Table
+from compat_ui import alert
+import pandas as pd
+import main
+import var
+import json
+import requests
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy import (
     create_engine,
     MetaData,
@@ -18,21 +30,10 @@ from sqlalchemy import (
     inspect,
 
 )
-from sqlalchemy.orm import sessionmaker
-import requests
-import json
-import var
-import main
-import pandas as pd
-from compat_ui import alert
-from pyairtable import Table
-from pyairtable.formulas import match
-import os
-import datetime
-import traceback
-import queue
-from var import logger
-import re
+from sqlalchemy.ext.declarative import declarative_base
+import threading
+import logging
+
 
 
 db_path = var.group_db_path
@@ -594,6 +595,9 @@ def file_to_db():
             else:
                 raise Exception("Group A file not found.")
         else:
+            # Group A unchecked — clear it so it doesn't occupy account limit slots
+            clear_table(group_a=True)
+            dummy_data_db(group_a=True, group_b=False, target=False)
             print("skipping Group A")
     except Exception as e:
         logger.error(f"Error while loading Group A: {e}")
@@ -659,6 +663,9 @@ def file_to_db():
             else:
                 raise Exception("Group B file not found.")
         else:
+            # Group B unchecked — clear it so it doesn't occupy account limit slots
+            clear_table(group_b=True)
+            dummy_data_db(group_a=False, group_b=True, target=False)
             print("skipping Group B")
     except Exception as e:
         logger.error(f"Error while loading Group B: {e}")

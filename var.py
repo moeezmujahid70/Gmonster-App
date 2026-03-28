@@ -178,7 +178,17 @@ class AirtableConfig:
 
 
 wum_exe_path = 'WUM.exe' if os.name == 'nt' else 'WUM'
-gmaps_scraper_exe_path = 'google_maps_scraper.exe' if os.name == 'nt' else 'google_maps_scraper'
+gmaps_scraper_base_path = os.path.join('data', 'tools', 'google_maps_scraper')
+gmaps_scraper_exe_path = (
+    os.path.join(gmaps_scraper_base_path, 'windows', 'google_maps_scraper.exe')
+    if os.name == 'nt'
+    else os.path.join(gmaps_scraper_base_path, 'macos', 'google_maps_scraper')
+)
+gmaps_scraper_mac_app_path = os.path.join(
+    gmaps_scraper_base_path,
+    'macos',
+    'google_maps_scraper.app'
+)
 gmaps_scraper_port = 8080
 gmaps_scraper_url = 'http://localhost:8080'
 gmaps_scraper_process = None

@@ -1190,7 +1190,8 @@ class MyMainClass:
             return
 
         if sys.platform == "darwin":
-            mac_path = os.path.join(os.getcwd(), "google_maps_scraper.app")
+            mac_path = os.path.join(
+                os.getcwd(), var.gmaps_scraper_mac_app_path)
             if os.path.exists(mac_path):
                 var.gmaps_scraper_process = subprocess.Popen(
                     ["open", mac_path])
@@ -1198,7 +1199,7 @@ class MyMainClass:
                 return
 
         alert(text="Google Maps Scraper executable not found.\n"
-                   "Please place the binary in the application directory.",
+                   "Please place the binary under data/tools/google_maps_scraper.",
               title="Warning", button="OK")
 
     def update_auto_fire_responses_webhook_interval(self, data):
@@ -1394,7 +1395,8 @@ class MyMainClass:
             GUI.comboBox_scheduled_campaign_list.clear()
             for item in jobs:
                 text = f"{item.next_run_time} - {item.id}"
-                GUI.comboBox_scheduled_campaign_list.addItem(text, userData=item.id)
+                GUI.comboBox_scheduled_campaign_list.addItem(
+                    text, userData=item.id)
                 logger.info(f"Added job to combobox: {text}")
         else:
             var.command_q.put("GUI.comboBox_scheduled_campaign_list.clear()")
