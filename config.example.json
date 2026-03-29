@@ -1,0 +1,245 @@
+{
+    "config": {
+        "mail_server": {
+            "gmail": {
+                "imap": {
+                    "server": "imap.gmail.com",
+                    "port": 993
+                },
+                "smtp": {
+                    "server": "smtp.gmail.com",
+                    "port": 587,
+                    "require_ssl": false
+                }
+            },
+            "outlook": {
+                "imap": {
+                    "server": "outlook.office365.com",
+                    "port": 993
+                },
+                "smtp": {
+                    "server": "smtp.office365.com",
+                    "port": 587,
+                    "require_ssl": false
+                }
+            },
+            "memeglasses": {
+                "imap": {
+                    "server": "imap.gmail.com",
+                    "port": 993
+                },
+                "smtp": {
+                    "server": "smtp.gmail.com",
+                    "port": 587,
+                    "require_ssl": false
+                }
+            },
+            "blog.memeglasses": {
+                "imap": {
+                    "server": "imap.gmail.com",
+                    "port": 993
+                },
+                "smtp": {
+                    "server": "smtp.gmail.com",
+                    "port": 587,
+                    "require_ssl": false
+                }
+            },
+            "blog.callspark": {
+                "imap": {
+                    "server": "imap.gmail.com",
+                    "port": 993
+                },
+                "smtp": {
+                    "server": "smtp.gmail.com",
+                    "port": 587,
+                    "require_ssl": false
+                }
+            },
+            "gmx": {
+                "imap": {
+                    "server": "imap.gmx.com",
+                    "port": 993
+                },
+                "smtp": {
+                    "server": "mail.gmx.com",
+                    "port": 587,
+                    "require_ssl": false
+                }
+            },
+            "yandex": {
+                "imap": {
+                    "server": "imap.yandex.com",
+                    "port": 993
+                },
+                "smtp": {
+                    "server": "smtp.yandex.com",
+                    "port": 587,
+                    "require_ssl": false
+                }
+            },
+            "zoho": {
+                "imap": {
+                    "server": "imap.zoho.com",
+                    "port": 993
+                },
+                "smtp": {
+                    "server": "smtp.zoho.com",
+                    "port": 587,
+                    "require_ssl": false
+                }
+            },
+            "mail": {
+                "imap": {
+                    "server": "imap.mail.ru",
+                    "port": 993
+                },
+                "smtp": {
+                    "server": "smtp.mail.ru",
+                    "port": 587,
+                    "require_ssl": false
+                }
+            },
+            "yahoo": {
+                "imap": {
+                    "server": "imap.mail.yahoo.com",
+                    "port": 993
+                },
+                "smtp": {
+                    "server": "smtp.mail.yahoo.com",
+                    "port": 587,
+                    "require_ssl": false
+                }
+            },
+            "aol": {
+                "imap": {
+                    "server": "imap.aol.com",
+                    "port": 993
+                },
+                "smtp": {
+                    "server": "smtp.aol.com",
+                    "port": 587,
+                    "require_ssl": false
+                }
+            },
+            "fastmail": {
+                "imap": {
+                    "server": "imap.fastmail.com",
+                    "port": 993
+                },
+                "smtp": {
+                    "server": "smtp.fastmail.com",
+                    "port": 587,
+                    "require_ssl": false
+                }
+            },
+            "runbox": {
+                "imap": {
+                    "server": "mail.runbox.com",
+                    "port": 993
+                },
+                "smtp": {
+                    "server": "mail.runbox.com",
+                    "port": 587,
+                    "require_ssl": false
+                }
+            },
+            "migadu": {
+                "imap": {
+                    "server": "imap.migadu.com",
+                    "port": 993
+                },
+                "smtp": {
+                    "server": "smtp.migadu.com",
+                    "port": 587,
+                    "require_ssl": false
+                }
+            },
+            "posteo": {
+                "imap": {
+                    "server": "posteo.de",
+                    "port": 993
+                },
+                "smtp": {
+                    "server": "posteo.de",
+                    "port": 587,
+                    "require_ssl": false
+                }
+            },
+            "icloud": {
+                "imap": {
+                    "server": "imap.mail.me.com",
+                    "port": 993
+                },
+                "smtp": {
+                    "server": "smtp.mail.me.com",
+                    "port": 587,
+                    "require_ssl": false
+                }
+            }
+        },
+        "date": "3/29/2025",
+        "num_emails_per_address": "1 - 2",
+        "delay_between_emails": "5 - 6",
+        "limit_of_thread": 300,
+        "compose_email_subject": "{Small|Simple|Quick|Minor|One small} {change|tweak|shift|update|adjustment}, {big|major|powerful|huge|lasting} {results|impact|difference|boost} for [1]",
+        "compose_email_body": "Sure! Here are a few AI-themed jokes for you:\n\n1. Why did the robot go on a diet?\n   Because it had too many bytes!\n\n2. How do you make an AI laugh?\n   Just tell it a really good pun\u2014it loves a good \"data punchline!\"\n\n3. Why did the AI break up with its human girlfriend?\n   It found her too irrational and needed a more \"logical\" connection!\n\n4. Why don't AIs ever get lost?\n   Because they always have good \"algorithms\" for direction!\n\n5. Why did the AI start a gardening business?\n   Because it wanted to \"grow\" its neural network! \n\nHope these brought a smile to your face!",
+        "compose_email_body_html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Email Template</title>\n    <style>\n        body {\n            font-family: Arial, sans-serif;\n            line-height: 1.6;\n            color: #333;\n            margin: 0;\n            padding: 0;\n            background-color: #f4f4f9;\n        }\n        .email-container {\n            max-width: 600px;\n            margin: 100px auto;\n            background: #ffffff;\n            border-radius: 8px;\n            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);\n            overflow: hidden;\n        }\n        .header {\n            background-color: #4CAF50;\n            color: #ffffff;\n            padding: 20px;\n            text-align: center;\n            font-size: 1.5em;\n            font-weight: bold;\n        }\n        .content {\n            padding: 20px;\n        }\n        .content p {\n            margin: 15px 0;\n        }\n        .cta-button {\n            display: inline-block;\n            background-color: #4CAF50;\n            color: #ffffff;\n            text-decoration: none;\n            padding: 10px 20px;\n            border-radius: 5px;\n            font-weight: bold;\n            text-align: center;\n            margin-top: 20px;\n            display: block;\n            width: fit-content;\n            margin-left: auto;\n            margin-right: auto;\n        }\n        .footer {\n            background-color: #f4f4f9;\n            text-align: center;\n            padding: 10px;\n            font-size: 0.9em;\n            color: #666;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"email-container\">\n        <div class=\"header\">\n  \t    This is new test.\n        </div>\n        <div class=\"content\">\n            <a href=\"[3]\" class=\"cta-button\">Check Here</a>\n        </div>\n    </div>\n</body>\n</html>",
+        "compose_prompt": "shoot me some AI humour",
+        "login_email": "",
+        "tracking": {
+            "analytics_account": "",
+            "campaign_name": "email_campaign_A",
+            "domain_name": "https://example.com",
+            "api_key": ""
+        },
+        "webhook_link": "",
+        "check_for_blocks": true,
+        "remove_email_from_target": true,
+        "enable_webhook": false,
+        "enable_email_tracking": false,
+        "custom_hostname": true,
+        "campaign_group": "group_a",
+        "body_type": "Normal",
+        "target_blacklist": [],
+        "inbox_blacklist": [
+            "Something",
+            "Delivery"
+        ],
+        "inbox_whitelist": [],
+        "responses_webhook_enabled": false,
+        "auto_fire_responses_webhook": false,
+        "auto_fire_responses_webhook_interval": 6,
+        "followup_enabled": false,
+        "followup_days": 2.0,
+        "followup_subject": "Follow Up",
+        "followup_body": "<html>\n    <body>\n        <p>{Hey|Hi|Hello} [TONAME|Something],<br>\n        I'm reaching out to you because i {noticed|came across|found|visited} you website {the other day|yesterday} and thought you'd be interested in a {collaboration|partnership}.<br>\n        {Hope you don't mind my outreach!|Looking forward to your reply!}<br>\n        </p>\n    </body>\n</html>\n",
+        "autoReply_body": "{Hey|Hi|Hello} [TONAME|Something],\nI'm reaching out to you because i {noticed|came across|found|visited} you website {the other day|yesterday} and thought you'd be interested in a {collaboration|partnership}.\n{Hope you don't mind my outreach!|Looking forward to your reply!}\n",
+        "autoReply_prompt": "Here goes the prompt\n",
+        "autoReply_canned_switch": false,
+        "autoReply_intervals": 0.2,
+        "autoReply_switch": true,
+        "autoReply_enabled": false,
+        "autoReply_positive_last_date": "2025-03-20 12:51",
+        "autoReply_all_last_date": "2025-03-20 12:40",
+        "hostname_list": [
+            "mac",
+            "pc",
+            "desktop"
+        ],
+        "inbox_whitelist_checkbox": false,
+        "space_encoding_checkbox": false,
+        "test_email": "validate+RhBdhQb8Uz@verify.unspam.email",
+        "open_ai_key": "",
+        "airtable": {
+            "api_key": "",
+            "base_id": "",
+            "table_name": "",
+            "use_desktop_id": false,
+            "mark_sent_airtable": false,
+            "continuous_loading": false,
+            "continuous_loading_time_period": 24
+        },
+        "proxy_on": true
+    }
+}

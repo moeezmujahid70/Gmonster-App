@@ -153,6 +153,32 @@ genv/
 *.log
 Gmonster.app/
 
+# local environment and secret variants
+.env.*
+!.env.example
+!.env.template
+.envrc
+.direnv/
+*.local
+*.secret
+
+# local machine/runtime state
+*.pid
+*.lock
+*.sqlite
+*.sqlite3
+*.db
+*.bak
+*.tmp
+
+# local app config/state files (do not commit personal settings/ids)
+config.local.json
+config.*.local.json
+config.json
+data/gmonster_config/gmonster_id
+data/gmonster_config/jobs.sqlite
+data/gmonster_config/jobs.sqlite.*
+
 # macOS temp/system files
 .DS_Store
 .DS_Store?
@@ -165,3 +191,7 @@ Gmonster.app/
 .LSOverride
 Icon?
 .agent
+
+# windows metadata and local sensitive docs
+desktop.ini
+Gmonster SSH Access.xlsx
