@@ -1178,20 +1178,43 @@ class MyMainClass:
             webbrowser.open(var.gmaps_scraper_url)
             return
 
-        scraper_path = os.path.join(os.getcwd(), var.gmaps_scraper_exe_path)
-        data_dir = os.path.join(os.getcwd(), 'data', 'gmaps')
+        def _resolve_existing_path(relative_path):
+            candidates = []
+
+            # PyInstaller onefile runtime extraction directory
+            if hasattr(sys, "_MEIPASS"):
+                candidates.append(os.path.join(sys._MEIPASS, relative_path))
+
+            # Folder containing packaged executable
+            if getattr(sys, "frozen", False):
+                candidates.append(
+                    os.path.join(os.path.dirname(
+                        sys.executable), relative_path)
+                )
+
+            # Source run and fallback to current working directory
+            candidates.append(os.path.join(os.path.dirname(
+                os.path.abspath(__file__)), relative_path))
+            candidates.append(os.path.join(os.getcwd(), relative_path))
+
+            for path in candidates:
+                if os.path.exists(path):
+                    return path
+            return candidates[0] if candidates else relative_path
+
+        scraper_path = _resolve_existing_path(var.gmaps_scraper_exe_path)
+        data_dir = os.path.join(var.DATA_DIR, 'gmaps')
         os.makedirs(data_dir, exist_ok=True)
 
         if os.path.exists(scraper_path):
             var.gmaps_scraper_process = subprocess.Popen(
-                [scraper_path, '-data-folder', data_dir]
+                [scraper_path, '-web', '-c', '1', '-data-folder', data_dir]
             )
             webbrowser.open(var.gmaps_scraper_url)
             return
 
         if sys.platform == "darwin":
-            mac_path = os.path.join(
-                os.getcwd(), var.gmaps_scraper_mac_app_path)
+            mac_path = _resolve_existing_path(var.gmaps_scraper_mac_app_path)
             if os.path.exists(mac_path):
                 var.gmaps_scraper_process = subprocess.Popen(
                     ["open", mac_path])
