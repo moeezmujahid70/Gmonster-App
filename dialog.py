@@ -196,7 +196,7 @@ class Sign_in(si.Ui_Dialog):
 
     def validate(self):
         email = var.login_email = self.lineEdit_email.text().strip()
-        password = self.lineEdit_password.text()
+        password = var.login_password = self.lineEdit_password.text()
         Thread(target=utils.update_config_json, daemon=True).start()
         self.label_status.setText("connecting main server...")
         Thread(
@@ -219,6 +219,9 @@ def make_sign_up_requests(email, password, endpoint):
         status = "Internal error"
         machine_uuid, processor_id = get_system_identifiers()
         print(machine_uuid, processor_id)
+        if endpoint == "login":
+            var.login_machine_uuid = machine_uuid
+            var.login_processor_id = processor_id
         url = var.api + "verify/" + endpoint
         myobj = {
             "machine_uuid": machine_uuid,
