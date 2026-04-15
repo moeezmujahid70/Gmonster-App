@@ -241,6 +241,9 @@ delay_between_emails = ''
 inbox_group = 0
 limit_of_thread = 100
 login_email = ''
+login_password = ''
+login_machine_uuid = ''
+login_processor_id = ''
 tracking = {}
 webhook_link = ''
 api = 'https://enzim.pythonanywhere.com/'
@@ -276,7 +279,7 @@ test_email = ''
 cc_emails = ''
 cc_emails_enabled = False
 open_ai_key = ''
-open_ai_model = 'gpt-5-mini'
+open_ai_model = 'gpt-5-nano'
 total_email_to_be_sent = 0
 try:
     if os.path.exists(id_file_path):

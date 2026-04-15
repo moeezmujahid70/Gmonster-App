@@ -516,7 +516,27 @@ def _fetch_accounts_limit():
     return 20
 
 
-def file_to_db():
+def get_sheet_counts() -> dict:
+    """Return {'group_a': int, 'group_b': int} valid row counts from xlsx sheets.
+    Filters to rows with a non-empty PROXY:PORT column (same as real import)."""
+    counts = {"group_a": 0, "group_b": 0}
+    group_header = ["FIRSTFROMNAME", "LASTFROMNAME", "EMAIL", "EMAIL_PASS", "PROXY:PORT", "PROXY_USER", "PROXY_PASS"]
+    for key, fname, sheet in [("group_a", "group_a.xlsx", "group_a"), ("group_b", "group_b.xlsx", "group_b")]:
+        try:
+            path = os.path.join(var.DATA_SHEETS_DIR, fname)
+            if os.path.exists(path):
+                df = pd.read_excel(path, engine="openpyxl", sheet_name=sheet)
+                df = df[group_header]
+                df.fillna(" ", inplace=True)
+                df = df.astype(str)
+                df = df.loc[df["PROXY:PORT"] != " "]
+                counts[key] = len(df)
+        except Exception as e:
+            logger.warning(f"Could not count {fname}: {e}")
+    return counts
+
+
+def file_to_db(a_limit: int = 0, b_limit: int = 0):
     session = get_session()
     logger.info(f"File loading Config: {var.db_file_loading_config}")
     group_header = [
@@ -530,9 +550,6 @@ def file_to_db():
     ]
     target_header = ["1", "2", "3", "4", "5", "6", "TONAME", "EMAIL", "STATUS"]
 
-    # Fetch the accounts limit from the subscription API
-    accounts_limit = _fetch_accounts_limit()
-    total_loaded = 0  # track accounts loaded across both groups
     limit_messages = []  # collect truncation messages
 
     try:
@@ -551,17 +568,16 @@ def file_to_db():
                     group_a = group_a.astype(str)
                     group_a = group_a.loc[group_a["PROXY:PORT"] != " "]
                     if len(group_a) > 0:
-                        # Enforce accounts limit
                         original_count_a = len(group_a)
-                        if accounts_limit is not None:
-                            remaining_slots = max(
-                                0, accounts_limit - total_loaded)
-                            if original_count_a > remaining_slots:
-                                group_a = group_a.head(remaining_slots)
-                                limit_messages.append(
-                                    f"Group A: {original_count_a} accounts found, "
-                                    f"but only {remaining_slots} loaded due to your account limit of {accounts_limit}."
-                                )
+                        if original_count_a > a_limit:
+                            group_a = group_a.head(a_limit)
+                            limit_messages.append(
+                                f"Group A: {a_limit} loaded ({original_count_a} available in sheet)"
+                            )
+                        else:
+                            limit_messages.append(
+                                f"Group A: {original_count_a} loaded"
+                            )
                         objects = [
                             Group_A(
                                 FIRSTFROMNAME=row["FIRSTFROMNAME"],
@@ -574,7 +590,6 @@ def file_to_db():
                             )
                             for index, row in group_a.iterrows()
                         ]
-                        total_loaded += len(objects)
                         update_mail_server_config(objects)
                         session.add_all(objects)
                     else:
@@ -619,17 +634,16 @@ def file_to_db():
                     group_b = group_b.astype(str)
                     group_b = group_b.loc[group_b["PROXY:PORT"] != " "]
                     if len(group_b) > 0:
-                        # Enforce accounts limit
                         original_count_b = len(group_b)
-                        if accounts_limit is not None:
-                            remaining_slots = max(
-                                0, accounts_limit - total_loaded)
-                            if original_count_b > remaining_slots:
-                                group_b = group_b.head(remaining_slots)
-                                limit_messages.append(
-                                    f"Group B: {original_count_b} accounts found, "
-                                    f"but only {remaining_slots} loaded due to your account limit of {accounts_limit}."
-                                )
+                        if original_count_b > b_limit:
+                            group_b = group_b.head(b_limit)
+                            limit_messages.append(
+                                f"Group B: {b_limit} loaded ({original_count_b} available in sheet)"
+                            )
+                        else:
+                            limit_messages.append(
+                                f"Group B: {original_count_b} loaded"
+                            )
                         objects = [
                             Group_B(
                                 FIRSTFROMNAME=row["FIRSTFROMNAME"],
@@ -642,7 +656,6 @@ def file_to_db():
                             )
                             for index, row in group_b.iterrows()
                         ]
-                        total_loaded += len(objects)
                         update_mail_server_config(objects)
                         session.add_all(objects)
                     else:
@@ -947,22 +960,19 @@ def clear_table(group_a=None, group_b=None, target=None):
         logger.error(f"Error at clear DB table - {e}")
 
 
-def load_db():
+def load_db(a_limit: int = 0, b_limit: int = 0):
     try:
-        result, error, limit_messages = file_to_db()
+        result, error, limit_messages = file_to_db(a_limit=a_limit, b_limit=b_limit)
         db_to_pandas(group_a=True, group_b=True, target=True)
         var.command_q.put("self.update_db_table()")
         if result:
             if limit_messages:
-                msg = "Database loaded with account limit restrictions:\\n\\n" + \
-                    "\\n".join(limit_messages)
-                var.command_q.put(
-                    f'alert(text="{msg}", title="Account Limit", button="OK")'
-                )
+                msg = "Import complete:\\n\\n" + "\\n".join(limit_messages)
             else:
-                var.command_q.put(
-                    'alert(text="Database Loaded Successfully", title="Alert", button="OK")'
-                )
+                msg = "Database loaded successfully."
+            var.command_q.put(
+                f'alert(text="{msg}", title="Import Summary", button="OK")'
+            )
         else:
             raise error
     except Exception as e:

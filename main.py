@@ -2,7 +2,7 @@ from email_validator import validate_email
 from textblob import TextBlob
 from gui import Ui_MainWindow
 from database import update_target_verified
-from openai import OpenAI
+from openai import OpenAI, AuthenticationError as OpenAIAuthError
 import subprocess
 import signal
 from datetime import datetime
@@ -22,6 +22,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QTextEdit,
     QVBoxLayout,
+    QSpinBox,
 )
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pandas as pd
@@ -61,7 +62,27 @@ def get_effective_openai_model():
     model_name = (var.open_ai_model or "").strip()
     if model_name:
         return model_name
-    return "gpt-5-mini"
+    return "gpt-5-nano"
+
+
+def _call_server_ai(prompt):
+    """Call the server-side AI endpoint when no user OpenAI key is configured."""
+    import requests as _requests
+    url = var.api + 'verify/ai_response'
+    resp = _requests.post(
+        url,
+        json={
+            'email': var.login_email,
+            'password': var.login_password,
+            'machine_uuid': var.login_machine_uuid,
+            'processor_id': var.login_processor_id,
+            'prompt': prompt,
+        },
+        timeout=(var.API_CONNECT_TIMEOUT, var.API_READ_TIMEOUT),
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    return data.get('answer', '')
 
 
 class AIPromptDialog(QDialog):
@@ -100,31 +121,94 @@ class AIPromptDialog(QDialog):
             alert(text="Please enter a prompt.", title="Warning", button="OK")
             return
         effective_key = get_effective_openai_key()
-        if not effective_key:
+        try:
+            if effective_key:
+                self.client = OpenAI(api_key=effective_key)
+                response = self.client.chat.completions.create(
+                    model=get_effective_openai_model(),
+                    messages=[
+                        {"role": "system",
+                            "content": "You are an expert email copywriter."},
+                        {"role": "user", "content": prompt},
+                    ],
+                )
+                answer = response.choices[0].message.content
+            else:
+                answer = _call_server_ai(prompt)
+            self.promptSubmitted.emit(answer)
+        except OpenAIAuthError:
             alert(
-                text="No OpenAI API key found. Add your key in Configuration -> OpenAI key.",
-                title="Warning",
+                text=(
+                    "Your OpenAI API key is invalid or has expired.\n\n"
+                    "To use the built-in AI access instead, go to "
+                    "Settings \u2192 OpenAI key and clear the key field, then save."
+                ),
+                title="Invalid API Key",
                 button="OK",
             )
-            return
-        try:
-            self.client = OpenAI(api_key=effective_key)
-            response = self.client.chat.completions.create(
-                model=get_effective_openai_model(),
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are an expert email copywriter.",
-                    },
-                    {"role": "user", "content": prompt},
-                ],
-            )
-            print(f"Using OpenAI model: {get_effective_openai_model()}")
-            answer = response.choices[0].message.content
-            self.promptSubmitted.emit(answer)
         except Exception as e:
-            alert(text=f"Failed to connect: {str(e)}",
+            alert(text=f"Failed to get AI response: {str(e)}",
                   title="Error", button="OK")
+
+
+class ImportSlotsDialog(QDialog):
+    def __init__(self, plan_limit, sheet_counts, group_a_enabled, group_b_enabled, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Import Accounts")
+        self.setModal(True)
+        self._plan_limit = plan_limit
+
+        layout = QVBoxLayout(self)
+
+        layout.addWidget(QLabel(f"Plan limit: {plan_limit} accounts total"))
+
+        a_row = QHBoxLayout()
+        a_row.addWidget(QLabel("Group A:"))
+        self._spin_a = QSpinBox()
+        self._spin_a.setRange(0, plan_limit)
+        self._spin_a.setEnabled(group_a_enabled)
+        a_row.addWidget(self._spin_a)
+        a_row.addWidget(
+            QLabel(f"(Sheet has {sheet_counts['group_a']} available)"))
+        layout.addLayout(a_row)
+
+        b_row = QHBoxLayout()
+        b_row.addWidget(QLabel("Group B:"))
+        self._spin_b = QSpinBox()
+        self._spin_b.setRange(0, plan_limit)
+        self._spin_b.setEnabled(group_b_enabled)
+        b_row.addWidget(self._spin_b)
+        b_row.addWidget(
+            QLabel(f"(Sheet has {sheet_counts['group_b']} available)"))
+        layout.addLayout(b_row)
+
+        self._total_label = QLabel()
+        layout.addWidget(self._total_label)
+
+        btn_row = QHBoxLayout()
+        self._ok_btn = QPushButton("Import")
+        cancel_btn = QPushButton("Cancel")
+        btn_row.addStretch()
+        btn_row.addWidget(cancel_btn)
+        btn_row.addWidget(self._ok_btn)
+        layout.addLayout(btn_row)
+
+        self._spin_a.valueChanged.connect(self._update_total)
+        self._spin_b.valueChanged.connect(self._update_total)
+        self._ok_btn.clicked.connect(self.accept)
+        cancel_btn.clicked.connect(self.reject)
+        self._update_total()
+
+    def _update_total(self):
+        total = self._spin_a.value() + self._spin_b.value()
+        self._total_label.setText(
+            f"Total selected: {total} / {self._plan_limit}")
+        over = total > self._plan_limit
+        self._total_label.setStyleSheet("color: red;" if over else "")
+        self._ok_btn.setEnabled(not over)
+
+    def slots(self):
+        return self._spin_a.value(), self._spin_b.value()
 
 
 class MyGui(Ui_MainWindow, QtWidgets.QWidget):
@@ -138,7 +222,6 @@ class MyMainClass:
     def __init__(self):
         self.compose_font_size = 13
         self.inbox_zoom_level = 0
-        self.setup_openai_config_ui()
         self.setup_sidebar_icons()
         GUI.checkBox_delete_all.stateChanged.connect(
             lambda state: self.toggle_all_checkboxes(
@@ -1161,6 +1244,13 @@ class MyMainClass:
     def show_leads_popup(self):
         msg = QMessageBox()
         msg.setWindowTitle("Leads")
+        icon_path = (os.path.join(sys._MEIPASS, "icons/icon.png")
+                     if hasattr(sys, "_MEIPASS")
+                     else os.path.join(os.path.abspath("."), "icons/icon.png"))
+        msg.setWindowIcon(QtGui.QIcon(icon_path))
+        pixmap = QtGui.QPixmap(icon_path).scaled(
+            64, 64, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+        msg.setIconPixmap(pixmap)
         msg.setText("Choose a lead generation option:")
         gmaps_btn = msg.addButton(
             "Google Maps Scraper", QMessageBox.ActionRole)
@@ -1676,23 +1766,18 @@ class MyMainClass:
         client = None
         if not var.autoReply_canned_switch:
             logger.info("send auto reply")
-            try:
-                effective_key = get_effective_openai_key()
-                if not effective_key:
-                    alert(
-                        text="No OpenAI API key found. Add your key in Configuration -> OpenAI key.",
-                        title="Warning",
-                        button="OK",
-                    )
-                    return
-                client = OpenAI(api_key=effective_key)
-                if not var.autoReply_prompt or not var.autoReply_prompt.strip():
-                    alert(text="Please enter a prompt.",
-                          title="Warning", button="OK")
-                    return
-            except Exception as e:
-                logger.error(f"Failed to initialize OpenAI client: {str(e)}")
+            if not var.autoReply_prompt or not var.autoReply_prompt.strip():
+                alert(text="Please enter a prompt.",
+                      title="Warning", button="OK")
                 return
+            effective_key = get_effective_openai_key()
+            if effective_key:
+                try:
+                    client = OpenAI(api_key=effective_key)
+                except Exception as e:
+                    logger.error(
+                        f"Failed to initialize OpenAI client: {str(e)}")
+                    return
 
         file_path = None
         if not var.autoReply_canned_switch:
@@ -1734,17 +1819,18 @@ class MyMainClass:
                         new_prompt = prompt.replace(
                             "[RECEIVEDEMAIL]", row["body"])
                         try:
-                            response = client.chat.completions.create(
-                                model=get_effective_openai_model(),
-                                messages=[
-                                    {
-                                        "role": "system",
-                                        "content": "You are an expert email copywriter.",
-                                    },
-                                    {"role": "user", "content": new_prompt},
-                                ],
-                            )
-                            answer = response.choices[0].message.content
+                            if client:
+                                response = client.chat.completions.create(
+                                    model=get_effective_openai_model(),
+                                    messages=[
+                                        {"role": "system",
+                                            "content": "You are an expert email copywriter."},
+                                        {"role": "user", "content": new_prompt},
+                                    ],
+                                )
+                                answer = response.choices[0].message.content
+                            else:
+                                answer = _call_server_ai(new_prompt)
                             var.email_in_view["body"] = answer
 
                             with open(file_path, "a", encoding="utf-8") as file:
@@ -1766,6 +1852,17 @@ class MyMainClass:
                                 )
 
                             logger.info(f"Response saved to {file_path}")
+                        except OpenAIAuthError:
+                            alert(
+                                text=(
+                                    "Your OpenAI API key is invalid or has expired.\n\n"
+                                    "To use the built-in AI access instead, go to "
+                                    "Configuration \u2192 OpenAI key and clear the key field, then save."
+                                ),
+                                title="Invalid API Key",
+                                button="OK",
+                            )
+                            return
                         except Exception as e:
                             logger.error(
                                 f"Failed to generate AI response: {str(e)}")
@@ -1916,48 +2013,6 @@ class MyMainClass:
 
     def change_open_ai_model(self):
         var.open_ai_model = GUI.lineEdit_open_ai_model.text().strip()
-
-    def setup_openai_config_ui(self):
-        if not hasattr(GUI, "lineEdit_open_ai_model"):
-            GUI.label_open_ai_model = QtWidgets.QLabel(GUI.groupBox_10)
-            font = QtGui.QFont()
-            font.setFamily("Arial")
-            font.setPointSize(12)
-            GUI.label_open_ai_model.setFont(font)
-            GUI.label_open_ai_model.setStyleSheet("margin-left: 5px;")
-            GUI.label_open_ai_model.setText("OpenAI model")
-            GUI.label_open_ai_model.setObjectName("label_open_ai_model")
-            GUI.gridLayout_4.addWidget(GUI.label_open_ai_model, 50, 3, 1, 1)
-
-            GUI.lineEdit_open_ai_model = QtWidgets.QLineEdit(GUI.groupBox_10)
-            GUI.lineEdit_open_ai_model.setMinimumSize(QtCore.QSize(0, 42))
-            font = QtGui.QFont()
-            font.setFamily("Calibri")
-            font.setPointSize(11)
-            GUI.lineEdit_open_ai_model.setFont(font)
-            GUI.lineEdit_open_ai_model.setStyleSheet(
-                "background-color: rgb(255, 255, 255);"
-            )
-            GUI.lineEdit_open_ai_model.setFrame(False)
-            GUI.lineEdit_open_ai_model.setClearButtonEnabled(True)
-            GUI.lineEdit_open_ai_model.setPlaceholderText("e.g. gpt-5-mini")
-            GUI.lineEdit_open_ai_model.setObjectName("lineEdit_open_ai_model")
-            GUI.gridLayout_4.addWidget(GUI.lineEdit_open_ai_model, 50, 4, 1, 2)
-
-        if not hasattr(GUI, "label_open_ai_note"):
-            GUI.label_open_ai_note = QtWidgets.QLabel(GUI.groupBox_10)
-            font = QtGui.QFont()
-            font.setFamily("Arial")
-            font.setPointSize(10)
-            GUI.label_open_ai_note.setFont(font)
-            GUI.label_open_ai_note.setStyleSheet(
-                "color: #666; margin-left: 5px;")
-            GUI.label_open_ai_note.setWordWrap(True)
-            GUI.label_open_ai_note.setText(
-                "To set your desired model, enter your API key. Otherwise, default API and model will be used."
-            )
-            GUI.label_open_ai_note.setObjectName("label_open_ai_note")
-            GUI.gridLayout_4.addWidget(GUI.label_open_ai_note, 52, 3, 1, 4)
 
     def setup_sidebar_icons(self):
         if qta is None:
@@ -2514,11 +2569,16 @@ class MyMainClass:
             self.logger.error("Error at batch_delete - {}".format(e))
 
     def load_db(self):
-        result = confirm(
-            text="Are you sure?", title="Confirmation Window", buttons=["OK", "Cancel"]
-        )
-        if result == "OK":
-            Thread(target=database.load_db, daemon=True).start()
+        plan_limit = database._fetch_accounts_limit()
+        sheet_counts = database.get_sheet_counts()
+        group_a_enabled = var.db_file_loading_config.get("group_a", True)
+        group_b_enabled = var.db_file_loading_config.get("group_b", True)
+        dlg = ImportSlotsDialog(plan_limit, sheet_counts,
+                                group_a_enabled, group_b_enabled, parent=None)
+        if dlg.exec_() == QDialog.Accepted:
+            a_slots, b_slots = dlg.slots()
+            Thread(target=database.load_db, args=(
+                a_slots, b_slots), daemon=True).start()
         else:
             print("cancelled")
 
