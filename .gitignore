@@ -10,7 +10,7 @@ sent
 output_php
 .qt_for_python
 # Projects file
-docs
+
 .history
 .vscode
 .idea
@@ -195,3 +195,5 @@ Icon?
 # windows metadata and local sensitive docs
 desktop.ini
 Gmonster SSH Access.xlsx
+
+docs/accounts

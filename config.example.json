@@ -65,7 +65,8 @@
                     "server": "mail.gmx.com",
                     "port": 587,
                     "require_ssl": false
-                }
+                },
+                "sent_folder": "Sent"
             },
             "yandex": {
                 "imap": {
@@ -96,9 +97,10 @@
                 },
                 "smtp": {
                     "server": "smtp.mail.ru",
-                    "port": 587,
-                    "require_ssl": false
-                }
+                    "port": 465,
+                    "require_ssl": true
+                },
+                "sent_folder": "&BB4EQgQ,BEAEMAQyBDsENQQ9BD0ESwQ1-"
             },
             "yahoo": {
                 "imap": {
@@ -107,9 +109,10 @@
                 },
                 "smtp": {
                     "server": "smtp.mail.yahoo.com",
-                    "port": 587,
-                    "require_ssl": false
-                }
+                    "port": 465,
+                    "require_ssl": true
+                },
+                "sent_folder": "Sent"
             },
             "aol": {
                 "imap": {
