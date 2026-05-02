@@ -518,7 +518,7 @@ def _fetch_accounts_limit():
 
 def get_sheet_counts() -> dict:
     """Return {'group_a': int, 'group_b': int} valid row counts from xlsx sheets.
-    Filters to rows with a non-empty PROXY:PORT column (same as real import)."""
+    Filters to rows with a non-empty EMAIL column (same as real import)."""
     counts = {"group_a": 0, "group_b": 0}
     group_header = ["FIRSTFROMNAME", "LASTFROMNAME", "EMAIL", "EMAIL_PASS", "PROXY:PORT", "PROXY_USER", "PROXY_PASS"]
     for key, fname, sheet in [("group_a", "group_a.xlsx", "group_a"), ("group_b", "group_b.xlsx", "group_b")]:
@@ -529,7 +529,7 @@ def get_sheet_counts() -> dict:
                 df = df[group_header]
                 df.fillna(" ", inplace=True)
                 df = df.astype(str)
-                df = df.loc[df["PROXY:PORT"] != " "]
+                df = df.loc[df["EMAIL"] != " "]
                 counts[key] = len(df)
         except Exception as e:
             logger.warning(f"Could not count {fname}: {e}")
@@ -566,7 +566,7 @@ def file_to_db(a_limit: int = 0, b_limit: int = 0):
                 if list(group_a.keys()) == group_header:
                     group_a.fillna(" ", inplace=True)
                     group_a = group_a.astype(str)
-                    group_a = group_a.loc[group_a["PROXY:PORT"] != " "]
+                    group_a = group_a.loc[group_a["EMAIL"] != " "]
                     if len(group_a) > 0:
                         original_count_a = len(group_a)
                         if original_count_a > a_limit:
@@ -632,7 +632,7 @@ def file_to_db(a_limit: int = 0, b_limit: int = 0):
                 if list(group_b.keys()) == group_header:
                     group_b.fillna(" ", inplace=True)
                     group_b = group_b.astype(str)
-                    group_b = group_b.loc[group_b["PROXY:PORT"] != " "]
+                    group_b = group_b.loc[group_b["EMAIL"] != " "]
                     if len(group_b) > 0:
                         original_count_b = len(group_b)
                         if original_count_b > b_limit:

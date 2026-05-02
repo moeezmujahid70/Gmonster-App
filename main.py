@@ -2924,7 +2924,7 @@ class MyMainClass:
                     Thread(target=update_config_json, daemon=True).start()
                     dialog.ui = Download(
                         dialog, var.group_a, folders=[
-                            "INBOX", '"[Gmail]/Sent Mail"']
+                            "INBOX", "__SENT__"]
                     )
                 else:
                     if GUI.radioButton_group_b.isChecked() and len(var.group_b) > 0:
@@ -2935,7 +2935,7 @@ class MyMainClass:
                         dialog.ui = Download(
                             dialog,
                             var.group_b,
-                            folders=["INBOX", '"[Gmail]/Sent Mail"'],
+                            folders=["INBOX", "__SENT__"],
                         )
                     else:
                         self.logger.info("Downloading_email no db")
@@ -2970,10 +2970,16 @@ class MyMainClass:
                     [var.inbox_data_table[var.inbox_group], pd.DataFrame([row_data])], ignore_index=True
                 )
             self.inbox_show_changed()
-            unread_count = sum(
-                (1 for flag in var.inbox_data[var.inbox_group]
-                 ["flag"] if flag == "UNSEEN")
-            )
+            unread_count = 0
+            if (
+                not var.inbox_data[var.inbox_group].empty
+                and "flag" in var.inbox_data[var.inbox_group].columns
+            ):
+                unread_count = sum(
+                    1
+                    for flag in var.inbox_data[var.inbox_group]["flag"]
+                    if flag == "UNSEEN"
+                )
             if unread_count > 0:
                 GUI.label_unread_count.setText(str(unread_count))
             else:

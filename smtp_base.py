@@ -3,7 +3,7 @@ import socks
 import random
 import smtplib
 import traceback
-from proxy_smtplib import SMTP, SmtpProxy, Proxifier
+from proxy_smtplib import SMTP, SmtpProxy, SmtpProxySSL, Proxifier
 from var import logger
 import var
 
@@ -42,11 +42,17 @@ class SmtpBase:
                     mail_vendor = parts[0]
                 else:
                     mail_vendor = mail_domain
-                self.smtp_server = var.mail_server[mail_vendor]["smtp"]["server"]
-                self.smtp_port = var.mail_server[mail_vendor]["smtp"]["port"]
+                self.provider_config = var.mail_server[mail_vendor]
+                self.smtp_server = self.provider_config["smtp"]["server"]
+                self.smtp_port = self.provider_config["smtp"]["port"]
+                self.smtp_require_ssl = self.provider_config["smtp"].get(
+                    "require_ssl", False
+                )
         except:
             logger.error(f"SmtpBase error: {traceback.format_exc()}")
             raise
+        if not hasattr(self, "smtp_require_ssl"):
+            self.smtp_require_ssl = False
 
     def _login(self):
         try:
@@ -57,19 +63,35 @@ class SmtpBase:
             if self.proxy_host != "" and var.proxy_on:
                 print("with_proxy")
                 logger.info("send mail with proxy")
-                server = SmtpProxy(
-                    self.smtp_server,
-                    self.smtp_port,
-                    proxifier=Proxifier.get_proxifier(self.proxy),
-                    local_hostname=self.local_hostname,
-                )
+                if self.smtp_require_ssl:
+                    server = SmtpProxySSL(
+                        self.smtp_server,
+                        self.smtp_port,
+                        proxifier=Proxifier.get_proxifier(self.proxy),
+                        local_hostname=self.local_hostname,
+                        timeout=45,
+                    )
+                else:
+                    server = SmtpProxy(
+                        self.smtp_server,
+                        self.smtp_port,
+                        proxifier=Proxifier.get_proxifier(self.proxy),
+                        local_hostname=self.local_hostname,
+                        timeout=45,
+                    )
             else:
                 logger.info("send mail without proxy")
                 print("without_proxy")
-                server = smtplib.SMTP(self.smtp_server, self.smtp_port)
+                if self.smtp_require_ssl:
+                    server = smtplib.SMTP_SSL(
+                        self.smtp_server, self.smtp_port, timeout=45
+                    )
+                else:
+                    server = smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=45)
             server.ehlo()
-            server.starttls()
-            server.ehlo()
+            if not self.smtp_require_ssl:
+                server.starttls()
+                server.ehlo()
             server.login(self.user, self.passwd)
             return server
         except Exception as e:

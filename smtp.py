@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from followup_smtp import FollowUpSend
-from proxy_smtplib import SMTP, SmtpProxy, Proxifier
+from proxy_smtplib import SMTP, SmtpProxy, SmtpProxySSL, Proxifier
 from smtp_base import SmtpBase
 from email.mime.multipart import MIMEMultipart
 from email.header import Header
@@ -62,6 +62,26 @@ def html_to_text(body):
     return soup.get_text("\n")
 
 
+def parse_proxy_port(proxy_port):
+    if not proxy_port:
+        return "", ""
+    proxy_port = str(proxy_port).strip()
+    if not proxy_port or proxy_port == " " or ":" not in proxy_port:
+        return "", ""
+    proxy_host, proxy_port_value = proxy_port.rsplit(":", 1)
+    proxy_host = proxy_host.strip()
+    proxy_port_value = proxy_port_value.strip()
+    if not proxy_host or not proxy_port_value:
+        return "", ""
+    try:
+        proxy_port_int = int(proxy_port_value)
+    except ValueError:
+        return "", ""
+    if proxy_port_int < 1 or proxy_port_int > 65535:
+        return "", ""
+    return proxy_host, proxy_port_int
+
+
 class TestMail(SmtpBase):
 
     def __init__(self, send_to=None):
@@ -69,12 +89,7 @@ class TestMail(SmtpBase):
             self.send_info = var.group_a.iloc[0].to_dict()
         else:
             self.send_info = var.group_b.iloc[0].to_dict()
-        if self.send_info["PROXY:PORT"] != " ":
-            proxy_host = self.send_info["PROXY:PORT"].split(":")[0]
-            proxy_port = int(self.send_info["PROXY:PORT"].split(":")[1])
-        else:
-            proxy_host = ""
-            proxy_port = ""
+        proxy_host, proxy_port = parse_proxy_port(self.send_info["PROXY:PORT"])
         kwargs = {
             "proxy_host": proxy_host,
             "proxy_port": proxy_port,
@@ -409,20 +424,36 @@ class Smtp(SmtpBase, threading.Thread):
             if self.proxy_host != "" and var.proxy_on:
                 logger.info("send mail with proxy")
                 print("send mail with proxy")
-                server = SmtpProxy(
-                    self.smtp_server,
-                    self.smtp_port,
-                    proxifier=Proxifier.get_proxifier(self.proxy),
-                    local_hostname=self.local_hostname,
-                )
+                if self.smtp_require_ssl:
+                    server = SmtpProxySSL(
+                        self.smtp_server,
+                        self.smtp_port,
+                        proxifier=Proxifier.get_proxifier(self.proxy),
+                        local_hostname=self.local_hostname,
+                        timeout=45,
+                    )
+                else:
+                    server = SmtpProxy(
+                        self.smtp_server,
+                        self.smtp_port,
+                        proxifier=Proxifier.get_proxifier(self.proxy),
+                        local_hostname=self.local_hostname,
+                        timeout=45,
+                    )
             else:
                 logger.info("send mail without proxy")
                 print("send mail without proxy")
-                server = smtplib.SMTP(self.smtp_server, self.smtp_port)
-                server.set_debuglevel(0)
+                if self.smtp_require_ssl:
+                    server = smtplib.SMTP_SSL(
+                        self.smtp_server, self.smtp_port, timeout=45
+                    )
+                else:
+                    server = smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=45)
+                    server.set_debuglevel(0)
             server.ehlo()
-            server.starttls()
-            server.ehlo()
+            if not self.smtp_require_ssl:
+                server.starttls()
+                server.ehlo()
             server.login(self.user, self.passwd)
             return server
         except Exception as e:
@@ -920,12 +951,7 @@ def main(group, d_start, d_end, group_selected, num_emails_per_address_range):
                     user = item["EMAIL"]
                     name = item["EMAIL"]
 
-                    if item["PROXY:PORT"] != " ":
-                        proxy_host = item["PROXY:PORT"].split(":")[0]
-                        proxy_port = int(item["PROXY:PORT"].split(":")[1])
-                    else:
-                        proxy_host = ""
-                        proxy_port = ""
+                    proxy_host, proxy_port = parse_proxy_port(item["PROXY:PORT"])
 
                     # Use pre-calculated value instead of calculating in loop
                     num_emails_per_address = worker_email_counts[index]
