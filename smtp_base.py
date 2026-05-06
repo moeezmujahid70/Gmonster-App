@@ -48,11 +48,51 @@ class SmtpBase:
                 self.smtp_require_ssl = self.provider_config["smtp"].get(
                     "require_ssl", False
                 )
+                self.proxy_fallback_direct = self.provider_config.get(
+                    "proxy_fallback_direct", False
+                )
         except:
             logger.error(f"SmtpBase error: {traceback.format_exc()}")
             raise
         if not hasattr(self, "smtp_require_ssl"):
             self.smtp_require_ssl = False
+        if not hasattr(self, "proxy_fallback_direct"):
+            self.proxy_fallback_direct = False
+
+    def _open_smtp_server(self, use_proxy):
+        if use_proxy:
+            print("with_proxy")
+            logger.info("send mail with proxy")
+            if self.smtp_require_ssl:
+                return SmtpProxySSL(
+                    self.smtp_server,
+                    self.smtp_port,
+                    proxifier=Proxifier.get_proxifier(self.proxy),
+                    local_hostname=self.local_hostname,
+                    timeout=45,
+                )
+            return SmtpProxy(
+                self.smtp_server,
+                self.smtp_port,
+                proxifier=Proxifier.get_proxifier(self.proxy),
+                local_hostname=self.local_hostname,
+                timeout=45,
+            )
+
+        logger.info("send mail without proxy")
+        print("without_proxy")
+        if self.smtp_require_ssl:
+            return smtplib.SMTP_SSL(self.smtp_server, self.smtp_port, timeout=45)
+        return smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=45)
+
+    def _login_server(self, use_proxy):
+        server = self._open_smtp_server(use_proxy)
+        server.ehlo()
+        if not self.smtp_require_ssl:
+            server.starttls()
+            server.ehlo()
+        server.login(self.user, self.passwd)
+        return server
 
     def _login(self):
         try:
@@ -60,40 +100,18 @@ class SmtpBase:
                 self.local_hostname = (
                     f"{self.first_from_name}-{random.choice(var.hostname_list)}"
                 )
-            if self.proxy_host != "" and var.proxy_on:
-                print("with_proxy")
-                logger.info("send mail with proxy")
-                if self.smtp_require_ssl:
-                    server = SmtpProxySSL(
-                        self.smtp_server,
-                        self.smtp_port,
-                        proxifier=Proxifier.get_proxifier(self.proxy),
-                        local_hostname=self.local_hostname,
-                        timeout=45,
+            use_proxy = self.proxy_host != "" and var.proxy_on
+            try:
+                return self._login_server(use_proxy)
+            except Exception as proxy_error:
+                if use_proxy and self.proxy_fallback_direct:
+                    logger.warning(
+                        "SMTP proxy login failed for %s; retrying without proxy: %s",
+                        self.user,
+                        proxy_error.__class__.__name__,
                     )
-                else:
-                    server = SmtpProxy(
-                        self.smtp_server,
-                        self.smtp_port,
-                        proxifier=Proxifier.get_proxifier(self.proxy),
-                        local_hostname=self.local_hostname,
-                        timeout=45,
-                    )
-            else:
-                logger.info("send mail without proxy")
-                print("without_proxy")
-                if self.smtp_require_ssl:
-                    server = smtplib.SMTP_SSL(
-                        self.smtp_server, self.smtp_port, timeout=45
-                    )
-                else:
-                    server = smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=45)
-            server.ehlo()
-            if not self.smtp_require_ssl:
-                server.starttls()
-                server.ehlo()
-            server.login(self.user, self.passwd)
-            return server
+                    return self._login_server(False)
+                raise
         except Exception as e:
             logger.error(
                 f"Error at {self.__class__.__name__}._login: {e}\n{traceback.format_exc()}"

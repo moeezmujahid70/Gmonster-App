@@ -36,6 +36,9 @@ class ImapBase:
                 self.provider_config = var.mail_server[mail_vendor]
                 self.imap_server = self.provider_config["imap"]["server"]
                 self.imap_port = self.provider_config["imap"]["port"]
+                self.proxy_fallback_direct = self.provider_config.get(
+                    "proxy_fallback_direct", False
+                )
         except:
             logger.error(f"ImapBase error: {traceback.format_exc()}")
             raise
@@ -43,10 +46,12 @@ class ImapBase:
             self.mail_vendor = ""
         if not hasattr(self, "provider_config"):
             self.provider_config = {}
+        if not hasattr(self, "proxy_fallback_direct"):
+            self.proxy_fallback_direct = False
 
-    def _login(self):
-        if self.proxy_host != "" and var.proxy_on:
-            server = proxy_imaplib.IMAP(
+    def _open_imap_server(self, use_proxy):
+        if use_proxy:
+            return proxy_imaplib.IMAP(
                 proxy_host=self.proxy_host,
                 proxy_port=self.proxy_port,
                 proxy_type=self.proxy_type,
@@ -56,10 +61,26 @@ class ImapBase:
                 port=self.imap_port,
                 timeout=30,
             )
-        else:
-            server = imaplib.IMAP4_SSL(self.imap_server)
+        return imaplib.IMAP4_SSL(self.imap_server)
+
+    def _login_server(self, use_proxy):
+        server = self._open_imap_server(use_proxy)
         server.login(self.imap_user, self.imap_pass)
         return server
+
+    def _login(self):
+        use_proxy = self.proxy_host != "" and var.proxy_on
+        try:
+            return self._login_server(use_proxy)
+        except Exception as proxy_error:
+            if use_proxy and self.proxy_fallback_direct:
+                logger.warning(
+                    "IMAP proxy login failed for %s; retrying without proxy: %s",
+                    self.imap_user,
+                    proxy_error.__class__.__name__,
+                )
+                return self._login_server(False)
+            raise
 
     def get_sent_folder(self):
         if self.provider_config:

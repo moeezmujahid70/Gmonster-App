@@ -1,8 +1,8 @@
-# GMX, Yahoo, And Mail.ru Provider Setup Plan
+# GMX, Yahoo, Mail.ru, And AOL Provider Setup Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Configure a Gmonster-like codebase to support GMX, Yahoo, and Mail.ru alongside Gmail for SMTP sending and IMAP inbox/sent-mail operations.
+**Goal:** Configure a Gmonster-like codebase to support GMX, Yahoo, Mail.ru, and AOL alongside Gmail for SMTP sending and IMAP inbox/sent-mail operations.
 
 **Architecture:** Reuse the existing domain-based provider routing through `var.mail_server`. Provider config must define SMTP server/port/TLS behavior and IMAP sent-folder names so the existing SMTP/IMAP worker classes can resolve provider-specific behavior without Gmail hard-coding.
 
@@ -40,7 +40,8 @@ Required provider entries:
         "port": 587,
         "require_ssl": false
     },
-    "sent_folder": "Sent"
+    "sent_folder": "Sent",
+    "proxy_fallback_direct": true
 },
 "yahoo": {
     "imap": {
@@ -52,7 +53,8 @@ Required provider entries:
         "port": 465,
         "require_ssl": true
     },
-    "sent_folder": "Sent"
+    "sent_folder": "Sent",
+    "proxy_fallback_direct": true
 },
 "mail": {
     "imap": {
@@ -64,7 +66,21 @@ Required provider entries:
         "port": 465,
         "require_ssl": true
     },
-    "sent_folder": "&BB4EQgQ,BEAEMAQyBDsENQQ9BD0ESwQ1-"
+    "sent_folder": "&BB4EQgQ,BEAEMAQyBDsENQQ9BD0ESwQ1-",
+    "proxy_fallback_direct": true
+},
+"aol": {
+    "imap": {
+        "server": "imap.aol.com",
+        "port": 993
+    },
+    "smtp": {
+        "server": "smtp.aol.com",
+        "port": 465,
+        "require_ssl": true
+    },
+    "sent_folder": "Sent",
+    "proxy_fallback_direct": true
 }
 ```
 
@@ -73,6 +89,7 @@ Important domain mapping:
 - `@gmx.com` resolves to provider key `gmx`.
 - `@yahoo.com` resolves to provider key `yahoo`.
 - `@mail.ru` resolves to provider key `mail`.
+- `@aol.com` resolves to provider key `aol`.
 
 ## Required Code Behavior
 
@@ -88,6 +105,8 @@ Important domain mapping:
 - Non-Gmail delete behavior should use `+FLAGS (\\Deleted)` and then `expunge()`.
 - Sheet/database loading should not require `PROXY:PORT` to be non-empty; rows should load when `EMAIL` is non-empty.
 - Proxy parsing should treat blank or invalid `PROXY:PORT` as no proxy instead of crashing.
+- For GMX, Yahoo, Mail.ru, and AOL, set `proxy_fallback_direct: true` so SMTP/IMAP tries the configured proxy first and retries once without proxy if the proxy path fails.
+- Keep Gmail fallback disabled by default, because the existing Gmail proxies already work and Gmail behavior should remain unchanged unless explicitly configured.
 
 ## Verification Findings
 
@@ -106,6 +125,10 @@ Direct login-only tests passed:
   - SMTP SSL `smtp.mail.ru:465` passed.
   - `INBOX` passed.
   - Sent folder passed with `&BB4EQgQ,BEAEMAQyBDsENQQ9BD0ESwQ1-`.
+- AOL:
+  - IMAP `imap.aol.com:993` passed.
+  - SMTP SSL `smtp.aol.com:465` passed.
+  - `INBOX` and `Sent` folder selection passed.
 
 Proxy test findings:
 
@@ -131,6 +154,9 @@ Required outbound destinations:
 - Mail.ru:
   - `imap.mail.ru:993`
   - `smtp.mail.ru:465`
+- AOL:
+  - `imap.aol.com:993`
+  - `smtp.aol.com:465`
 
 Required per-account proxy fields:
 
@@ -141,6 +167,7 @@ PROXY_PASS = proxy_password
 ```
 
 If no compatible proxies are available, run these providers without proxy. Direct IMAP/SMTP was verified successfully for GMX, Yahoo, and Mail.ru.
+With `proxy_fallback_direct: true`, the app can keep `proxy_on` enabled globally while automatically falling back to direct connections for provider/proxy combinations that fail.
 
 ## Test Plan
 
@@ -153,7 +180,7 @@ python3 -m py_compile smtp_base.py smtp.py imap_base.py imap.py proxy_smtplib.py
 - Validate config:
 
 ```bash
-jq '.config.mail_server.gmx, .config.mail_server.yahoo, .config.mail_server.mail' \
+jq '.config.mail_server.gmx, .config.mail_server.yahoo, .config.mail_server.mail, .config.mail_server.aol' \
   config.example.json \
   data/gmonster_config/config.json \
   data/gmonster_config/gmonster_config.json

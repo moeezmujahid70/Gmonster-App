@@ -23,6 +23,7 @@ from PyQt5.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
     QSpinBox,
+    QProgressBar,
 )
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pandas as pd
@@ -69,6 +70,20 @@ def _call_server_ai(prompt):
     """Call the server-side AI endpoint when no user OpenAI key is configured."""
     import requests as _requests
     url = var.api + 'verify/ai_response'
+    last_error = None
+    for attempt in range(2):
+        try:
+            return _call_server_ai_once(prompt, _requests, url)
+        except Exception as e:
+            last_error = e
+            if attempt == 0 and _should_retry_ai_error(e):
+                sleep(1)
+                continue
+            raise
+    raise last_error
+
+
+def _call_server_ai_once(prompt, _requests, url):
     resp = _requests.post(
         url,
         json={
@@ -78,19 +93,94 @@ def _call_server_ai(prompt):
             'processor_id': var.login_processor_id,
             'prompt': prompt,
         },
-        timeout=(var.API_CONNECT_TIMEOUT, var.API_READ_TIMEOUT),
+        timeout=(var.API_CONNECT_TIMEOUT, 40),
     )
-    resp.raise_for_status()
+    if not resp.ok:
+        raise ServerAIResponseError(_server_ai_error_message(resp), resp)
     data = resp.json()
+    if data.get("status") == "ok":
+        return data.get('answer', '')
+    if data.get("error") or data.get("error_code") or data.get("message"):
+        raise ServerAIResponseError(_server_ai_error_message(resp), resp)
     return data.get('answer', '')
+
+
+class ServerAIResponseError(Exception):
+    def __init__(self, message, response=None):
+        super().__init__(message)
+        self.response = response
+
+
+def _server_ai_error_message(response):
+    data = {}
+    try:
+        data = response.json()
+    except Exception:
+        data = {}
+    message = data.get("message")
+    if message:
+        return message
+    error_code = data.get("error_code") or data.get("error")
+    status_code = response.status_code
+    return _map_ai_error_message(status_code=status_code, error_code=error_code)
+
+
+def _map_ai_error_message(status_code=None, error_code=None):
+    if status_code == 504 or error_code == "ai_upstream_timeout":
+        return "The AI is taking too long to respond. Please try again."
+    if status_code == 429 or error_code == "ai_rate_limited":
+        return "The AI service is busy right now. Please wait a moment and retry."
+    if status_code == 503 or error_code == "ai_connection_error":
+        return "The server could not reach the AI service. Please try again."
+    if (
+        status_code == 502
+        or error_code in ("ai_provider_server_error", "ai_upstream_error")
+    ):
+        return "The AI service failed temporarily. Please try again later."
+    return "The AI service failed temporarily. Please try again later."
+
+
+def _should_retry_ai_error(error):
+    if isinstance(error, (requests.exceptions.Timeout, requests.exceptions.ConnectionError)):
+        return True
+    if isinstance(error, ServerAIResponseError) and error.response is not None:
+        try:
+            data = error.response.json()
+        except Exception:
+            data = {}
+        if data.get("retryable") is True:
+            return True
+        status_code = error.response.status_code
+        error_code = data.get("error_code") or data.get("error")
+        return status_code in (502, 503, 504) or error_code in (
+            "ai_upstream_timeout",
+            "ai_connection_error",
+            "ai_provider_server_error",
+            "ai_upstream_error",
+        )
+    return False
+
+
+def _ai_exception_message(error):
+    if isinstance(error, ServerAIResponseError):
+        return str(error)
+    if isinstance(error, requests.exceptions.Timeout):
+        return "The request took too long. Please try again."
+    if isinstance(error, requests.exceptions.ConnectionError):
+        return "Network error. Please check your internet connection and try again."
+    return "The AI service failed temporarily. Please try again later."
 
 
 class AIPromptDialog(QDialog):
     promptSubmitted = pyqtSignal(str)
+    aiSucceeded = pyqtSignal(str)
+    aiFailed = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.client = None
+        self._request_in_progress = False
+        self._worker_thread = None
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setGeometry(300, 200, 400, 300)
@@ -99,6 +189,13 @@ class AIPromptDialog(QDialog):
         layout.addWidget(self.title_label)
         self.text_input = QTextEdit(var.compose_prompt)
         layout.addWidget(self.text_input)
+        self.status_label = QLabel("")
+        self.status_label.hide()
+        layout.addWidget(self.status_label)
+        self.loader = QProgressBar()
+        self.loader.setRange(0, 0)
+        self.loader.hide()
+        layout.addWidget(self.loader)
         button_layout = QHBoxLayout()
         button_layout.setContentsMargins(0, 0, 10, 10)
         self.send_button = QPushButton("Send Prompt")
@@ -112,14 +209,28 @@ class AIPromptDialog(QDialog):
         self.setStyleSheet(
             "\n            QLabel::indicator {\n                width: 0px; /* Hide the circle indicator */\n                height: 0px;\n            }\n            QLabel {\n                font-size: 20px;\n                color: #000;\n                background-color: transparent;\n                border: none;\n                padding: 10px;\n            }\n                                    \n            QDialog {\n                background-color: #f9f9f9;\n                border-radius: 20px;\n                padding: 10px;\n            }\n\n            QTextEdit {\n                border: 2px solid black;    /* Black border */\n                border-radius: 10px;\n                padding: 5px;\n                background-color: #ffffff;\n            }\n\n            QDialogButtonBox {\n                background-color: #d4d4d4;\n                border-radius: 10px;\n                padding: 5px;\n            }\n\n            QPushButton {\n                border: 1px solid #555;\n                border-radius: 3px;\n                border-style: Solid;\n                background: rgba(0, 138, 191);\n                padding: 5px 28px;\n                color: rgb(255, 255, 255);\n                }\n            \n            QPushButton:hover {\n                background: rgba(0, 138, 191, 0.6);\n                opacity: 0.2\n                }\n            \n            QPushButton:pressed {\n                border-style: inset;\n                background: rgb(0, 138, 191);\n                }\n        "
         )
+        self.aiSucceeded.connect(self._handle_ai_success)
+        self.aiFailed.connect(self._handle_ai_failure)
 
     def get_ai_response(self):
+        if self._request_in_progress:
+            return
         prompt = self.text_input.toPlainText().strip()
         var.compose_prompt = prompt
         Thread(target=update_config_json, daemon=True).start()
         if not prompt:
             alert(text="Please enter a prompt.", title="Warning", button="OK")
             return
+        self._set_ai_loading(True, "Generating response...")
+        QtCore.QTimer.singleShot(10000, self._show_slow_ai_status)
+        self._worker_thread = Thread(
+            target=self._run_ai_request,
+            daemon=True,
+            args=(prompt,),
+        )
+        self._worker_thread.start()
+
+    def _run_ai_request(self, prompt):
         effective_key = get_effective_openai_key()
         try:
             if effective_key:
@@ -135,20 +246,34 @@ class AIPromptDialog(QDialog):
                 answer = response.choices[0].message.content
             else:
                 answer = _call_server_ai(prompt)
-            self.promptSubmitted.emit(answer)
+            self.aiSucceeded.emit(answer)
         except OpenAIAuthError:
-            alert(
-                text=(
-                    "Your OpenAI API key is invalid or has expired.\n\n"
-                    "To use the built-in AI access instead, go to "
-                    "Settings \u2192 OpenAI key and clear the key field, then save."
-                ),
-                title="Invalid API Key",
-                button="OK",
+            self.aiFailed.emit(
+                "Your OpenAI API key is invalid or has expired.\n\n"
+                "To use the built-in AI access instead, go to "
+                "Settings -> OpenAI key and clear the key field, then save."
             )
         except Exception as e:
-            alert(text=f"Failed to get AI response: {str(e)}",
-                  title="Error", button="OK")
+            self.aiFailed.emit(_ai_exception_message(e))
+
+    def _set_ai_loading(self, is_loading, status_text=""):
+        self._request_in_progress = is_loading
+        self.send_button.setEnabled(not is_loading)
+        self.loader.setVisible(is_loading)
+        self.status_label.setText(status_text)
+        self.status_label.setVisible(bool(status_text))
+
+    def _show_slow_ai_status(self):
+        if self._request_in_progress:
+            self.status_label.setText("Still working, this can take a little longer...")
+
+    def _handle_ai_success(self, answer):
+        self._set_ai_loading(False)
+        self.promptSubmitted.emit(answer)
+
+    def _handle_ai_failure(self, message):
+        self._set_ai_loading(False)
+        alert(text=message, title="Error", button="OK")
 
 
 class ImportSlotsDialog(QDialog):

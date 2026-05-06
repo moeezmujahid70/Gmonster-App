@@ -66,7 +66,8 @@
                     "port": 587,
                     "require_ssl": false
                 },
-                "sent_folder": "Sent"
+                "sent_folder": "Sent",
+                "proxy_fallback_direct": true
             },
             "yandex": {
                 "imap": {
@@ -100,7 +101,8 @@
                     "port": 465,
                     "require_ssl": true
                 },
-                "sent_folder": "&BB4EQgQ,BEAEMAQyBDsENQQ9BD0ESwQ1-"
+                "sent_folder": "&BB4EQgQ,BEAEMAQyBDsENQQ9BD0ESwQ1-",
+                "proxy_fallback_direct": true
             },
             "yahoo": {
                 "imap": {
@@ -112,7 +114,8 @@
                     "port": 465,
                     "require_ssl": true
                 },
-                "sent_folder": "Sent"
+                "sent_folder": "Sent",
+                "proxy_fallback_direct": true
             },
             "aol": {
                 "imap": {
@@ -121,9 +124,11 @@
                 },
                 "smtp": {
                     "server": "smtp.aol.com",
-                    "port": 587,
-                    "require_ssl": false
-                }
+                    "port": 465,
+                    "require_ssl": true
+                },
+                "sent_folder": "Sent",
+                "proxy_fallback_direct": true
             },
             "fastmail": {
                 "imap": {

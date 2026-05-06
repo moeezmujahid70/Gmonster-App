@@ -77,6 +77,13 @@ Read modules in this order before making non-trivial changes:
 - The frozen-app SSL certificate override in `var.py` is intentional. Do not remove it without replacing the packaging strategy for bundled certificates.
 - The app writes runtime state under `data/`. Keep local state, logs, and generated files there.
 - The runtime config path is `data/gmonster_config/config.json`. `config.example.json` is the template.
+- Keep provider config synchronized across `config.example.json`, `data/gmonster_config/config.json`, and `data/gmonster_config/gmonster_config.json` when changing mail providers. Runtime startup reads `data/gmonster_config/config.json`.
+- Current non-Gmail provider keys and verified settings:
+  - `gmx`: IMAP `imap.gmx.com:993`, SMTP `mail.gmx.com:587` with STARTTLS, sent folder `Sent`.
+  - `yahoo`: IMAP `imap.mail.yahoo.com:993`, SMTP `smtp.mail.yahoo.com:465` with SSL, sent folder `Sent`.
+  - `mail`: IMAP `imap.mail.ru:993`, SMTP `smtp.mail.ru:465` with SSL, sent folder `&BB4EQgQ,BEAEMAQyBDsENQQ9BD0ESwQ1-`.
+  - `aol`: IMAP `imap.aol.com:993`, SMTP `smtp.aol.com:465` with SSL, sent folder `Sent`.
+- `gmx`, `yahoo`, `mail`, and `aol` use `proxy_fallback_direct: true`: SMTP/IMAP tries the configured SOCKS5 proxy first, then retries once without proxy if the proxy path fails. Gmail intentionally does not set this fallback by default.
 - Platform-specific code paths exist for Windows and Unix-like systems. Preserve both when changing startup, locking, subprocess, or update logic.
 - `main.py` is large and tightly coupled to the GUI. Prefer scoped edits over broad refactors unless explicitly requested.
 - Some modules interact through global variables and background threads. Verify side effects carefully when changing campaign, inbox, follow-up, or scheduler logic.
