@@ -245,6 +245,11 @@ login_password = ''
 login_machine_uuid = ''
 login_processor_id = ''
 tracking = {}
+statistics = {
+    "product_price": 0,
+    "logo_path": "",
+    "date_filter": "last_30_days",
+}
 webhook_link = ''
 api = 'https://enzim.pythonanywhere.com/'
 API_CONNECT_TIMEOUT = 5
@@ -317,6 +322,11 @@ try:
         config['cc_emails_enabled'] = cc_emails_enabled
     if 'auto_fire_responses_webhook_interval' not in config:
         config['auto_fire_responses_webhook_interval'] = auto_fire_responses_webhook_interval
+    if 'statistics' not in config:
+        config['statistics'] = statistics
+    elif isinstance(config['statistics'], dict):
+        statistics.update(config['statistics'])
+        config['statistics'] = statistics
     date = config['date']
     if config['compose_email_subject']:
         compose_email_subject = config['compose_email_subject']
@@ -331,6 +341,7 @@ try:
     login_email = config['login_email']
     api = config.get('api', api)
     tracking = config['tracking']
+    statistics = config.get('statistics', statistics)
     webhook_link = config['webhook_link']
     check_for_blocks = config['check_for_blocks']
     remove_email_from_target = config['remove_email_from_target']

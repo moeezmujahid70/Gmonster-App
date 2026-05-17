@@ -4427,6 +4427,39 @@ class Ui_MainWindow(object):
 "}")
         self.pushButton_account_support.setObjectName("pushButton_account_support")
         self.hLayout_account_links_btns.addWidget(self.pushButton_account_support)
+        self.pushButton_account_cancel_subscription = QtWidgets.QPushButton(self.frame_account_links)
+        self.pushButton_account_cancel_subscription.setMinimumSize(QtCore.QSize(190, 44))
+        self.pushButton_account_cancel_subscription.setMaximumSize(QtCore.QSize(240, 44))
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(13)
+        font.setBold(True)
+        self.pushButton_account_cancel_subscription.setFont(font)
+        self.pushButton_account_cancel_subscription.setStyleSheet("QPushButton {\n"
+"    border: 1px solid #c62828;\n"
+"    border-radius: 6px;\n"
+"    color: #fff;\n"
+"    background-color: #c62828;\n"
+"    padding: 10px 24px;\n"
+"    font-family: Arial;\n"
+"    font-size: 13px;\n"
+"    font-weight: bold;\n"
+"}\n"
+"QPushButton:hover {\n"
+"    background-color: #ad1f1f;\n"
+"    color: #fff;\n"
+"}\n"
+"QPushButton:pressed {\n"
+"    background-color: #8f1717;\n"
+"    color: #fff;\n"
+"}\n"
+"QPushButton:disabled {\n"
+"    background-color: #d9a1a1;\n"
+"    border-color: #d9a1a1;\n"
+"    color: #fff;\n"
+"}")
+        self.pushButton_account_cancel_subscription.setObjectName("pushButton_account_cancel_subscription")
+        self.hLayout_account_links_btns.addWidget(self.pushButton_account_cancel_subscription)
         spacerItem96 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.hLayout_account_links_btns.addItem(spacerItem96)
         self.vLayout_account_links.addLayout(self.hLayout_account_links_btns)
@@ -4651,4 +4684,5 @@ class Ui_MainWindow(object):
         self.label_account_links_title.setText(_translate("MainWindow", "Support & Resources"))
         self.pushButton_account_tutorials.setText(_translate("MainWindow", "📖  Tutorials"))
         self.pushButton_account_support.setText(_translate("MainWindow", "💬  Support"))
+        self.pushButton_account_cancel_subscription.setText(_translate("MainWindow", "Cancel Subscription"))
 import logo_rc

@@ -201,6 +201,11 @@
             "domain_name": "https://example.com",
             "api_key": ""
         },
+        "statistics": {
+            "product_price": 0,
+            "logo_path": "",
+            "date_filter": "last_30_days"
+        },
         "webhook_link": "",
         "check_for_blocks": true,
         "remove_email_from_target": true,

@@ -3,6 +3,14 @@ from textblob import TextBlob
 from gui import Ui_MainWindow
 from database import update_target_verified
 from openai import OpenAI, AuthenticationError as OpenAIAuthError
+from statistics_report import (
+    DateRange,
+    StatisticsCalculator,
+    create_statistics_report_preview,
+    export_statistics_pdf,
+    format_currency,
+    format_number,
+)
 import subprocess
 import signal
 from datetime import datetime
@@ -347,6 +355,9 @@ class MyMainClass:
     def __init__(self):
         self.compose_font_size = 13
         self.inbox_zoom_level = 0
+        self.statistics_summary = None
+        self.statistics_page_index = None
+        self.setup_statistics_page()
         self.setup_sidebar_icons()
         GUI.checkBox_delete_all.stateChanged.connect(
             lambda state: self.toggle_all_checkboxes(
@@ -403,6 +414,8 @@ class MyMainClass:
         GUI.pushButton_account_support.clicked.connect(
             lambda: webbrowser.open("https://gmonster.co/support")
         )
+        GUI.pushButton_account_cancel_subscription.clicked.connect(
+            self.request_subscription_cancel)
         self.command_timer = QtCore.QTimer()
         self.command_timer.setInterval(10)
         self.command_timer.timeout.connect(self.run_command)
@@ -783,48 +796,39 @@ class MyMainClass:
             GUI.pushButton_fire_inbox_webhook.show()
 
     def list_clicked(self, index):
-        # ListWidget item → StackedWidget page mapping:
-        # 0: Inbox      → page 0  (stackedWidgetPage1)
-        # 1: Campaign   → page 1  (stackedWidgetPage2)
-        # 2: Database   → page 2  (stackedWidgetPage3)
-        # 3: Follow-up  → page 3  (stackedWidgetPage4)
-        # 4: Auto-reply → page 4  (page)
-        # 5: Store      → open URL
-        # 6: Leads      → open URL
-        # 7: Warm up    → launch_wum()
-        # 8: Settings   → page 5  (stackedWidgetPage5)
-        # 9: Account    → page 6  (accountPage)
+        item = GUI.listWidget.item(index)
+        item_text = item.text() if item else ""
         nav_map = {
-            0: 0,  # Inbox
-            1: 1,  # Campaign
-            2: 2,  # Database
-            3: 3,  # Follow-up
-            4: 4,  # Auto-reply
-            8: 5,  # Settings
-            9: 6,  # Account
+            "Inbox": 0,
+            "Campaign": 1,
+            "Database": 2,
+            "Follow-up": 3,
+            "Auto-reply": 4,
+            "Settings": 5,
+            "Account": 6,
         }
         url_mappings = {
             "Store": "https://gmonster.co/store",
             "Tutorials": "https://gmonster.co/tutorials",
             "Support": "https://gmonster.co/support",
         }
-        if index in nav_map:
-            GUI.stackedWidget.setCurrentIndex(nav_map[index])
-            if index == 9:  # Account page
+        if item_text == "Statistics" and self.statistics_page_index is not None:
+            GUI.stackedWidget.setCurrentIndex(self.statistics_page_index)
+            self.refresh_statistics()
+        elif item_text in nav_map:
+            GUI.stackedWidget.setCurrentIndex(nav_map[item_text])
+            if item_text == "Account":
                 self.refresh_account_info()
-        elif index == 6:  # Leads
+        elif item_text == "Leads":
             self.show_leads_popup()
             GUI.listWidget.setCurrentRow(-1)
-        elif index == 7:  # Warm up
+        elif item_text == "Warm up":
             self.launch_wum()
         else:
-            item = GUI.listWidget.item(index)
-            if item:
-                item_text = item.text()
-                if item_text in url_mappings:
-                    webbrowser.open(url_mappings[item_text])
-                else:
-                    print(f"Invalid Index: {index} ({item_text})")
+            if item_text in url_mappings:
+                webbrowser.open(url_mappings[item_text])
+            elif item_text:
+                print(f"Invalid Index: {index} ({item_text})")
 
     def email_verify(self):
         emails = var.target["EMAIL"].tolist() if not var.target.empty else []
@@ -2139,6 +2143,324 @@ class MyMainClass:
     def change_open_ai_model(self):
         var.open_ai_model = GUI.lineEdit_open_ai_model.text().strip()
 
+    def setup_statistics_page(self):
+        if self.statistics_page_index is not None:
+            return
+
+        stats_item = QtWidgets.QListWidgetItem("Statistics")
+        GUI.listWidget.insertItem(5, stats_item)
+
+        page = QtWidgets.QWidget()
+        page.setObjectName("statisticsPage")
+        page.setStyleSheet(
+            "QWidget#statisticsPage { background-color: #eff2f8; }"
+            "QScrollArea { border: none; background: transparent; }"
+            "QScrollArea > QWidget > QWidget { background: transparent; }"
+            "QWidget#statisticsContent { background: transparent; }"
+            "QWidget#statisticsContent QLabel { background: transparent; border: none; padding: 0; }"
+            "QFrame#statisticsControls QLabel, QFrame#statisticsKpiCard QLabel { "
+            "background: transparent; border: none; padding: 0; }"
+        )
+        outer_layout = QtWidgets.QVBoxLayout(page)
+        outer_layout.setContentsMargins(24, 24, 24, 24)
+
+        scroll_area = QtWidgets.QScrollArea(page)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QtWidgets.QFrame.NoFrame)
+        content = QtWidgets.QWidget()
+        content.setObjectName("statisticsContent")
+        layout = QtWidgets.QVBoxLayout(content)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(20)
+
+        header = QtWidgets.QHBoxLayout()
+        header.setContentsMargins(0, 0, 0, 6)
+        header.setSpacing(16)
+        title_box = QtWidgets.QVBoxLayout()
+        title_box.setSpacing(6)
+        title = QtWidgets.QLabel("Statistics")
+        title.setMinimumHeight(34)
+        title.setStyleSheet(
+            "QLabel { background: transparent; border: none; padding: 0; "
+            "font-family: Arial; font-size: 26px; font-weight: bold; color: #111827; }"
+        )
+        subtitle = QtWidgets.QLabel("Executive campaign report and white-label PDF export")
+        subtitle.setMinimumHeight(18)
+        subtitle.setStyleSheet(
+            "QLabel { background: transparent; border: none; padding: 0; "
+            "font-family: Arial; font-size: 12px; color: #667085; }"
+        )
+        title_box.addWidget(title)
+        title_box.addWidget(subtitle)
+        header.addLayout(title_box)
+        header.addStretch()
+
+        self.pushButton_statistics_refresh = QtWidgets.QPushButton("Refresh")
+        self.pushButton_statistics_export_pdf = QtWidgets.QPushButton("Export PDF")
+        for button in [self.pushButton_statistics_refresh, self.pushButton_statistics_export_pdf]:
+            button.setMinimumSize(QtCore.QSize(126, 40))
+            button.setMaximumHeight(40)
+            button.setStyleSheet(self._statistics_button_style())
+            header.addWidget(button)
+        layout.addLayout(header)
+
+        controls = QtWidgets.QFrame()
+        controls.setObjectName("statisticsControls")
+        controls.setStyleSheet(self._statistics_panel_style())
+        controls_layout = QtWidgets.QGridLayout(controls)
+        controls_layout.setContentsMargins(24, 20, 24, 20)
+        controls_layout.setHorizontalSpacing(20)
+        controls_layout.setVerticalSpacing(14)
+        for column in range(4):
+            controls_layout.setColumnStretch(column, 1)
+
+        self.comboBox_statistics_date_filter = QtWidgets.QComboBox()
+        self.comboBox_statistics_date_filter.addItems(["Last 30 Days", "All Time", "Custom"])
+        self.dateEdit_statistics_start = QtWidgets.QDateEdit()
+        self.dateEdit_statistics_end = QtWidgets.QDateEdit()
+        self.comboBox_statistics_date_filter.setMinimumHeight(42)
+        self.comboBox_statistics_date_filter.setStyleSheet(
+            self._statistics_input_style())
+        for date_edit in [self.dateEdit_statistics_start, self.dateEdit_statistics_end]:
+            date_edit.setCalendarPopup(True)
+            date_edit.setDisplayFormat("yyyy-MM-dd")
+            date_edit.setStyleSheet(self._statistics_input_style())
+            date_edit.setMinimumHeight(42)
+        today = QtCore.QDate.currentDate()
+        self.dateEdit_statistics_start.setDate(today.addDays(-30))
+        self.dateEdit_statistics_end.setDate(today)
+
+        self.doubleSpinBox_statistics_product_price = QtWidgets.QDoubleSpinBox()
+        self.doubleSpinBox_statistics_product_price.setPrefix("$ ")
+        self.doubleSpinBox_statistics_product_price.setMaximum(100000000)
+        self.doubleSpinBox_statistics_product_price.setDecimals(2)
+        self.doubleSpinBox_statistics_product_price.setSingleStep(100)
+        self.doubleSpinBox_statistics_product_price.setMinimumHeight(42)
+        self.doubleSpinBox_statistics_product_price.setStyleSheet(
+            self._statistics_input_style())
+
+        self.label_statistics_logo_value = QtWidgets.QLabel("No logo selected")
+        self.label_statistics_logo_value.setMinimumHeight(44)
+        self.label_statistics_logo_value.setStyleSheet(
+            "QLabel { border: 1px solid #d8e0ea; border-radius: 8px; "
+            "background-color: #ffffff; padding: 0 12px; color: #667085; "
+            "font-family: Arial; font-size: 12px; }"
+        )
+        self.pushButton_statistics_choose_logo = QtWidgets.QPushButton("Choose Logo")
+        self.pushButton_statistics_clear_logo = QtWidgets.QPushButton("Clear Logo")
+        for button in [self.pushButton_statistics_choose_logo, self.pushButton_statistics_clear_logo]:
+            button.setMinimumHeight(44)
+            button.setStyleSheet(self._statistics_secondary_button_style())
+
+        controls_layout.addWidget(self._statistics_field_label("Date Range"), 0, 0)
+        controls_layout.addWidget(self.comboBox_statistics_date_filter, 1, 0)
+        controls_layout.addWidget(self._statistics_field_label("Start"), 0, 1)
+        controls_layout.addWidget(self.dateEdit_statistics_start, 1, 1)
+        controls_layout.addWidget(self._statistics_field_label("End"), 0, 2)
+        controls_layout.addWidget(self.dateEdit_statistics_end, 1, 2)
+        controls_layout.addWidget(self._statistics_field_label("Product Price"), 0, 3)
+        controls_layout.addWidget(self.doubleSpinBox_statistics_product_price, 1, 3)
+        controls_layout.addWidget(self._statistics_field_label("White-label Logo"), 2, 0)
+        controls_layout.addWidget(self.label_statistics_logo_value, 3, 0, 1, 2)
+        controls_layout.addWidget(self.pushButton_statistics_choose_logo, 3, 2)
+        controls_layout.addWidget(self.pushButton_statistics_clear_logo, 3, 3)
+        layout.addWidget(controls)
+
+        self.statistics_preview = create_statistics_report_preview(content)
+        layout.addWidget(self.statistics_preview)
+        scroll_area.setWidget(content)
+        outer_layout.addWidget(scroll_area)
+        self.statistics_page_index = GUI.stackedWidget.addWidget(page)
+
+        self._load_statistics_settings()
+        self._update_statistics_date_controls()
+        self.pushButton_statistics_refresh.clicked.connect(self.refresh_statistics)
+        self.pushButton_statistics_export_pdf.clicked.connect(self.export_statistics_pdf)
+        self.pushButton_statistics_choose_logo.clicked.connect(self.choose_statistics_logo)
+        self.pushButton_statistics_clear_logo.clicked.connect(self.clear_statistics_logo)
+        self.comboBox_statistics_date_filter.currentTextChanged.connect(
+            self._update_statistics_date_controls)
+        self.doubleSpinBox_statistics_product_price.editingFinished.connect(
+            self.save_statistics_settings)
+        self.refresh_statistics(save_settings=False)
+
+    def _statistics_field_label(self, text):
+        label = QtWidgets.QLabel(text)
+        label.setMinimumHeight(18)
+        label.setStyleSheet(
+            "QLabel { background: transparent; border: none; padding: 0; "
+            "font-family: Arial; font-size: 11px; color: #667085; font-weight: bold; }"
+        )
+        return label
+
+    def _statistics_panel_style(self):
+        return (
+            "QFrame#statisticsControls, QFrame#statisticsKpiCard { "
+            "background-color: #ffffff; border: 1px solid #dde3ea; "
+            "border-radius: 10px; } "
+            "QFrame#statisticsControls QLabel, QFrame#statisticsKpiCard QLabel { "
+            "background: transparent; border: none; padding: 0; }"
+        )
+
+    def _statistics_button_style(self):
+        return (
+            "QPushButton { border: 1px solid #028fc3; border-radius: 8px; "
+            "background-color: #028fc3; color: #ffffff; padding: 8px 18px; "
+            "font-family: Arial; font-size: 12px; font-weight: bold; } "
+            "QPushButton:hover { background-color: #027faf; }"
+        )
+
+    def _statistics_secondary_button_style(self):
+        return (
+            "QPushButton { border: 1px solid #cbd5e1; border-radius: 8px; "
+            "background-color: #ffffff; color: #344054; padding: 6px 12px; "
+            "font-family: Arial; font-size: 12px; font-weight: bold; } "
+            "QPushButton:hover { background-color: #f8fafc; }"
+        )
+
+    def _statistics_input_style(self):
+        return (
+            "QComboBox, QDateEdit, QDoubleSpinBox { "
+            "background-color: #ffffff; color: #111827; border: 1px solid #d8e0ea; "
+            "border-radius: 8px; padding: 7px 12px; font-family: Arial; font-size: 12px; "
+            "font-weight: bold; } "
+            "QComboBox::drop-down, QDateEdit::drop-down, QDoubleSpinBox::up-button, "
+            "QDoubleSpinBox::down-button { width: 22px; border: none; background: transparent; }"
+        )
+
+    def _load_statistics_settings(self):
+        settings = getattr(var, "statistics", {}) or {}
+        self.doubleSpinBox_statistics_product_price.setValue(
+            float(settings.get("product_price") or 0)
+        )
+        date_filter = settings.get("date_filter", "last_30_days")
+        index_by_filter = {"last_30_days": 0, "all_time": 1, "custom": 2}
+        self.comboBox_statistics_date_filter.setCurrentIndex(
+            index_by_filter.get(date_filter, 0)
+        )
+        self._update_statistics_logo_label()
+
+    def _update_statistics_logo_label(self):
+        logo_path = (getattr(var, "statistics", {}) or {}).get("logo_path", "")
+        if logo_path:
+            self.label_statistics_logo_value.setText(os.path.basename(logo_path))
+        else:
+            self.label_statistics_logo_value.setText("No logo selected")
+
+    def _update_statistics_date_controls(self):
+        custom = self.comboBox_statistics_date_filter.currentText() == "Custom"
+        self.dateEdit_statistics_start.setEnabled(custom)
+        self.dateEdit_statistics_end.setEnabled(custom)
+
+    def _statistics_date_range(self):
+        selected = self.comboBox_statistics_date_filter.currentText()
+        if selected == "All Time":
+            return DateRange(), "All time", "all_time"
+        if selected == "Custom":
+            start = self.dateEdit_statistics_start.date().toString("yyyy-MM-dd")
+            end = self.dateEdit_statistics_end.date().toString("yyyy-MM-dd")
+            return DateRange.from_dates(start, end), f"{start} to {end}", "custom"
+        end = datetime.now()
+        start = end - pd.Timedelta(days=30)
+        return DateRange(start=start.to_pydatetime() if hasattr(start, "to_pydatetime") else start, end=end), "Last 30 days", "last_30_days"
+
+    def save_statistics_settings(self):
+        _, _, date_filter = self._statistics_date_range()
+        var.statistics["product_price"] = self.doubleSpinBox_statistics_product_price.value()
+        var.statistics["date_filter"] = date_filter
+        Thread(target=update_config_json, daemon=True).start()
+
+    def _statistics_negative_words(self):
+        try:
+            with open(var.blacklist_file_path, "r", encoding="utf-8") as file:
+                return [line.strip() for line in file if line.strip()]
+        except FileNotFoundError:
+            return None
+
+    def refresh_statistics(self, save_settings=True):
+        if save_settings:
+            self.save_statistics_settings()
+        date_range, date_label, _ = self._statistics_date_range()
+        calculator = StatisticsCalculator(
+            report_path=var.report_file_path,
+            followup_report_path=var.followup_report_file_path,
+            negative_words=self._statistics_negative_words(),
+        )
+        summary = calculator.calculate(
+            inbox_tables=var.inbox_data_table,
+            date_range=date_range,
+            product_price=self.doubleSpinBox_statistics_product_price.value(),
+        )
+        self.statistics_summary = summary
+        logo_path = var.statistics.get("logo_path", "")
+        self.statistics_preview.set_report(
+            summary,
+            logo_path=logo_path,
+            title="Outreach Performance",
+            date_label=date_label,
+        )
+
+    def choose_statistics_logo(self):
+        file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            mainWindow,
+            "Choose Logo",
+            "",
+            "Images (*.png *.jpg *.jpeg *.bmp)",
+        )
+        if not file_path:
+            return
+        var.statistics["logo_path"] = file_path
+        self._update_statistics_logo_label()
+        self.save_statistics_settings()
+        self.refresh_statistics(save_settings=False)
+
+    def clear_statistics_logo(self):
+        var.statistics["logo_path"] = ""
+        self._update_statistics_logo_label()
+        self.save_statistics_settings()
+        self.refresh_statistics(save_settings=False)
+
+    def export_statistics_pdf(self):
+        self.refresh_statistics()
+        default_name = os.path.join(
+            self._downloads_folder(),
+            f"gmonster-statistics-{datetime.now().strftime('%Y%m%d-%H%M')}.pdf",
+        )
+        file_path, _ = QtWidgets.QFileDialog.getSaveFileName(
+            mainWindow,
+            "Export Statistics PDF",
+            default_name,
+            "PDF Files (*.pdf)",
+        )
+        if not file_path:
+            return
+        if not file_path.lower().endswith(".pdf"):
+            file_path += ".pdf"
+        try:
+            _, date_label, _ = self._statistics_date_range()
+            export_statistics_pdf(
+                file_path,
+                self.statistics_summary,
+                logo_path=var.statistics.get("logo_path", ""),
+                title="Outreach Performance",
+                date_label=date_label,
+            )
+            alert(text=f"Statistics PDF exported to:\n{file_path}", title="Export complete", button="OK")
+        except Exception as e:
+            logger.error(f"Statistics PDF export failed: {traceback.format_exc()}")
+            alert(text=f"Statistics PDF export failed: {e}", title="Error", button="OK")
+
+    def _downloads_folder(self):
+        download_path = QtCore.QStandardPaths.writableLocation(
+            QtCore.QStandardPaths.DownloadLocation
+        )
+        if download_path:
+            return download_path
+        fallback = os.path.join(os.path.expanduser("~"), "Downloads")
+        if os.path.isdir(fallback):
+            return fallback
+        return os.path.expanduser("~")
+
     def setup_sidebar_icons(self):
         if qta is None:
             return
@@ -2148,6 +2470,7 @@ class MyMainClass:
             "Database": "fa5s.database",
             "Follow-up": "fa5s.reply",
             "Auto-reply": "fa5s.robot",
+            "Statistics": "fa5s.chart-bar",
             "Store": "fa5s.shopping-bag",
             "Leads": "fa5s.user-friends",
             "Tutorials": "fa5s.book-open",
@@ -2628,6 +2951,87 @@ class MyMainClass:
             GUI.label_account_status_val.setStyleSheet("color: #c62828;")
             logger.error(
                 f"Error fetching account info: {traceback.format_exc()}")
+
+    def request_subscription_cancel(self):
+        email = (var.login_email or "").strip()
+        if not email:
+            alert(
+                text="No account email is available for the cancellation request.",
+                title="Cancel Subscription",
+                button="OK",
+            )
+            return
+
+        choice = confirm(
+            text=(
+                "Send a subscription cancellation request for "
+                f"{email}?\n\nThis will notify Gmonster support for manual processing."
+            ),
+            title="Cancel Subscription",
+            buttons=["Send Request", "Cancel"],
+        )
+        if choice != "Send Request":
+            return
+
+        GUI.pushButton_account_cancel_subscription.setEnabled(False)
+        GUI.pushButton_account_cancel_subscription.setText("Sending...")
+        Thread(
+            target=self._send_subscription_cancel_request,
+            args=(email,),
+            daemon=True,
+        ).start()
+
+    def _send_subscription_cancel_request(self, email):
+        try:
+            response = requests.post(
+                var.api + "verify/request_subscription_cancel",
+                json={
+                    "email": email,
+                    "message": f"Cancel the subscription of {email}",
+                },
+                timeout=var.API_TIMEOUT,
+            )
+            message = "Cancellation request sent. We will process it manually."
+            try:
+                data = response.json()
+                message = data.get("message") or message
+            except Exception:
+                pass
+
+            if 200 <= response.status_code < 300:
+                self._subscription_cancel_result = (True, message)
+            else:
+                self._subscription_cancel_result = (
+                    False,
+                    f"Cancellation request failed: HTTP {response.status_code}",
+                )
+                logger.error(
+                    f"Subscription cancellation failed: HTTP {response.status_code} - {response.text}"
+                )
+        except Exception:
+            self._subscription_cancel_result = (
+                False,
+                "Could not send the cancellation request. Check your connection and try again.",
+            )
+            logger.error(
+                f"Error sending subscription cancellation request: {traceback.format_exc()}"
+            )
+        var.command_q.put("self._finish_subscription_cancel_request()")
+
+    def _finish_subscription_cancel_request(self):
+        success, message = getattr(
+            self,
+            "_subscription_cancel_result",
+            (False, "Cancellation request failed."),
+        )
+        GUI.pushButton_account_cancel_subscription.setEnabled(True)
+        GUI.pushButton_account_cancel_subscription.setText(
+            "Cancel Subscription")
+        alert(
+            text=message,
+            title="Cancel Subscription" if success else "Error",
+            button="OK",
+        )
 
     def test_send(self):
         dialog = QtWidgets.QDialog()
@@ -3390,7 +3794,7 @@ class MyMainClass:
 
         return (
             f"<html><body style='font-family: Arial, sans-serif; font-size: {base_font_size}px;'>"
-            + "".join(message_blocks)
+            + "<br><br>".join(message_blocks)
             + "</body></html>"
         )
 

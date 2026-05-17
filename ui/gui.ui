@@ -8863,6 +8863,57 @@ QPushButton:pressed {
                             </widget>
                           </item>
                           <item>
+                            <widget class="QPushButton" name="pushButton_account_cancel_subscription">
+                              <property name="minimumSize">
+                                <size>
+                                  <width>190</width>
+                                  <height>44</height>
+                                </size>
+                              </property>
+                              <property name="maximumSize">
+                                <size>
+                                  <width>240</width>
+                                  <height>44</height>
+                                </size>
+                              </property>
+                              <property name="font">
+                                <font>
+                                  <family>Arial</family>
+                                  <pointsize>13</pointsize>
+                                  <bold>true</bold>
+                                </font>
+                              </property>
+                              <property name="styleSheet">
+                                <string notr="true">QPushButton {
+    border: 1px solid #c62828;
+    border-radius: 6px;
+    color: #fff;
+    background-color: #c62828;
+    padding: 10px 24px;
+    font-family: Arial;
+    font-size: 13px;
+    font-weight: bold;
+}
+QPushButton:hover {
+    background-color: #ad1f1f;
+    color: #fff;
+}
+QPushButton:pressed {
+    background-color: #8f1717;
+    color: #fff;
+}
+QPushButton:disabled {
+    background-color: #d9a1a1;
+    border-color: #d9a1a1;
+    color: #fff;
+}</string>
+                              </property>
+                              <property name="text">
+                                <string>Cancel Subscription</string>
+                              </property>
+                            </widget>
+                          </item>
+                          <item>
                             <spacer name="spacer_links_right">
                               <property name="orientation">
                                 <enum>Qt::Horizontal</enum>
