@@ -357,6 +357,9 @@ class MyMainClass:
         self.inbox_zoom_level = 0
         self.statistics_summary = None
         self.statistics_page_index = None
+        self.statistics_manual_fields = {}
+        self.statistics_calculated_labels = {}
+        self.statistics_kpi_value_labels = {}
         self.setup_statistics_page()
         self.setup_sidebar_icons()
         GUI.checkBox_delete_all.stateChanged.connect(
@@ -2266,6 +2269,12 @@ class MyMainClass:
         controls_layout.addWidget(self.pushButton_statistics_clear_logo, 3, 3)
         layout.addWidget(controls)
 
+        self.statistics_kpi_frame = self._build_statistics_kpi_frame(content)
+        layout.addWidget(self.statistics_kpi_frame)
+
+        self.statistics_metric_tabs = self._build_statistics_metric_tabs(content)
+        layout.addWidget(self.statistics_metric_tabs)
+
         self.statistics_preview = create_statistics_report_preview(content)
         layout.addWidget(self.statistics_preview)
         scroll_area.setWidget(content)
@@ -2283,6 +2292,167 @@ class MyMainClass:
         self.doubleSpinBox_statistics_product_price.editingFinished.connect(
             self.save_statistics_settings)
         self.refresh_statistics(save_settings=False)
+
+    def _build_statistics_kpi_frame(self, parent):
+        frame = QtWidgets.QFrame(parent)
+        frame.setObjectName("statisticsControls")
+        frame.setStyleSheet(self._statistics_panel_style())
+        grid = QtWidgets.QGridLayout(frame)
+        grid.setContentsMargins(18, 18, 18, 18)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(12)
+        cards = [
+            ("meetings_booked", "Meetings Booked"),
+            ("opportunities", "Opportunities"),
+            ("revenue_generated", "Revenue"),
+            ("positive_reply_rate", "Positive Reply"),
+            ("delivery_rate", "Deliverability"),
+            ("roi", "ROI"),
+            ("cost_per_meeting", "Cost / Meeting"),
+            ("valid_email_rate", "Lead Quality"),
+        ]
+        for index, (key, label) in enumerate(cards):
+            card = QtWidgets.QFrame(frame)
+            card.setObjectName("statisticsKpiCard")
+            card.setStyleSheet(self._statistics_panel_style())
+            card_layout = QtWidgets.QVBoxLayout(card)
+            card_layout.setContentsMargins(14, 12, 14, 12)
+            card_layout.setSpacing(6)
+            title = QtWidgets.QLabel(label)
+            title.setStyleSheet(
+                "QLabel { color: #667085; font-family: Arial; font-size: 10px; "
+                "font-weight: bold; text-transform: uppercase; }"
+            )
+            value = QtWidgets.QLabel("0")
+            value.setMinimumHeight(28)
+            value.setStyleSheet(
+                "QLabel { color: #111827; font-family: Arial; font-size: 22px; "
+                "font-weight: bold; }"
+            )
+            card_layout.addWidget(title)
+            card_layout.addWidget(value)
+            self.statistics_kpi_value_labels[key] = value
+            grid.addWidget(card, index // 4, index % 4)
+        return frame
+
+    def _build_statistics_metric_tabs(self, parent):
+        tabs = QtWidgets.QTabWidget(parent)
+        tabs.setStyleSheet(
+            "QTabWidget::pane { border: 1px solid #dde3ea; background: #ffffff; "
+            "border-radius: 8px; } "
+            "QTabBar::tab { background: #eef2f6; color: #344054; padding: 9px 14px; "
+            "font-family: Arial; font-size: 11px; font-weight: bold; border-top-left-radius: 6px; "
+            "border-top-right-radius: 6px; margin-right: 3px; } "
+            "QTabBar::tab:selected { background: #ffffff; color: #028fc3; }"
+        )
+        for section_title, manual_fields, calculated_fields in self._statistics_sections():
+            page = QtWidgets.QWidget()
+            layout = QtWidgets.QGridLayout(page)
+            layout.setContentsMargins(18, 18, 18, 18)
+            layout.setHorizontalSpacing(8)
+            layout.setVerticalSpacing(8)
+            for column in range(2):
+                layout.setColumnStretch(column, 1)
+            row = 0
+            if manual_fields:
+                manual_header = self._statistics_section_header("Manual inputs", kind="manual")
+                layout.addWidget(manual_header, row, 0, 1, 2)
+                row += 1
+                for index, (key, label, kind) in enumerate(manual_fields):
+                    self._add_statistics_manual_field(layout, row + index // 2, index % 2, key, label, kind)
+                row += (len(manual_fields) + 1) // 2
+            if calculated_fields:
+                calc_header = self._statistics_section_header("Calculated metrics", kind="calc")
+                layout.addWidget(calc_header, row, 0, 1, 2)
+                row += 1
+                for index, (key, label, kind) in enumerate(calculated_fields):
+                    self._add_statistics_calculated_field(layout, row + index // 2, index % 2, key, label, kind)
+            tabs.addTab(page, section_title)
+        return tabs
+
+    def _statistics_section_header(self, text, kind="calc"):
+        container = QtWidgets.QWidget()
+        container.setStyleSheet("QWidget { background: transparent; }")
+        h = QtWidgets.QHBoxLayout(container)
+        h.setContentsMargins(0, 6, 0, 4)
+        h.setSpacing(6)
+        dot = QtWidgets.QLabel()
+        dot.setFixedSize(8, 8)
+        color = "#6366f1" if kind == "manual" else "#028fc3"
+        dot.setStyleSheet(f"background: {color}; border-radius: 4px;")
+        lbl = QtWidgets.QLabel(text.upper())
+        lbl.setStyleSheet(
+            "QLabel { color: #374151; font-family: Arial; font-size: 10px; "
+            "font-weight: bold; letter-spacing: 0.7px; background: transparent; border: none; }"
+        )
+        h.addWidget(dot)
+        h.addWidget(lbl)
+        h.addStretch()
+        return container
+
+    def _add_statistics_manual_field(self, layout, row, column, key, label, kind):
+        chip = QtWidgets.QFrame()
+        chip.setStyleSheet(
+            "QFrame { background: #fafafa; border: 1px solid #d1d5db; border-radius: 8px; }"
+            "QFrame QLabel { background: transparent; border: none; }"
+        )
+        chip_layout = QtWidgets.QVBoxLayout(chip)
+        chip_layout.setContentsMargins(10, 8, 10, 8)
+        chip_layout.setSpacing(4)
+        lbl = QtWidgets.QLabel(label)
+        lbl.setStyleSheet(
+            "QLabel { color: #6b7280; font-family: Arial; font-size: 10px; font-weight: 600; }"
+        )
+        chip_layout.addWidget(lbl)
+        if kind == "text":
+            field = QtWidgets.QLineEdit()
+            field.setStyleSheet(
+                "QLineEdit { border: none; background: transparent; padding: 0; "
+                "font-family: Arial; font-size: 13px; font-weight: 600; color: #374151; }"
+            )
+            field.editingFinished.connect(self.refresh_statistics)
+        else:
+            field = QtWidgets.QDoubleSpinBox()
+            field.setMaximum(1000000000)
+            field.setDecimals(2 if kind in ("currency", "decimal") else 0)
+            field.setSingleStep(100 if kind == "currency" else 1)
+            if kind == "currency":
+                field.setPrefix("$ ")
+            if kind == "percent":
+                field.setSuffix(" %")
+                field.setMaximum(100)
+            field.setStyleSheet(
+                "QDoubleSpinBox { border: none; background: transparent; padding: 0; "
+                "font-family: Arial; font-size: 13px; font-weight: 600; color: #374151; }"
+                "QDoubleSpinBox::up-button, QDoubleSpinBox::down-button "
+                "{ width: 18px; border: none; background: transparent; }"
+            )
+            field.editingFinished.connect(self.refresh_statistics)
+        self.statistics_manual_fields[key] = field
+        chip_layout.addWidget(field)
+        layout.addWidget(chip, row, column)
+
+    def _add_statistics_calculated_field(self, layout, row, column, key, label, kind):
+        chip = QtWidgets.QFrame()
+        chip.setStyleSheet(
+            "QFrame { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; }"
+            "QFrame QLabel { background: transparent; border: none; }"
+        )
+        chip_layout = QtWidgets.QVBoxLayout(chip)
+        chip_layout.setContentsMargins(10, 8, 10, 8)
+        chip_layout.setSpacing(3)
+        lbl = QtWidgets.QLabel(label)
+        lbl.setStyleSheet(
+            "QLabel { color: #6b7280; font-family: Arial; font-size: 10px; font-weight: 600; }"
+        )
+        value = QtWidgets.QLabel("0")
+        value.setStyleSheet(
+            "QLabel { color: #0369a1; font-family: Arial; font-size: 15px; font-weight: 700; }"
+        )
+        chip_layout.addWidget(lbl)
+        chip_layout.addWidget(value)
+        self.statistics_calculated_labels[key] = (value, kind)
+        layout.addWidget(chip, row, column)
 
     def _statistics_field_label(self, text):
         label = QtWidgets.QLabel(text)
@@ -2328,6 +2498,151 @@ class MyMainClass:
             "QDoubleSpinBox::down-button { width: 22px; border: none; background: transparent; }"
         )
 
+    def _statistics_text_input_style(self):
+        return (
+            "QLineEdit { background-color: #ffffff; color: #111827; border: 1px solid #d8e0ea; "
+            "border-radius: 8px; padding: 7px 12px; font-family: Arial; font-size: 12px; "
+            "font-weight: bold; }"
+        )
+
+    def _statistics_sections(self):
+        return [
+            (
+                "Deliverability",
+                [
+                    ("emails_delivered", "Emails Delivered", "number"),
+                    ("hard_bounces", "Hard Bounces", "number"),
+                    ("soft_bounces", "Soft Bounces", "number"),
+                    ("deferred_emails", "Deferred Emails", "number"),
+                    ("blocked_emails", "Blocked Emails", "number"),
+                    ("inbox_placement", "Inbox Placement", "number"),
+                    ("spam_placement", "Spam Placement", "number"),
+                    ("spam_complaints", "Spam Complaints", "number"),
+                ],
+                [
+                    ("delivery_rate", "Delivery Rate", "percent"),
+                    ("bounce_rate", "Bounce Rate", "percent"),
+                    ("hard_bounce_rate", "Hard Bounce Rate", "percent"),
+                    ("soft_bounce_rate", "Soft Bounce Rate", "percent"),
+                    ("inbox_placement_rate", "Inbox Placement Rate", "percent"),
+                    ("spam_folder_placement_rate", "Spam Folder Rate", "percent"),
+                    ("spam_complaint_rate", "Spam Complaint Rate", "percent"),
+                    ("sending_velocity", "Sending Velocity / Day", "decimal"),
+                ],
+            ),
+            (
+                "Lead Quality",
+                [
+                    ("high_value_accounts", "High-value Accounts", "number"),
+                ],
+                [
+                    ("leads_sourced", "Leads Sourced", "number"),
+                    ("valid_email_rate", "Valid Email Rate", "percent"),
+                    ("invalid_email_rate", "Invalid Email Rate", "percent"),
+                    ("catch_all_domain_percentage", "Catch-all Percentage", "percent"),
+                    ("verified_email_percentage", "Verified Percentage", "percent"),
+                    ("duplicate_lead_rate", "Duplicate Lead Rate", "percent"),
+                    ("leads_not_emailed", "Leads Not Emailed", "number"),
+                    ("high_value_account_percentage", "High-value Percentage", "percent"),
+                ],
+            ),
+            (
+                "Campaign",
+                [
+                    ("open_total", "Total Opens", "number"),
+                    ("unique_opens", "Unique Opens", "number"),
+                    ("clicks", "Clicks", "number"),
+                    ("unsubscribes", "Unsubscribes", "number"),
+                    ("forwards", "Forwards", "number"),
+                    ("meetings_booked", "Meetings Booked", "number"),
+                ],
+                [
+                    ("open_rate", "Open Rate", "percent"),
+                    ("unique_open_rate", "Unique Open Rate", "percent"),
+                    ("click_through_rate", "CTR", "percent"),
+                    ("total_reply_rate", "Reply Rate", "percent"),
+                    ("unsubscribe_rate", "Unsubscribe Rate", "percent"),
+                    ("forwarding_rate", "Forwarding Rate", "percent"),
+                    ("calendar_booking_rate", "Calendar Booking Rate", "percent"),
+                    ("conversion_rate", "Conversion Rate", "percent"),
+                ],
+            ),
+            (
+                "Replies",
+                [
+                    ("neutral_replies", "Neutral Replies", "number"),
+                    ("interested_replies", "Interested Replies", "number"),
+                    ("objection_replies", "Objection Replies", "number"),
+                    ("not_now_replies", "Not-now Replies", "number"),
+                    ("referral_replies", "Referral Replies", "number"),
+                    ("out_of_office_replies", "Out-of-office Replies", "number"),
+                    ("automated_replies", "Automated Replies", "number"),
+                    ("ongoing_conversations", "Ongoing Conversations", "number"),
+                    ("sales_qualified_conversations", "Sales-qualified Conversations", "number"),
+                    ("average_response_time_hours", "Avg Response Time Hours", "decimal"),
+                ],
+                [
+                    ("positive_sentiment_ratio", "Positive Sentiment Ratio", "percent"),
+                    ("negative_sentiment_ratio", "Negative Sentiment Ratio", "percent"),
+                    ("positive_reply_rate", "Positive Reply Rate", "percent"),
+                    ("negative_reply_rate", "Negative Reply Rate", "percent"),
+                    ("neutral_reply_rate", "Neutral Reply Rate", "percent"),
+                    ("interested_reply_rate", "Interested Reply Rate", "percent"),
+                    ("objection_rate", "Objection Rate", "percent"),
+                    ("conversation_continuation_rate", "Continuation Rate", "percent"),
+                    ("sales_qualified_conversation_rate", "SQ Conversation Rate", "percent"),
+                ],
+            ),
+            (
+                "Sales / ROI",
+                [
+                    ("meetings_held", "Meetings Held", "number"),
+                    ("no_shows", "No-shows", "number"),
+                    ("opportunities", "Opportunities", "number"),
+                    ("accepted_opportunities", "Accepted Opportunities", "number"),
+                    ("closed_deals", "Closed Deals", "number"),
+                    ("pipeline_generated", "Pipeline Generated", "currency"),
+                    ("revenue_generated", "Revenue Generated", "currency"),
+                    ("total_cost", "Total Cost", "currency"),
+                    ("lifetime_value", "Lifetime Value", "currency"),
+                    ("payback_period_days", "Payback Period Days", "decimal"),
+                    ("sales_cycle_length_days", "Sales Cycle Length Days", "decimal"),
+                ],
+                [
+                    ("meeting_rate", "Meeting Rate", "percent"),
+                    ("show_up_rate", "Show-up Rate", "percent"),
+                    ("no_show_rate", "No-show Rate", "percent"),
+                    ("opportunity_acceptance_rate", "Opportunity Acceptance", "percent"),
+                    ("lead_to_opportunity_rate", "Lead-to-opportunity", "percent"),
+                    ("lead_to_close_rate", "Lead-to-close", "percent"),
+                    ("revenue_per_email_sent", "Revenue / Email", "currency"),
+                    ("revenue_per_lead", "Revenue / Lead", "currency"),
+                    ("revenue_per_meeting", "Revenue / Meeting", "currency"),
+                    ("roi", "ROI", "percent"),
+                    ("cost_per_meeting", "Cost / Meeting", "currency"),
+                    ("cost_per_opportunity", "Cost / Opportunity", "currency"),
+                    ("cost_per_acquisition", "Cost / Acquisition", "currency"),
+                ],
+            ),
+            (
+                "Warm-up",
+                [
+                    ("warmup_email_amounts", "Warm-up Emails", "number"),
+                    ("warmup_time_days", "Time in Warm-up Days", "decimal"),
+                    ("warmup_progress_percent", "Warm-up Progress", "percent"),
+                    ("best_sending_time", "Best Sending Time", "text"),
+                    ("best_sending_day", "Best Sending Day", "text"),
+                    ("best_subject_line", "Best Subject Line", "text"),
+                ],
+                [
+                    ("sent_emails", "Emails Sent", "number"),
+                    ("second_emails", "Follow-ups / Warm-up Sent", "number"),
+                    ("warmup_progress_rate", "Warm-up Progress Rate", "percent"),
+                    ("mailbox_provider_summary", "Mailbox Provider Distribution", "text"),
+                ],
+            ),
+        ]
+
     def _load_statistics_settings(self):
         settings = getattr(var, "statistics", {}) or {}
         self.doubleSpinBox_statistics_product_price.setValue(
@@ -2338,7 +2653,20 @@ class MyMainClass:
         self.comboBox_statistics_date_filter.setCurrentIndex(
             index_by_filter.get(date_filter, 0)
         )
+        self._load_statistics_manual_metrics(settings.get("manual_metrics", {}))
         self._update_statistics_logo_label()
+
+    def _load_statistics_manual_metrics(self, manual_metrics):
+        manual_metrics = manual_metrics or {}
+        for key, field in self.statistics_manual_fields.items():
+            value = manual_metrics.get(key, "")
+            if isinstance(field, QtWidgets.QLineEdit):
+                field.setText(str(value or ""))
+            else:
+                try:
+                    field.setValue(float(value or 0))
+                except Exception:
+                    field.setValue(0)
 
     def _update_statistics_logo_label(self):
         logo_path = (getattr(var, "statistics", {}) or {}).get("logo_path", "")
@@ -2368,7 +2696,17 @@ class MyMainClass:
         _, _, date_filter = self._statistics_date_range()
         var.statistics["product_price"] = self.doubleSpinBox_statistics_product_price.value()
         var.statistics["date_filter"] = date_filter
+        var.statistics["manual_metrics"] = self._statistics_manual_metrics()
         Thread(target=update_config_json, daemon=True).start()
+
+    def _statistics_manual_metrics(self):
+        metrics = {}
+        for key, field in self.statistics_manual_fields.items():
+            if isinstance(field, QtWidgets.QLineEdit):
+                metrics[key] = field.text().strip()
+            else:
+                metrics[key] = field.value()
+        return metrics
 
     def _statistics_negative_words(self):
         try:
@@ -2390,8 +2728,12 @@ class MyMainClass:
             inbox_tables=var.inbox_data_table,
             date_range=date_range,
             product_price=self.doubleSpinBox_statistics_product_price.value(),
+            manual_metrics=self._statistics_manual_metrics(),
+            target_table=getattr(var, "target", None),
+            account_tables=[getattr(var, "group_a", None), getattr(var, "group_b", None)],
         )
         self.statistics_summary = summary
+        self._update_statistics_metric_labels(summary)
         logo_path = var.statistics.get("logo_path", "")
         self.statistics_preview.set_report(
             summary,
@@ -2399,6 +2741,39 @@ class MyMainClass:
             title="Outreach Performance",
             date_label=date_label,
         )
+
+    def _update_statistics_metric_labels(self, summary):
+        for key, (label, kind) in self.statistics_calculated_labels.items():
+            label.setText(self._format_statistics_value(getattr(summary, key, 0), kind))
+        kpi_kinds = {
+            "meetings_booked": "number",
+            "opportunities": "number",
+            "revenue_generated": "currency",
+            "positive_reply_rate": "percent",
+            "delivery_rate": "percent",
+            "roi": "percent",
+            "cost_per_meeting": "currency",
+            "valid_email_rate": "percent",
+        }
+        for key, label in self.statistics_kpi_value_labels.items():
+            label.setText(self._format_statistics_value(getattr(summary, key, 0), kpi_kinds.get(key, "number")))
+
+    def _format_statistics_value(self, value, kind):
+        if kind == "currency":
+            return format_currency(value)
+        if kind == "percent":
+            try:
+                return "{}%".format(int(round(float(value) * 100)))
+            except Exception:
+                return "0%"
+        if kind == "decimal":
+            try:
+                return "{:,.2f}".format(float(value)).rstrip("0").rstrip(".")
+            except Exception:
+                return "0"
+        if kind == "text":
+            return str(value or "")
+        return format_number(value)
 
     def choose_statistics_logo(self):
         file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
