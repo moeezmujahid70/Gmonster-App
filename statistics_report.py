@@ -48,6 +48,57 @@ class StatisticsSummary:
     negative_replies: int = 0
     second_emails: int = 0
     potential_earnings: float = 0
+    emails_delivered: int = 0
+    hard_bounces: int = 0
+    soft_bounces: int = 0
+    deferred_emails: int = 0
+    blocked_emails: int = 0
+    inbox_placement: int = 0
+    spam_placement: int = 0
+    spam_complaints: int = 0
+    open_total: int = 0
+    unique_opens: int = 0
+    clicks: int = 0
+    unsubscribes: int = 0
+    forwards: int = 0
+    neutral_replies: int = 0
+    interested_replies: int = 0
+    objection_replies: int = 0
+    not_now_replies: int = 0
+    referral_replies: int = 0
+    out_of_office_replies: int = 0
+    automated_replies: int = 0
+    ongoing_conversations: int = 0
+    sales_qualified_conversations: int = 0
+    meetings_booked: int = 0
+    meetings_held: int = 0
+    no_shows: int = 0
+    opportunities: int = 0
+    accepted_opportunities: int = 0
+    closed_deals: int = 0
+    revenue_generated: float = 0
+    pipeline_generated: float = 0
+    total_cost: float = 0
+    cost_per_lead_input: float = 0
+    lifetime_value: float = 0
+    payback_period_days: float = 0
+    sales_cycle_length_days: float = 0
+    leads_sourced: int = 0
+    valid_email_count: int = 0
+    invalid_email_count: int = 0
+    catch_all_count: int = 0
+    verified_email_count: int = 0
+    duplicate_lead_count: int = 0
+    leads_not_emailed: int = 0
+    high_value_accounts: int = 0
+    warmup_email_amounts: int = 0
+    warmup_time_days: float = 0
+    warmup_progress_percent: float = 0
+    average_response_time_hours: float = 0
+    best_sending_time: str = ""
+    best_sending_day: str = ""
+    best_subject_line: str = ""
+    mailbox_provider_distribution: Dict[str, int] = field(default_factory=dict)
     daily_sent: Dict[str, int] = field(default_factory=dict)
     daily_positive_replies: Dict[str, int] = field(default_factory=dict)
     daily_negative_replies: Dict[str, int] = field(default_factory=dict)
@@ -62,6 +113,210 @@ class StatisticsSummary:
         if self.total_replies == 0:
             return 0
         return self.positive_replies / self.total_replies
+
+    @property
+    def total_bounces(self):
+        return self.hard_bounces + self.soft_bounces
+
+    @property
+    def delivery_rate(self):
+        return _safe_rate(self.emails_delivered, self.sent_emails)
+
+    @property
+    def bounce_rate(self):
+        return _safe_rate(self.total_bounces, self.sent_emails)
+
+    @property
+    def hard_bounce_rate(self):
+        return _safe_rate(self.hard_bounces, self.sent_emails)
+
+    @property
+    def soft_bounce_rate(self):
+        return _safe_rate(self.soft_bounces, self.sent_emails)
+
+    @property
+    def inbox_placement_rate(self):
+        return _safe_rate(self.inbox_placement, self.emails_delivered)
+
+    @property
+    def spam_folder_placement_rate(self):
+        return _safe_rate(self.spam_placement, self.emails_delivered)
+
+    @property
+    def spam_complaint_rate(self):
+        return _safe_rate(self.spam_complaints, self.emails_delivered)
+
+    @property
+    def total_reply_rate(self):
+        return _safe_rate(self.total_replies, self.sent_emails)
+
+    @property
+    def positive_reply_rate(self):
+        return _safe_rate(self.positive_replies, self.sent_emails)
+
+    @property
+    def negative_reply_rate(self):
+        return _safe_rate(self.negative_replies, self.sent_emails)
+
+    @property
+    def neutral_reply_rate(self):
+        return _safe_rate(self.neutral_replies, self.sent_emails)
+
+    @property
+    def interested_reply_rate(self):
+        return _safe_rate(self.interested_replies, self.sent_emails)
+
+    @property
+    def objection_rate(self):
+        return _safe_rate(self.objection_replies, self.sent_emails)
+
+    @property
+    def open_rate(self):
+        return _safe_rate(self.open_total, self.emails_delivered)
+
+    @property
+    def unique_open_rate(self):
+        return _safe_rate(self.unique_opens, self.emails_delivered)
+
+    @property
+    def click_through_rate(self):
+        return _safe_rate(self.clicks, self.emails_delivered)
+
+    @property
+    def unsubscribe_rate(self):
+        return _safe_rate(self.unsubscribes, self.emails_delivered)
+
+    @property
+    def forwarding_rate(self):
+        return _safe_rate(self.forwards, self.emails_delivered)
+
+    @property
+    def calendar_booking_rate(self):
+        return _safe_rate(self.meetings_booked, self.emails_delivered)
+
+    @property
+    def meeting_rate(self):
+        return _safe_rate(self.meetings_booked, self.sent_emails)
+
+    @property
+    def show_up_rate(self):
+        return _safe_rate(self.meetings_held, self.meetings_booked)
+
+    @property
+    def no_show_rate(self):
+        return _safe_rate(self.no_shows, self.meetings_booked)
+
+    @property
+    def opportunity_acceptance_rate(self):
+        return _safe_rate(self.accepted_opportunities, self.opportunities)
+
+    @property
+    def lead_to_opportunity_rate(self):
+        return _safe_rate(self.opportunities, self.meetings_booked)
+
+    @property
+    def lead_to_close_rate(self):
+        return _safe_rate(self.closed_deals, self.opportunities)
+
+    @property
+    def conversion_rate(self):
+        return _safe_rate(self.closed_deals, self.sent_emails)
+
+    @property
+    def revenue_per_email_sent(self):
+        return _safe_divide(self.revenue_generated, self.sent_emails)
+
+    @property
+    def revenue_per_lead(self):
+        return _safe_divide(self.revenue_generated, self.leads_sourced)
+
+    @property
+    def revenue_per_meeting(self):
+        return _safe_divide(self.revenue_generated, self.meetings_booked)
+
+    @property
+    def roi(self):
+        return _safe_divide(self.revenue_generated - self.total_cost, self.total_cost)
+
+    @property
+    def cost_per_lead(self):
+        return self.cost_per_lead_input or _safe_divide(self.total_cost, self.leads_sourced)
+
+    @property
+    def cost_per_meeting(self):
+        return _safe_divide(self.total_cost, self.meetings_booked)
+
+    @property
+    def cost_per_opportunity(self):
+        return _safe_divide(self.total_cost, self.opportunities)
+
+    @property
+    def cost_per_acquisition(self):
+        return _safe_divide(self.total_cost, self.closed_deals)
+
+    @property
+    def valid_email_rate(self):
+        return _safe_rate(self.valid_email_count, self.leads_sourced)
+
+    @property
+    def invalid_email_rate(self):
+        return _safe_rate(self.invalid_email_count, self.leads_sourced)
+
+    @property
+    def catch_all_domain_percentage(self):
+        return _safe_rate(self.catch_all_count, self.leads_sourced)
+
+    @property
+    def verified_email_percentage(self):
+        return _safe_rate(self.verified_email_count, self.leads_sourced)
+
+    @property
+    def duplicate_lead_rate(self):
+        return _safe_rate(self.duplicate_lead_count, self.leads_sourced)
+
+    @property
+    def high_value_account_percentage(self):
+        return _safe_rate(self.high_value_accounts, self.leads_sourced)
+
+    @property
+    def sending_velocity(self):
+        if not self.daily_sent:
+            return 0
+        return _safe_divide(sum(self.daily_sent.values()), len(self.daily_sent))
+
+    @property
+    def warmup_progress_rate(self):
+        return _safe_rate(self.warmup_progress_percent, 100)
+
+    @property
+    def positive_sentiment_ratio(self):
+        return _safe_rate(self.positive_replies, self.total_replies)
+
+    @property
+    def negative_sentiment_ratio(self):
+        return _safe_rate(self.negative_replies, self.total_replies)
+
+    @property
+    def conversation_continuation_rate(self):
+        return _safe_rate(self.ongoing_conversations, self.total_replies)
+
+    @property
+    def sales_qualified_conversation_rate(self):
+        return _safe_rate(self.sales_qualified_conversations, self.total_replies)
+
+    @property
+    def mailbox_provider_summary(self):
+        if not self.mailbox_provider_distribution:
+            return ""
+        items = sorted(
+            self.mailbox_provider_distribution.items(),
+            key=lambda item: item[1],
+            reverse=True,
+        )
+        return ", ".join(
+            "{} {}".format(provider, format_number(count))
+            for provider, count in items[:4]
+        )
 
 
 class StatisticsCalculator:
@@ -85,13 +340,42 @@ class StatisticsCalculator:
             "don't want",
         ]
 
-    def calculate(self, inbox_tables=None, date_range=None, product_price=0):
+    def calculate(
+        self,
+        inbox_tables=None,
+        date_range=None,
+        product_price=0,
+        manual_metrics=None,
+        target_table=None,
+        account_tables=None,
+    ):
+        return self._calculate(
+            inbox_tables=inbox_tables,
+            date_range=date_range,
+            product_price=product_price,
+            manual_metrics=manual_metrics,
+            target_table=target_table,
+            account_tables=account_tables,
+        )
+
+    def _calculate(
+        self,
+        inbox_tables=None,
+        date_range=None,
+        product_price=0,
+        manual_metrics=None,
+        target_table=None,
+        account_tables=None,
+    ):
         inbox_tables = inbox_tables or []
         date_range = date_range or DateRange()
+        manual_metrics = manual_metrics or {}
         sent_rows = self._read_sent_rows(self.report_path, date_range)
         followup_rows = self._read_sent_rows(self.followup_report_path, date_range)
         reply_counts = self._count_replies(inbox_tables, date_range)
         product_price_value = _parse_money(product_price)
+        target_metrics = _target_metrics(target_table, sent_rows)
+        provider_distribution = _provider_distribution(account_tables, sent_rows)
 
         return StatisticsSummary(
             sent_emails=len(sent_rows),
@@ -99,6 +383,51 @@ class StatisticsCalculator:
             negative_replies=reply_counts["negative"],
             second_emails=len(followup_rows),
             potential_earnings=reply_counts["positive"] * product_price_value,
+            warmup_email_amounts=_manual_int(manual_metrics, "warmup_email_amounts", len(followup_rows)),
+            emails_delivered=_manual_int(manual_metrics, "emails_delivered", len(sent_rows)),
+            hard_bounces=_manual_int(manual_metrics, "hard_bounces"),
+            soft_bounces=_manual_int(manual_metrics, "soft_bounces"),
+            deferred_emails=_manual_int(manual_metrics, "deferred_emails"),
+            blocked_emails=_manual_int(manual_metrics, "blocked_emails"),
+            inbox_placement=_manual_int(manual_metrics, "inbox_placement"),
+            spam_placement=_manual_int(manual_metrics, "spam_placement"),
+            spam_complaints=_manual_int(manual_metrics, "spam_complaints"),
+            open_total=_manual_int(manual_metrics, "open_total"),
+            unique_opens=_manual_int(manual_metrics, "unique_opens"),
+            clicks=_manual_int(manual_metrics, "clicks"),
+            unsubscribes=_manual_int(manual_metrics, "unsubscribes"),
+            forwards=_manual_int(manual_metrics, "forwards"),
+            neutral_replies=_manual_int(manual_metrics, "neutral_replies"),
+            interested_replies=_manual_int(manual_metrics, "interested_replies"),
+            objection_replies=_manual_int(manual_metrics, "objection_replies"),
+            not_now_replies=_manual_int(manual_metrics, "not_now_replies"),
+            referral_replies=_manual_int(manual_metrics, "referral_replies"),
+            out_of_office_replies=_manual_int(manual_metrics, "out_of_office_replies"),
+            automated_replies=_manual_int(manual_metrics, "automated_replies"),
+            ongoing_conversations=_manual_int(manual_metrics, "ongoing_conversations"),
+            sales_qualified_conversations=_manual_int(manual_metrics, "sales_qualified_conversations"),
+            meetings_booked=_manual_int(manual_metrics, "meetings_booked"),
+            meetings_held=_manual_int(manual_metrics, "meetings_held"),
+            no_shows=_manual_int(manual_metrics, "no_shows"),
+            opportunities=_manual_int(manual_metrics, "opportunities"),
+            accepted_opportunities=_manual_int(manual_metrics, "accepted_opportunities"),
+            closed_deals=_manual_int(manual_metrics, "closed_deals"),
+            revenue_generated=_manual_float(manual_metrics, "revenue_generated"),
+            pipeline_generated=_manual_float(manual_metrics, "pipeline_generated"),
+            total_cost=_manual_float(manual_metrics, "total_cost"),
+            cost_per_lead_input=_manual_float(manual_metrics, "cost_per_lead"),
+            lifetime_value=_manual_float(manual_metrics, "lifetime_value"),
+            payback_period_days=_manual_float(manual_metrics, "payback_period_days"),
+            sales_cycle_length_days=_manual_float(manual_metrics, "sales_cycle_length_days"),
+            high_value_accounts=_manual_int(manual_metrics, "high_value_accounts"),
+            warmup_time_days=_manual_float(manual_metrics, "warmup_time_days"),
+            warmup_progress_percent=_manual_float(manual_metrics, "warmup_progress_percent"),
+            average_response_time_hours=_manual_float(manual_metrics, "average_response_time_hours"),
+            best_sending_time=str(manual_metrics.get("best_sending_time") or ""),
+            best_sending_day=str(manual_metrics.get("best_sending_day") or ""),
+            best_subject_line=str(manual_metrics.get("best_subject_line") or ""),
+            mailbox_provider_distribution=provider_distribution,
+            **target_metrics,
             daily_sent=_daily_counts(sent_rows),
             daily_positive_replies=dict(reply_counts["daily_positive"]),
             daily_negative_replies=dict(reply_counts["daily_negative"]),
@@ -241,6 +570,136 @@ def _parse_money(value):
         return 0
 
 
+def _safe_divide(numerator, denominator):
+    try:
+        denominator = float(denominator)
+        if denominator == 0:
+            return 0
+        return float(numerator) / denominator
+    except Exception:
+        return 0
+
+
+def _safe_rate(numerator, denominator):
+    return _safe_divide(numerator, denominator)
+
+
+def _manual_int(values, key, default=0):
+    try:
+        value = values.get(key, default)
+        if value in (None, ""):
+            return int(default or 0)
+        return max(0, int(float(value)))
+    except Exception:
+        return int(default or 0)
+
+
+def _manual_float(values, key, default=0):
+    try:
+        value = values.get(key, default)
+        if value in (None, ""):
+            return float(default or 0)
+        return max(0, float(str(value).replace("$", "").replace(",", "").strip()))
+    except Exception:
+        return float(default or 0)
+
+
+def _target_metrics(target_table, sent_rows):
+    result = {
+        "leads_sourced": 0,
+        "valid_email_count": 0,
+        "invalid_email_count": 0,
+        "catch_all_count": 0,
+        "verified_email_count": 0,
+        "duplicate_lead_count": 0,
+        "leads_not_emailed": 0,
+    }
+    if target_table is None or getattr(target_table, "empty", True):
+        return result
+
+    try:
+        emails = target_table.get("EMAIL")
+        statuses = target_table.get("STATUS")
+        result["leads_sourced"] = int(len(target_table))
+        if emails is not None:
+            normalized_emails = [
+                str(email).strip().lower()
+                for email in emails.tolist()
+                if str(email).strip()
+            ]
+            result["duplicate_lead_count"] = max(
+                0, len(normalized_emails) - len(set(normalized_emails))
+            )
+            sent_targets = {
+                str(row.get("TARGET", "")).strip().lower()
+                for row in sent_rows
+                if str(row.get("TARGET", "")).strip()
+            }
+            result["leads_not_emailed"] = sum(
+                1 for email in normalized_emails if email not in sent_targets
+            )
+        else:
+            result["leads_not_emailed"] = result["leads_sourced"]
+
+        if statuses is not None:
+            normalized_statuses = [
+                str(status or "").strip().lower()
+                for status in statuses.tolist()
+            ]
+            result["valid_email_count"] = sum(
+                1 for status in normalized_statuses
+                if status in ("valid", "true", "deliverable", "reachable")
+            )
+            result["invalid_email_count"] = sum(
+                1 for status in normalized_statuses
+                if status in ("invalid", "false", "undeliverable", "unreachable")
+            )
+            result["catch_all_count"] = sum(
+                1 for status in normalized_statuses
+                if "catch" in status
+            )
+            result["verified_email_count"] = sum(
+                1 for status in normalized_statuses
+                if status not in ("", "not checked", "unchecked", "unknown")
+            )
+    except Exception:
+        return result
+    return result
+
+
+def _provider_distribution(account_tables, sent_rows):
+    distribution = defaultdict(int)
+    for email in _account_emails(account_tables):
+        domain = _email_domain(email)
+        if domain:
+            distribution[domain] += 1
+    if not distribution:
+        for row in sent_rows:
+            domain = _email_domain(row.get("FROMEMAIL", ""))
+            if domain:
+                distribution[domain] += 1
+    return dict(distribution)
+
+
+def _account_emails(account_tables):
+    tables = account_tables or []
+    for table in tables:
+        if table is None or getattr(table, "empty", True):
+            continue
+        for column_name in ("EMAIL", "email", "FROMEMAIL", "from_email"):
+            if column_name in table:
+                for value in table[column_name].tolist():
+                    yield value
+                break
+
+
+def _email_domain(value):
+    text = str(value or "").strip().lower()
+    if "@" not in text:
+        return ""
+    return text.rsplit("@", 1)[1]
+
+
 def _reply_text(body, to_mail):
     text = str(body or "").encode("utf-8", errors="ignore").decode("utf-8")
     split_token = str(to_mail or "")
@@ -275,6 +734,13 @@ def format_number(value):
         return "0"
 
 
+def format_percent(value):
+    try:
+        return "{}%".format(int(round(float(value) * 100)))
+    except Exception:
+        return "0%"
+
+
 def _ensure_qt():
     global QtCore, QtGui, QtWidgets, QPrinter
     if QtCore is None:
@@ -298,7 +764,7 @@ def create_statistics_report_preview(parent=None):
             self.logo_path = ""
             self.title = "Outreach Performance"
             self.date_label = "Last 30 days"
-            self.setMinimumHeight(900)
+            self.setMinimumHeight(780)
             self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
 
         def set_report(self, summary, logo_path="", title=None, date_label=""):
@@ -356,32 +822,97 @@ def export_statistics_pdf(path, summary, logo_path="", title="Outreach Performan
     _rl_logo(pdf, right - 108, top - 48, 108, 48, logo_path, ImageReader)
     _rl_accent_rule(pdf, left, top - 74, right - left)
 
-    cards_y = top - 158
+    # cards_y offset of -164 ensures card top (cards_y+84) sits below the rule (top-74)
+    cards_y = top - 164
     gap = 12
     card_width = (right - left - gap * 3) / 4
     for index, (label, value, color) in enumerate(
         [
-            ("Sent", format_number(summary.sent_emails), "#111827"),
-            ("Positive", format_number(summary.positive_replies), "#087443"),
-            ("Follow-ups", format_number(summary.second_emails), "#111827"),
-            ("Potential", format_currency(summary.potential_earnings), "#111827"),
+            ("Meetings", format_number(summary.meetings_booked), "#111827"),
+            ("Opportunities", format_number(summary.opportunities), "#111827"),
+            ("Revenue", format_currency(summary.revenue_generated), "#087443"),
+            ("ROI", format_percent(summary.roi), "#087443"),
         ]
     ):
         x = left + index * (card_width + gap)
         _rl_kpi_card(pdf, x, cards_y, card_width, 84, label, value, color)
 
-    chart_y = cards_y - 230
-    _rl_chart_panel(pdf, left, chart_y, right - left, 196, summary)
+    priority_y = cards_y - 104
+    _rl_priority_strip(pdf, left, priority_y, right - left, 70, summary)
 
-    lower_y = chart_y - 160
-    panel_gap = 18
-    panel_width = (right - left - panel_gap) / 2
-    _rl_reply_quality_panel(pdf, left, lower_y, panel_width, 132, summary)
-    _rl_email_mix_panel(pdf, left + panel_width + panel_gap, lower_y, panel_width, 132, summary)
+    section_gap = 14
+    section_width = (right - left - section_gap) / 2
+    y = priority_y - 116
+    _rl_metric_table(
+        pdf,
+        left,
+        y,
+        section_width,
+        108,
+        "Deliverability",
+        [
+            ("Sent", format_number(summary.sent_emails)),
+            ("Delivered", format_number(summary.emails_delivered)),
+            ("Delivery rate", format_percent(summary.delivery_rate)),
+            ("Bounce rate", format_percent(summary.bounce_rate)),
+            ("Inbox placement", format_percent(summary.inbox_placement_rate)),
+        ],
+    )
+    _rl_metric_table(
+        pdf,
+        left + section_width + section_gap,
+        y,
+        section_width,
+        108,
+        "Lead Quality",
+        [
+            ("Leads sourced", format_number(summary.leads_sourced)),
+            ("Valid email rate", format_percent(summary.valid_email_rate)),
+            ("Verified", format_percent(summary.verified_email_percentage)),
+            ("Duplicates", format_percent(summary.duplicate_lead_rate)),
+            ("Not emailed yet", format_number(summary.leads_not_emailed)),
+            ("Provider mix", summary.mailbox_provider_summary or "0"),
+        ],
+    )
 
-    footer_y = margin + 34
+    y -= 120
+    _rl_metric_table(
+        pdf,
+        left,
+        y,
+        section_width,
+        116,
+        "Campaign and Replies",
+        [
+            ("Positive replies", format_number(summary.positive_replies)),
+            ("Positive reply rate", format_percent(summary.positive_reply_rate)),
+            ("Total reply rate", format_percent(summary.total_reply_rate)),
+            ("Open rate", format_percent(summary.open_rate)),
+            ("CTR", format_percent(summary.click_through_rate)),
+            ("Meetings booked", format_number(summary.meetings_booked)),
+        ],
+    )
+    _rl_metric_table(
+        pdf,
+        left + section_width + section_gap,
+        y,
+        section_width,
+        116,
+        "Sales Economics",
+        [
+            ("Pipeline", format_currency(summary.pipeline_generated)),
+            ("Revenue / email", format_currency(summary.revenue_per_email_sent)),
+            ("Revenue / lead", format_currency(summary.revenue_per_lead)),
+            ("Cost / meeting", format_currency(summary.cost_per_meeting)),
+            ("Cost / acquisition", format_currency(summary.cost_per_acquisition)),
+            ("Closed deals", format_number(summary.closed_deals)),
+        ],
+    )
+
+    # anchor footer just below last metric tables rather than at a fixed page position
+    footer_y = y - 86
     _rl_summary_strip(pdf, left, footer_y, right - left, 72, summary)
-    _rl_text_right(pdf, right, margin + 14, generated_label, 7.5, "#98a2b3")
+    _rl_text_right(pdf, right, footer_y - 18, generated_label, 7.5, "#98a2b3")
     pdf.showPage()
     pdf.save()
 
@@ -498,16 +1029,43 @@ def _rl_email_mix_panel(pdf, x, y, width, height, summary):
     _rl_legend(pdf, x + 16, y + 18, [("Sent", "#028fc3"), ("Follow-ups", "#475467"), ("Positive", "#087443")])
 
 
+def _rl_priority_strip(pdf, x, y, width, height, summary):
+    _rl_round_rect(pdf, x, y, width, height, "#ffffff", "#e5e7eb", 9)
+    items = [
+        ("Positive reply", format_percent(summary.positive_reply_rate), "#087443"),
+        ("Deliverability", format_percent(summary.delivery_rate), "#028fc3"),
+        ("Cost / meeting", format_currency(summary.cost_per_meeting), "#111827"),
+        ("Lead quality", format_percent(summary.valid_email_rate), "#087443"),
+    ]
+    column_width = width / len(items)
+    for index, (label, value, color) in enumerate(items):
+        column_x = x + index * column_width
+        if index:
+            pdf.saveState()
+            pdf.setStrokeColor(_rl_color("#edf1f5"))
+            pdf.line(column_x, y + 14, column_x, y + height - 14)
+            pdf.restoreState()
+        _rl_text(pdf, column_x + 14, y + height - 24, label, 8.5, "#667085", bold=True)
+        _rl_text(pdf, column_x + 14, y + 18, value, 15, color, bold=True)
+
+
+def _rl_metric_table(pdf, x, y, width, height, title, rows):
+    _rl_round_rect(pdf, x, y, width, height, "#ffffff", "#e5e7eb", 9)
+    _rl_text(pdf, x + 14, y + height - 24, title, 11.5, "#111827", bold=True)
+    row_y = y + height - 46
+    for label, value in rows:
+        _rl_text(pdf, x + 14, row_y, label, 8.2, "#667085")
+        _rl_text_right(pdf, x + width - 14, row_y, value, 8.6, "#111827", bold=True)
+        row_y -= 14
+
+
 def _rl_summary_strip(pdf, x, y, width, height, summary):
     _rl_round_rect(pdf, x, y, width, height, "#ffffff", "#e5e7eb", 9)
-    reply_total = summary.total_replies
-    reply_rate = 0 if summary.sent_emails == 0 else int(round((reply_total / summary.sent_emails) * 100))
-    followup_rate = 0 if summary.sent_emails == 0 else int(round((summary.second_emails / summary.sent_emails) * 100))
     items = [
-        ("Total replies", format_number(reply_total)),
-        ("Reply rate", f"{reply_rate}%"),
-        ("Follow-up rate", f"{followup_rate}%"),
-        ("Projected value", format_currency(summary.potential_earnings)),
+        ("Total replies", format_number(summary.total_replies)),
+        ("Follow-ups", format_number(summary.second_emails)),
+        ("Revenue generated", format_currency(summary.revenue_generated)),
+        ("Pipeline generated", format_currency(summary.pipeline_generated)),
     ]
     column_width = width / len(items)
     for index, (label, value) in enumerate(items):
