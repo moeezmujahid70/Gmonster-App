@@ -842,13 +842,15 @@ def export_statistics_pdf(path, summary, logo_path="", title="Outreach Performan
 
     section_gap = 14
     section_width = (right - left - section_gap) / 2
-    y = priority_y - 116
+    table_height = 148
+    # offset ensures 14pt gap between priority strip bottom and table tops
+    y = priority_y - 14 - table_height
     _rl_metric_table(
         pdf,
         left,
         y,
         section_width,
-        108,
+        table_height,
         "Deliverability",
         [
             ("Sent", format_number(summary.sent_emails)),
@@ -863,7 +865,7 @@ def export_statistics_pdf(path, summary, logo_path="", title="Outreach Performan
         left + section_width + section_gap,
         y,
         section_width,
-        108,
+        table_height,
         "Lead Quality",
         [
             ("Leads sourced", format_number(summary.leads_sourced)),
@@ -875,13 +877,13 @@ def export_statistics_pdf(path, summary, logo_path="", title="Outreach Performan
         ],
     )
 
-    y -= 120
+    y -= table_height + 16
     _rl_metric_table(
         pdf,
         left,
         y,
         section_width,
-        116,
+        table_height,
         "Campaign and Replies",
         [
             ("Positive replies", format_number(summary.positive_replies)),
@@ -897,7 +899,7 @@ def export_statistics_pdf(path, summary, logo_path="", title="Outreach Performan
         left + section_width + section_gap,
         y,
         section_width,
-        116,
+        table_height,
         "Sales Economics",
         [
             ("Pipeline", format_currency(summary.pipeline_generated)),

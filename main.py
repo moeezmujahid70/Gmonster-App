@@ -2156,7 +2156,7 @@ class MyMainClass:
         page = QtWidgets.QWidget()
         page.setObjectName("statisticsPage")
         page.setStyleSheet(
-            "QWidget#statisticsPage { background-color: #eff2f8; }"
+            "QWidget#statisticsPage { background-color: #f1f5f9; }"
             "QScrollArea { border: none; background: transparent; }"
             "QScrollArea > QWidget > QWidget { background: transparent; }"
             "QWidget#statisticsContent { background: transparent; }"
@@ -2338,12 +2338,12 @@ class MyMainClass:
     def _build_statistics_metric_tabs(self, parent):
         tabs = QtWidgets.QTabWidget(parent)
         tabs.setStyleSheet(
-            "QTabWidget::pane { border: 1px solid #dde3ea; background: #ffffff; "
+            "QTabWidget::pane { border: 1px solid #e2e8f0; background: #f8fafc; "
             "border-radius: 8px; } "
-            "QTabBar::tab { background: #eef2f6; color: #344054; padding: 9px 14px; "
+            "QTabBar::tab { background: #e2e8f0; color: #344054; padding: 9px 14px; "
             "font-family: Arial; font-size: 11px; font-weight: bold; border-top-left-radius: 6px; "
             "border-top-right-radius: 6px; margin-right: 3px; } "
-            "QTabBar::tab:selected { background: #ffffff; color: #028fc3; }"
+            "QTabBar::tab:selected { background: #f8fafc; color: #028fc3; }"
         )
         for section_title, manual_fields, calculated_fields in self._statistics_sections():
             page = QtWidgets.QWidget()
@@ -2393,7 +2393,7 @@ class MyMainClass:
     def _add_statistics_manual_field(self, layout, row, column, key, label, kind):
         chip = QtWidgets.QFrame()
         chip.setStyleSheet(
-            "QFrame { background: #fafafa; border: 1px solid #d1d5db; border-radius: 8px; }"
+            "QFrame { background: #ffffff; border: 1px solid #d1d5db; border-radius: 8px; }"
             "QFrame QLabel { background: transparent; border: none; }"
         )
         chip_layout = QtWidgets.QVBoxLayout(chip)
@@ -2435,7 +2435,7 @@ class MyMainClass:
     def _add_statistics_calculated_field(self, layout, row, column, key, label, kind):
         chip = QtWidgets.QFrame()
         chip.setStyleSheet(
-            "QFrame { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; }"
+            "QFrame { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; }"
             "QFrame QLabel { background: transparent; border: none; }"
         )
         chip_layout = QtWidgets.QVBoxLayout(chip)
@@ -2466,7 +2466,7 @@ class MyMainClass:
     def _statistics_panel_style(self):
         return (
             "QFrame#statisticsControls, QFrame#statisticsKpiCard { "
-            "background-color: #ffffff; border: 1px solid #dde3ea; "
+            "background-color: #f8fafc; border: 1px solid #e2e8f0; "
             "border-radius: 10px; } "
             "QFrame#statisticsControls QLabel, QFrame#statisticsKpiCard QLabel { "
             "background: transparent; border: none; padding: 0; }"
