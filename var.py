@@ -249,6 +249,7 @@ statistics = {
     "product_price": 0,
     "logo_path": "",
     "date_filter": "last_30_days",
+    "manual_metrics": {},
 }
 webhook_link = ''
 api = 'https://enzim.pythonanywhere.com/'

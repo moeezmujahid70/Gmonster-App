@@ -199,6 +199,98 @@ class StatisticsCalculatorTest(unittest.TestCase):
             with open(output_path, "rb") as file:
                 self.assertEqual(file.read(4), b"%PDF")
 
+    def test_manual_metrics_and_derived_rates_are_calculated(self):
+        with tempfile.TemporaryDirectory() as directory:
+            report_path = self._write_csv(
+                directory,
+                "report.csv",
+                "\n".join(
+                    [
+                        "TARGET,FROMEMAIL,STATUS,CAMPAIGN,DATE",
+                        "lead1@example.com,sender@example.com,sent,camp-1,2026-05-01",
+                        "lead2@example.com,sender@example.com,sent,camp-1,2026-05-01",
+                        "lead3@example.com,sender@example.com,sent,camp-1,2026-05-03",
+                        "lead4@example.com,sender@example.com,error,camp-1,2026-05-04",
+                    ]
+                ),
+            )
+
+            summary = StatisticsCalculator(
+                report_path=report_path,
+                followup_report_path="/missing/followup_report.csv",
+            ).calculate(
+                date_range=DateRange.from_dates("2026-05-01", "2026-05-31"),
+                manual_metrics={
+                    "emails_delivered": 2,
+                    "hard_bounces": 1,
+                    "soft_bounces": 0,
+                    "open_total": 4,
+                    "unique_opens": 2,
+                    "clicks": 1,
+                    "meetings_booked": 1,
+                    "opportunities": 1,
+                    "closed_deals": 1,
+                    "revenue_generated": 3000,
+                    "total_cost": 750,
+                    "pipeline_generated": 5000,
+                },
+            )
+
+            self.assertEqual(summary.sent_emails, 3)
+            self.assertEqual(summary.emails_delivered, 2)
+            self.assertEqual(summary.hard_bounces, 1)
+            self.assertEqual(summary.delivery_rate, 2 / 3)
+            self.assertEqual(summary.bounce_rate, 1 / 3)
+            self.assertEqual(summary.open_rate, 4 / 2)
+            self.assertEqual(summary.unique_open_rate, 1)
+            self.assertEqual(summary.click_through_rate, 1 / 2)
+            self.assertEqual(summary.calendar_booking_rate, 1 / 2)
+            self.assertEqual(summary.lead_to_opportunity_rate, 1)
+            self.assertEqual(summary.lead_to_close_rate, 1)
+            self.assertEqual(summary.revenue_per_email_sent, 1000)
+            self.assertEqual(summary.cost_per_meeting, 750)
+            self.assertEqual(summary.roi, 3)
+
+    def test_target_and_provider_metrics_are_calculated(self):
+        targets = pd.DataFrame(
+            [
+                {"EMAIL": "a@example.com", "STATUS": "valid"},
+                {"EMAIL": "b@example.com", "STATUS": "invalid"},
+                {"EMAIL": "a@example.com", "STATUS": "valid"},
+                {"EMAIL": "c@example.com", "STATUS": "catch-all"},
+                {"EMAIL": "d@example.com", "STATUS": "not checked"},
+            ]
+        )
+        accounts = pd.DataFrame(
+            [
+                {"EMAIL": "sender@gmail.com"},
+                {"EMAIL": "team@yahoo.com"},
+                {"EMAIL": "ops@gmail.com"},
+            ]
+        )
+
+        summary = StatisticsCalculator(
+            report_path="/missing/report.csv",
+            followup_report_path="/missing/followup_report.csv",
+        ).calculate(
+            target_table=targets,
+            account_tables=[accounts],
+            manual_metrics={"high_value_accounts": 1},
+        )
+
+        self.assertEqual(summary.leads_sourced, 5)
+        self.assertEqual(summary.valid_email_count, 2)
+        self.assertEqual(summary.invalid_email_count, 1)
+        self.assertEqual(summary.catch_all_count, 1)
+        self.assertEqual(summary.verified_email_count, 4)
+        self.assertEqual(summary.duplicate_lead_count, 1)
+        self.assertEqual(summary.leads_not_emailed, 5)
+        self.assertEqual(summary.valid_email_rate, 2 / 5)
+        self.assertEqual(summary.duplicate_lead_rate, 1 / 5)
+        self.assertEqual(summary.high_value_account_percentage, 1 / 5)
+        self.assertEqual(summary.mailbox_provider_distribution["gmail.com"], 2)
+        self.assertIn("gmail.com 2", summary.mailbox_provider_summary)
+
 
 if __name__ == "__main__":
     unittest.main()

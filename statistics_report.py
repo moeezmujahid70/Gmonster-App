@@ -376,9 +376,11 @@ class StatisticsCalculator:
         product_price_value = _parse_money(product_price)
         target_metrics = _target_metrics(target_table, sent_rows)
         provider_distribution = _provider_distribution(account_tables, sent_rows)
+        leads_sourced_csv = target_metrics.pop("leads_sourced", 0)
 
         return StatisticsSummary(
-            sent_emails=len(sent_rows),
+            leads_sourced=_manual_int(manual_metrics, "leads_sourced", leads_sourced_csv),
+            sent_emails=_manual_int(manual_metrics, "sent_emails", len(sent_rows)),
             positive_replies=reply_counts["positive"],
             negative_replies=reply_counts["negative"],
             second_emails=len(followup_rows),
@@ -1163,7 +1165,7 @@ def draw_statistics_report(
     _ensure_qt()
     summary = summary or StatisticsSummary()
     painter.save()
-    _draw_round_rect(painter, rect, QtGui.QColor("#f7f8fb"), QtGui.QColor("#dfe5ee"), 18)
+    _draw_round_rect(painter, rect, QtGui.QColor("#ffffff"), QtGui.QColor("#d8e3ee"), 18)
 
     margin = max(30, int(rect.width() * 0.035))
     content = rect.adjusted(margin, margin, -margin, -margin)
@@ -1238,7 +1240,7 @@ def _draw_kpi_card(painter, rect, label, value, value_color):
 
 
 def _draw_chart_panel(painter, rect, summary):
-    _draw_round_rect(painter, rect, QtGui.QColor("#f8fbff"), QtGui.QColor("#d5e2ef"), 12)
+    _draw_round_rect(painter, rect, QtGui.QColor("#f4f7fb"), QtGui.QColor("#d5e2ef"), 12)
     _draw_text(
         painter,
         rect.left() + 22,

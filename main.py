@@ -2156,7 +2156,7 @@ class MyMainClass:
         page = QtWidgets.QWidget()
         page.setObjectName("statisticsPage")
         page.setStyleSheet(
-            "QWidget#statisticsPage { background-color: #f1f5f9; }"
+            "QWidget#statisticsPage { background-color: #ffffff; }"
             "QScrollArea { border: none; background: transparent; }"
             "QScrollArea > QWidget > QWidget { background: transparent; }"
             "QWidget#statisticsContent { background: transparent; }"
@@ -2338,15 +2338,18 @@ class MyMainClass:
     def _build_statistics_metric_tabs(self, parent):
         tabs = QtWidgets.QTabWidget(parent)
         tabs.setStyleSheet(
-            "QTabWidget::pane { border: 1px solid #e2e8f0; background: #f8fafc; "
+            "QTabWidget::pane { border: 1px solid #d8e3ee; background: #ffffff; "
             "border-radius: 8px; } "
-            "QTabBar::tab { background: #e2e8f0; color: #344054; padding: 9px 14px; "
+            "QTabWidget::pane > QWidget { background: #ffffff; } "
+            "QTabBar::tab { background: #dce5f0; color: #344054; padding: 9px 14px; "
             "font-family: Arial; font-size: 11px; font-weight: bold; border-top-left-radius: 6px; "
             "border-top-right-radius: 6px; margin-right: 3px; } "
-            "QTabBar::tab:selected { background: #f8fafc; color: #028fc3; }"
+            "QTabBar::tab:selected { background: #ffffff; color: #028fc3; }"
         )
         for section_title, manual_fields, calculated_fields in self._statistics_sections():
             page = QtWidgets.QWidget()
+            page.setAutoFillBackground(True)
+            page.setStyleSheet("QWidget { background-color: #ffffff; }")
             layout = QtWidgets.QGridLayout(page)
             layout.setContentsMargins(18, 18, 18, 18)
             layout.setHorizontalSpacing(8)
@@ -2428,6 +2431,7 @@ class MyMainClass:
                 "{ width: 18px; border: none; background: transparent; }"
             )
             field.editingFinished.connect(self.refresh_statistics)
+            field.valueChanged.connect(self.refresh_statistics)
         self.statistics_manual_fields[key] = field
         chip_layout.addWidget(field)
         layout.addWidget(chip, row, column)
@@ -2466,7 +2470,7 @@ class MyMainClass:
     def _statistics_panel_style(self):
         return (
             "QFrame#statisticsControls, QFrame#statisticsKpiCard { "
-            "background-color: #f8fafc; border: 1px solid #e2e8f0; "
+            "background-color: #eef2f7; border: 1px solid #d8e3ee; "
             "border-radius: 10px; } "
             "QFrame#statisticsControls QLabel, QFrame#statisticsKpiCard QLabel { "
             "background: transparent; border: none; padding: 0; }"
@@ -2510,6 +2514,7 @@ class MyMainClass:
             (
                 "Deliverability",
                 [
+                    ("sent_emails", "Emails Sent", "number"),
                     ("emails_delivered", "Emails Delivered", "number"),
                     ("hard_bounces", "Hard Bounces", "number"),
                     ("soft_bounces", "Soft Bounces", "number"),
@@ -2533,10 +2538,10 @@ class MyMainClass:
             (
                 "Lead Quality",
                 [
+                    ("leads_sourced", "Leads Sourced", "number"),
                     ("high_value_accounts", "High-value Accounts", "number"),
                 ],
                 [
-                    ("leads_sourced", "Leads Sourced", "number"),
                     ("valid_email_rate", "Valid Email Rate", "percent"),
                     ("invalid_email_rate", "Invalid Email Rate", "percent"),
                     ("catch_all_domain_percentage", "Catch-all Percentage", "percent"),
@@ -2609,6 +2614,7 @@ class MyMainClass:
                     ("sales_cycle_length_days", "Sales Cycle Length Days", "decimal"),
                 ],
                 [
+                    ("potential_earnings", "Potential Earnings", "currency"),
                     ("meeting_rate", "Meeting Rate", "percent"),
                     ("show_up_rate", "Show-up Rate", "percent"),
                     ("no_show_rate", "No-show Rate", "percent"),
