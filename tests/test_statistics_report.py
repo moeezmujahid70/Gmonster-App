@@ -291,6 +291,209 @@ class StatisticsCalculatorTest(unittest.TestCase):
         self.assertEqual(summary.mailbox_provider_distribution["gmail.com"], 2)
         self.assertIn("gmail.com 2", summary.mailbox_provider_summary)
 
+    def test_reply_categories_are_auto_classified_from_inbox_rows(self):
+        inbox = pd.DataFrame(
+            [
+                {
+                    "from_mail": "lead1@example.com",
+                    "to_mail": "sender@example.com",
+                    "subject": "Re: intro",
+                    "body": "Yes, I am interested. Tell me more.",
+                    "date": "2026-05-03",
+                    "is_sent": False,
+                },
+                {
+                    "from_mail": "lead2@example.com",
+                    "to_mail": "sender@example.com",
+                    "subject": "Re: intro",
+                    "body": "The price is too high for our budget.",
+                    "date": "2026-05-03",
+                    "is_sent": False,
+                },
+                {
+                    "from_mail": "lead3@example.com",
+                    "to_mail": "sender@example.com",
+                    "subject": "Re: intro",
+                    "body": "Not now, please follow up next quarter.",
+                    "date": "2026-05-03",
+                    "is_sent": False,
+                },
+                {
+                    "from_mail": "lead4@example.com",
+                    "to_mail": "sender@example.com",
+                    "subject": "Re: intro",
+                    "body": "Please contact my colleague Jane.",
+                    "date": "2026-05-03",
+                    "is_sent": False,
+                },
+                {
+                    "from_mail": "lead5@example.com",
+                    "to_mail": "sender@example.com",
+                    "subject": "Automatic reply: away",
+                    "body": "I am out of office on vacation.",
+                    "date": "2026-05-03",
+                    "is_sent": False,
+                },
+                {
+                    "from_mail": "mailer-daemon@example.com",
+                    "to_mail": "sender@example.com",
+                    "subject": "Delivery Status Notification",
+                    "body": "This is an automated delivery notification.",
+                    "date": "2026-05-03",
+                    "is_sent": False,
+                },
+                {
+                    "from_mail": "lead6@example.com",
+                    "to_mail": "sender@example.com",
+                    "subject": "Re: intro",
+                    "body": "Thanks for the note.",
+                    "date": "2026-05-03",
+                    "is_sent": False,
+                },
+            ]
+        )
+
+        summary = StatisticsCalculator(
+            report_path="/missing/report.csv",
+            followup_report_path="/missing/followup_report.csv",
+            negative_words=["not interested"],
+        ).calculate(inbox_tables=[inbox])
+
+        self.assertEqual(summary.interested_replies, 1)
+        self.assertEqual(summary.objection_replies, 1)
+        self.assertEqual(summary.not_now_replies, 1)
+        self.assertEqual(summary.referral_replies, 1)
+        self.assertEqual(summary.out_of_office_replies, 1)
+        self.assertEqual(summary.automated_replies, 1)
+        self.assertEqual(summary.neutral_replies, 1)
+
+    def test_optional_reply_classifier_can_override_rule_category(self):
+        inbox = pd.DataFrame(
+            [
+                {
+                    "from_mail": "lead@example.com",
+                    "to_mail": "sender@example.com",
+                    "subject": "Re: intro",
+                    "body": "Thanks for the note.",
+                    "date": "2026-05-03",
+                    "is_sent": False,
+                },
+            ]
+        )
+
+        def classifier(row):
+            return "interested_replies"
+
+        summary = StatisticsCalculator(
+            report_path="/missing/report.csv",
+            followup_report_path="/missing/followup_report.csv",
+            reply_classifier=classifier,
+        ).calculate(inbox_tables=[inbox])
+
+        self.assertEqual(summary.interested_replies, 1)
+        self.assertEqual(summary.neutral_replies, 0)
+
+    def test_optional_reply_classifier_falls_back_to_rules_for_bad_output(self):
+        inbox = pd.DataFrame(
+            [
+                {
+                    "from_mail": "lead@example.com",
+                    "to_mail": "sender@example.com",
+                    "subject": "Re: intro",
+                    "body": "Yes, I am interested.",
+                    "date": "2026-05-03",
+                    "is_sent": False,
+                },
+            ]
+        )
+
+        def classifier(row):
+            return "unknown"
+
+        summary = StatisticsCalculator(
+            report_path="/missing/report.csv",
+            followup_report_path="/missing/followup_report.csv",
+            reply_classifier=classifier,
+        ).calculate(inbox_tables=[inbox])
+
+        self.assertEqual(summary.interested_replies, 1)
+        self.assertEqual(summary.neutral_replies, 0)
+
+    def test_average_response_time_is_calculated_from_sent_and_reply_dates(self):
+        with tempfile.TemporaryDirectory() as directory:
+            report_path = self._write_csv(
+                directory,
+                "report.csv",
+                "\n".join(
+                    [
+                        "TARGET,FROMEMAIL,STATUS,CAMPAIGN,DATE",
+                        "lead1@example.com,sender@example.com,sent,camp-1,2026-05-01",
+                        "lead2@example.com,sender@example.com,sent,camp-1,2026-05-02",
+                    ]
+                ),
+            )
+            inbox = pd.DataFrame(
+                [
+                    {
+                        "from_mail": "lead1@example.com",
+                        "to_mail": "sender@example.com",
+                        "subject": "Re: intro",
+                        "body": "Interested.",
+                        "date": "2026-05-03",
+                        "is_sent": False,
+                    },
+                    {
+                        "from_mail": "lead2@example.com",
+                        "to_mail": "sender@example.com",
+                        "subject": "Re: intro",
+                        "body": "Thanks.",
+                        "date": "2026-05-03",
+                        "is_sent": False,
+                    },
+                ]
+            )
+
+            summary = StatisticsCalculator(
+                report_path=report_path,
+                followup_report_path="/missing/followup_report.csv",
+            ).calculate(inbox_tables=[inbox])
+
+            self.assertEqual(summary.average_response_time_hours, 36)
+
+    def test_business_manual_metrics_still_override_defaults(self):
+        summary = StatisticsCalculator(
+            report_path="/missing/report.csv",
+            followup_report_path="/missing/followup_report.csv",
+        ).calculate(
+            manual_metrics={
+                "meetings_held": 4,
+                "no_shows": 1,
+                "opportunities": 3,
+                "accepted_opportunities": 2,
+                "closed_deals": 1,
+                "pipeline_generated": 9000,
+                "revenue_generated": 3000,
+                "total_cost": 750,
+                "lifetime_value": 12000,
+                "payback_period_days": 45,
+                "sales_cycle_length_days": 21,
+                "high_value_accounts": 6,
+            }
+        )
+
+        self.assertEqual(summary.meetings_held, 4)
+        self.assertEqual(summary.no_shows, 1)
+        self.assertEqual(summary.opportunities, 3)
+        self.assertEqual(summary.accepted_opportunities, 2)
+        self.assertEqual(summary.closed_deals, 1)
+        self.assertEqual(summary.pipeline_generated, 9000)
+        self.assertEqual(summary.revenue_generated, 3000)
+        self.assertEqual(summary.total_cost, 750)
+        self.assertEqual(summary.lifetime_value, 12000)
+        self.assertEqual(summary.payback_period_days, 45)
+        self.assertEqual(summary.sales_cycle_length_days, 21)
+        self.assertEqual(summary.high_value_accounts, 6)
+
 
 if __name__ == "__main__":
     unittest.main()

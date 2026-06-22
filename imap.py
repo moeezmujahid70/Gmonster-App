@@ -501,6 +501,8 @@ class ImapDownload(ImapBase, threading.Thread):
                                     "message-id": email.utils.parseaddr(
                                         email_message["Message-ID"]
                                     )[1],
+                                    "in-reply-to": str(email_message.get("In-Reply-To", "") or "").strip(),
+                                    "references": str(email_message.get("References", "") or "").strip(),
                                     "from": "{} {}".format(from_name, from_mail),
                                     "from_name": from_name,
                                     "from_mail": from_mail,

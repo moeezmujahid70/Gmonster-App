@@ -2,6 +2,7 @@ from email_validator import validate_email
 from textblob import TextBlob
 from gui import Ui_MainWindow
 from database import update_target_verified
+from email_thread_display import header_date_text, message_to_thread_html
 from openai import OpenAI, AuthenticationError as OpenAIAuthError
 from statistics_report import (
     DateRange,
@@ -10,6 +11,10 @@ from statistics_report import (
     export_statistics_pdf,
     format_currency,
     format_number,
+)
+from subscription_cancel import (
+    build_cancel_request_payload,
+    build_cancel_request_url,
 )
 import subprocess
 import signal
@@ -179,6 +184,83 @@ def _ai_exception_message(error):
     return "The AI service failed temporarily. Please try again later."
 
 
+STATISTICS_REPLY_CATEGORIES = {
+    "neutral_replies",
+    "interested_replies",
+    "objection_replies",
+    "not_now_replies",
+    "referral_replies",
+    "out_of_office_replies",
+    "automated_replies",
+}
+
+
+def _statistics_ai_reply_prompt(row):
+    subject = str(row.get("subject", "") or "")[:500]
+    sender = str(row.get("from_mail", "") or row.get("from", "") or "")[:300]
+    body = str(row.get("body", "") or "")[:2500]
+    return (
+        "Classify this inbound sales email reply into exactly one category key.\n"
+        "Return only the category key, with no punctuation or explanation.\n\n"
+        "Allowed category keys:\n"
+        "- interested_replies: positive buying intent, asks for more info, wants a call, says yes.\n"
+        "- objection_replies: objection, rejection, budget/price issue, not interested, not a fit.\n"
+        "- not_now_replies: asks to follow up later, timing delay, not now.\n"
+        "- referral_replies: points to another person or says someone else handles this.\n"
+        "- out_of_office_replies: vacation, away, OOO, unavailable auto-reply.\n"
+        "- automated_replies: delivery notification, mailer daemon, system-generated response.\n"
+        "- neutral_replies: real human reply that does not fit a stronger category.\n\n"
+        f"Sender: {sender}\n"
+        f"Subject: {subject}\n"
+        f"Body:\n{body}"
+    )
+
+
+def build_statistics_openai_reply_classifier():
+    api_key = get_effective_openai_key()
+    if not api_key:
+        return None
+    try:
+        client = OpenAI(api_key=api_key)
+    except Exception as e:
+        var.logger.error(f"Failed to initialize statistics OpenAI classifier: {str(e)}")
+        return None
+
+    cache = {}
+
+    def classify(row):
+        cache_key = (
+            str(row.get("from_mail", "") or row.get("from", "") or ""),
+            str(row.get("subject", "") or ""),
+            str(row.get("body", "") or "")[:2500],
+        )
+        if cache_key in cache:
+            return cache[cache_key]
+        try:
+            response = client.chat.completions.create(
+                model=get_effective_openai_model(),
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You classify cold email replies for sales analytics. "
+                            "You return exactly one allowed category key."
+                        ),
+                    },
+                    {"role": "user", "content": _statistics_ai_reply_prompt(row)},
+                ],
+            )
+            category = (response.choices[0].message.content or "").strip()
+            if category in STATISTICS_REPLY_CATEGORIES:
+                cache[cache_key] = category
+                return category
+        except Exception as e:
+            var.logger.error(f"Statistics OpenAI reply classification failed: {str(e)}")
+        return ""
+
+    return classify
+
+
 class AIPromptDialog(QDialog):
     promptSubmitted = pyqtSignal(str)
     aiSucceeded = pyqtSignal(str)
@@ -344,6 +426,59 @@ class ImportSlotsDialog(QDialog):
         return self._spin_a.value(), self._spin_b.value()
 
 
+class CancelSubscriptionDialog(QDialog):
+    def __init__(self, parent=None, email="", user_id="", plan=""):
+        super().__init__(parent)
+        self.setWindowTitle("Cancel Subscription")
+        self.setModal(True)
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(
+            QLabel(
+                "Send a manual subscription cancellation request to Gmonster support."
+            )
+        )
+
+        form = QtWidgets.QFormLayout()
+        self.name_input = QtWidgets.QLineEdit()
+        self.email_input = QtWidgets.QLineEdit(email)
+        self.user_id_input = QtWidgets.QLineEdit(user_id)
+        self.plan_input = QtWidgets.QLineEdit(plan)
+        form.addRow("Name *", self.name_input)
+        form.addRow("Email", self.email_input)
+        form.addRow("User ID", self.user_id_input)
+        form.addRow("Current Plan", self.plan_input)
+        layout.addLayout(form)
+
+        self.error_label = QLabel("")
+        self.error_label.setStyleSheet("color: #c62828;")
+        self.error_label.hide()
+        layout.addWidget(self.error_label)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.button(QDialogButtonBox.Ok).setText("Send Request")
+        buttons.accepted.connect(self._validate_and_accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def _validate_and_accept(self):
+        if not self.name_input.text().strip():
+            self.error_label.setText("Name is required.")
+            self.error_label.show()
+            self.name_input.setFocus()
+            return
+        self.accept()
+
+    def values(self):
+        return {
+            "name": self.name_input.text().strip(),
+            "email": self.email_input.text().strip(),
+            "user_id": self.user_id_input.text().strip(),
+            "plan": self.plan_input.text().strip(),
+        }
+
+
 class MyGui(Ui_MainWindow, QtWidgets.QWidget):
     def __init__(self, main_window):
         Ui_MainWindow.__init__(self)
@@ -361,6 +496,7 @@ class MyMainClass:
         self.statistics_calculated_labels = {}
         self.statistics_kpi_value_labels = {}
         self.setup_statistics_page()
+        self.setup_inbox_date_header()
         self.setup_sidebar_icons()
         GUI.checkBox_delete_all.stateChanged.connect(
             lambda state: self.toggle_all_checkboxes(
@@ -761,6 +897,44 @@ class MyMainClass:
             target=self.reset_schedule_campaign_job_list, daemon=True, args=[]
         ).start()
         threading.Thread(target=update_checker, daemon=True, args=[]).start()
+
+    def setup_inbox_date_header(self):
+        if hasattr(GUI, "lineEdit_original_date"):
+            return
+        group_box = QtWidgets.QGroupBox(GUI.groupBox)
+        group_box.setMinimumSize(QtCore.QSize(50, 0))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        group_box.setFont(font)
+        group_box.setStyleSheet("border:none;")
+        group_box.setTitle("")
+        group_box.setObjectName("groupBox_original_date")
+
+        grid = QtWidgets.QGridLayout(group_box)
+        grid.setObjectName("gridLayout_original_date")
+
+        value_label = QtWidgets.QLabel(group_box)
+        value_label.setStyleSheet("color: #555;")
+        value_label.setText("")
+        value_label.setObjectName("lineEdit_original_date")
+        grid.addWidget(value_label, 0, 1, 1, 1)
+
+        title_label = QtWidgets.QLabel(group_box)
+        title_label.setMinimumSize(QtCore.QSize(50, 0))
+        title_label.setMaximumSize(QtCore.QSize(50, 16777215))
+        title_font = QtGui.QFont()
+        title_font.setBold(True)
+        title_font.setWeight(75)
+        title_label.setFont(title_font)
+        title_label.setStyleSheet("color: #555;")
+        title_label.setText("Date:")
+        title_label.setObjectName("label_original_date")
+        grid.addWidget(title_label, 0, 0, 1, 1)
+
+        GUI.groupBox_original_date = group_box
+        GUI.lineEdit_original_date = value_label
+        GUI.label_original_date = title_label
+        GUI.verticalLayout_23.insertWidget(2, group_box)
 
     def select_inbox_group(self):
         if GUI.radioButton_group_a.isChecked():
@@ -2346,7 +2520,7 @@ class MyMainClass:
             "border-top-right-radius: 6px; margin-right: 3px; } "
             "QTabBar::tab:selected { background: #ffffff; color: #028fc3; }"
         )
-        for section_title, manual_fields, calculated_fields in self._statistics_sections():
+        for section_title, auto_fields, manual_fields, calculated_fields in self._statistics_sections():
             page = QtWidgets.QWidget()
             page.setAutoFillBackground(True)
             page.setStyleSheet("QWidget { background-color: #ffffff; }")
@@ -2357,15 +2531,24 @@ class MyMainClass:
             for column in range(2):
                 layout.setColumnStretch(column, 1)
             row = 0
+            if auto_fields:
+                auto_header = self._statistics_section_header("Auto-detected", kind="auto")
+                layout.addWidget(auto_header, row, 0, 1, 2)
+                row += 1
+                for index, (key, label, kind) in enumerate(auto_fields):
+                    self._add_statistics_calculated_field(
+                        layout, row + index // 2, index % 2, key, label, kind, source="auto"
+                    )
+                row += (len(auto_fields) + 1) // 2
             if manual_fields:
-                manual_header = self._statistics_section_header("Manual inputs", kind="manual")
+                manual_header = self._statistics_section_header("Manual overrides", kind="manual")
                 layout.addWidget(manual_header, row, 0, 1, 2)
                 row += 1
                 for index, (key, label, kind) in enumerate(manual_fields):
                     self._add_statistics_manual_field(layout, row + index // 2, index % 2, key, label, kind)
                 row += (len(manual_fields) + 1) // 2
             if calculated_fields:
-                calc_header = self._statistics_section_header("Calculated metrics", kind="calc")
+                calc_header = self._statistics_section_header("Calculated rates", kind="calc")
                 layout.addWidget(calc_header, row, 0, 1, 2)
                 row += 1
                 for index, (key, label, kind) in enumerate(calculated_fields):
@@ -2381,7 +2564,12 @@ class MyMainClass:
         h.setSpacing(6)
         dot = QtWidgets.QLabel()
         dot.setFixedSize(8, 8)
-        color = "#6366f1" if kind == "manual" else "#028fc3"
+        if kind == "manual":
+            color = "#6366f1"
+        elif kind == "auto":
+            color = "#059669"
+        else:
+            color = "#028fc3"
         dot.setStyleSheet(f"background: {color}; border-radius: 4px;")
         lbl = QtWidgets.QLabel(text.upper())
         lbl.setStyleSheet(
@@ -2436,12 +2624,20 @@ class MyMainClass:
         chip_layout.addWidget(field)
         layout.addWidget(chip, row, column)
 
-    def _add_statistics_calculated_field(self, layout, row, column, key, label, kind):
+    def _add_statistics_calculated_field(self, layout, row, column, key, label, kind, source="calc"):
         chip = QtWidgets.QFrame()
-        chip.setStyleSheet(
-            "QFrame { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; }"
-            "QFrame QLabel { background: transparent; border: none; }"
-        )
+        if source == "auto":
+            chip.setStyleSheet(
+                "QFrame { background: #ecfdf3; border: 1px solid #bbf7d0; border-radius: 8px; }"
+                "QFrame QLabel { background: transparent; border: none; }"
+            )
+            value_color = "#047857"
+        else:
+            chip.setStyleSheet(
+                "QFrame { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; }"
+                "QFrame QLabel { background: transparent; border: none; }"
+            )
+            value_color = "#0369a1"
         chip_layout = QtWidgets.QVBoxLayout(chip)
         chip_layout.setContentsMargins(10, 8, 10, 8)
         chip_layout.setSpacing(3)
@@ -2451,11 +2647,11 @@ class MyMainClass:
         )
         value = QtWidgets.QLabel("0")
         value.setStyleSheet(
-            "QLabel { color: #0369a1; font-family: Arial; font-size: 15px; font-weight: 700; }"
+            f"QLabel {{ color: {value_color}; font-family: Arial; font-size: 15px; font-weight: 700; }}"
         )
         chip_layout.addWidget(lbl)
         chip_layout.addWidget(value)
-        self.statistics_calculated_labels[key] = (value, kind)
+        self.statistics_calculated_labels.setdefault(key, []).append((value, kind))
         layout.addWidget(chip, row, column)
 
     def _statistics_field_label(self, text):
@@ -2516,6 +2712,8 @@ class MyMainClass:
                 [
                     ("sent_emails", "Emails Sent", "number"),
                     ("emails_delivered", "Emails Delivered", "number"),
+                ],
+                [
                     ("hard_bounces", "Hard Bounces", "number"),
                     ("soft_bounces", "Soft Bounces", "number"),
                     ("deferred_emails", "Deferred Emails", "number"),
@@ -2539,6 +2737,14 @@ class MyMainClass:
                 "Lead Quality",
                 [
                     ("leads_sourced", "Leads Sourced", "number"),
+                    ("valid_email_count", "Valid Emails", "number"),
+                    ("invalid_email_count", "Invalid Emails", "number"),
+                    ("catch_all_count", "Catch-all Emails", "number"),
+                    ("verified_email_count", "Verified Emails", "number"),
+                    ("duplicate_lead_count", "Duplicate Leads", "number"),
+                    ("leads_not_emailed", "Leads Not Emailed", "number"),
+                ],
+                [
                     ("high_value_accounts", "High-value Accounts", "number"),
                 ],
                 [
@@ -2547,19 +2753,21 @@ class MyMainClass:
                     ("catch_all_domain_percentage", "Catch-all Percentage", "percent"),
                     ("verified_email_percentage", "Verified Percentage", "percent"),
                     ("duplicate_lead_rate", "Duplicate Lead Rate", "percent"),
-                    ("leads_not_emailed", "Leads Not Emailed", "number"),
                     ("high_value_account_percentage", "High-value Percentage", "percent"),
                 ],
             ),
             (
                 "Campaign",
                 [
+                    ("positive_replies", "Positive Replies", "number"),
+                    ("negative_replies", "Negative Replies", "number"),
+                ],
+                [
                     ("open_total", "Total Opens", "number"),
                     ("unique_opens", "Unique Opens", "number"),
                     ("clicks", "Clicks", "number"),
                     ("unsubscribes", "Unsubscribes", "number"),
                     ("forwards", "Forwards", "number"),
-                    ("meetings_booked", "Meetings Booked", "number"),
                 ],
                 [
                     ("open_rate", "Open Rate", "percent"),
@@ -2582,9 +2790,11 @@ class MyMainClass:
                     ("referral_replies", "Referral Replies", "number"),
                     ("out_of_office_replies", "Out-of-office Replies", "number"),
                     ("automated_replies", "Automated Replies", "number"),
+                    ("average_response_time_hours", "Avg Response Time Hours", "decimal"),
+                ],
+                [
                     ("ongoing_conversations", "Ongoing Conversations", "number"),
                     ("sales_qualified_conversations", "Sales-qualified Conversations", "number"),
-                    ("average_response_time_hours", "Avg Response Time Hours", "decimal"),
                 ],
                 [
                     ("positive_sentiment_ratio", "Positive Sentiment Ratio", "percent"),
@@ -2600,7 +2810,9 @@ class MyMainClass:
             ),
             (
                 "Sales / ROI",
+                [],
                 [
+                    ("meetings_booked", "Meetings Booked", "number"),
                     ("meetings_held", "Meetings Held", "number"),
                     ("no_shows", "No-shows", "number"),
                     ("opportunities", "Opportunities", "number"),
@@ -2634,6 +2846,10 @@ class MyMainClass:
                 "Warm-up",
                 [
                     ("warmup_email_amounts", "Warm-up Emails", "number"),
+                    ("second_emails", "Follow-ups / Warm-up Sent", "number"),
+                    ("mailbox_provider_summary", "Mailbox Provider Distribution", "text"),
+                ],
+                [
                     ("warmup_time_days", "Time in Warm-up Days", "decimal"),
                     ("warmup_progress_percent", "Warm-up Progress", "percent"),
                     ("best_sending_time", "Best Sending Time", "text"),
@@ -2642,9 +2858,7 @@ class MyMainClass:
                 ],
                 [
                     ("sent_emails", "Emails Sent", "number"),
-                    ("second_emails", "Follow-ups / Warm-up Sent", "number"),
                     ("warmup_progress_rate", "Warm-up Progress Rate", "percent"),
-                    ("mailbox_provider_summary", "Mailbox Provider Distribution", "text"),
                 ],
             ),
         ]
@@ -2729,6 +2943,7 @@ class MyMainClass:
             report_path=var.report_file_path,
             followup_report_path=var.followup_report_file_path,
             negative_words=self._statistics_negative_words(),
+            reply_classifier=build_statistics_openai_reply_classifier(),
         )
         summary = calculator.calculate(
             inbox_tables=var.inbox_data_table,
@@ -2749,8 +2964,9 @@ class MyMainClass:
         )
 
     def _update_statistics_metric_labels(self, summary):
-        for key, (label, kind) in self.statistics_calculated_labels.items():
-            label.setText(self._format_statistics_value(getattr(summary, key, 0), kind))
+        for key, labels in self.statistics_calculated_labels.items():
+            for label, kind in labels:
+                label.setText(self._format_statistics_value(getattr(summary, key, 0), kind))
         kpi_kinds = {
             "meetings_booked": "number",
             "opportunities": "number",
@@ -3334,57 +3550,51 @@ class MyMainClass:
                 f"Error fetching account info: {traceback.format_exc()}")
 
     def request_subscription_cancel(self):
-        email = (var.login_email or "").strip()
-        if not email:
-            alert(
-                text="No account email is available for the cancellation request.",
-                title="Cancel Subscription",
-                button="OK",
-            )
+        dialog = CancelSubscriptionDialog(
+            parent=mainWindow,
+            email=(var.login_email or "").strip(),
+            user_id=getattr(var, "gmonster_desktop_id", ""),
+            plan="",
+        )
+        if dialog.exec_() != QDialog.Accepted:
             return
 
-        choice = confirm(
-            text=(
-                "Send a subscription cancellation request for "
-                f"{email}?\n\nThis will notify Gmonster support for manual processing."
-            ),
-            title="Cancel Subscription",
-            buttons=["Send Request", "Cancel"],
-        )
-        if choice != "Send Request":
-            return
+        request_values = dialog.values()
 
         GUI.pushButton_account_cancel_subscription.setEnabled(False)
         GUI.pushButton_account_cancel_subscription.setText("Sending...")
         Thread(
             target=self._send_subscription_cancel_request,
-            args=(email,),
+            args=(request_values,),
             daemon=True,
         ).start()
 
-    def _send_subscription_cancel_request(self, email):
+    def _send_subscription_cancel_request(self, request_values):
         try:
+            payload = build_cancel_request_payload(
+                name=request_values["name"],
+                email=request_values["email"],
+                user_id=request_values["user_id"],
+                plan=request_values["plan"],
+            )
             response = requests.post(
-                var.api + "verify/request_subscription_cancel",
-                json={
-                    "email": email,
-                    "message": f"Cancel the subscription of {email}",
-                },
+                build_cancel_request_url(var.api),
+                json=payload,
                 timeout=var.API_TIMEOUT,
             )
-            message = "Cancellation request sent. We will process it manually."
-            try:
-                data = response.json()
-                message = data.get("message") or message
-            except Exception:
-                pass
 
-            if 200 <= response.status_code < 300:
+            if response.status_code == 200:
+                message = "Cancellation request sent successfully"
+                try:
+                    data = response.json()
+                    message = data.get("message") or message
+                except Exception:
+                    pass
                 self._subscription_cancel_result = (True, message)
             else:
                 self._subscription_cancel_result = (
                     False,
-                    f"Cancellation request failed: HTTP {response.status_code}",
+                    "Unable to send cancellation request. Please try again or contact support.",
                 )
                 logger.error(
                     f"Subscription cancellation failed: HTTP {response.status_code} - {response.text}"
@@ -3392,7 +3602,7 @@ class MyMainClass:
         except Exception:
             self._subscription_cancel_result = (
                 False,
-                "Could not send the cancellation request. Check your connection and try again.",
+                "Unable to send cancellation request. Please try again or contact support.",
             )
             logger.error(
                 f"Error sending subscription cancellation request: {traceback.format_exc()}"
@@ -4132,50 +4342,19 @@ class MyMainClass:
 
     def _build_thread_view_html(self, thread_df):
         zoom_multiplier = 1 + (self.inbox_zoom_level * 0.1)
-        meta_font_size = max(9, int(round(12 * zoom_multiplier)))
-        subject_font_size = max(14, int(round(20 * zoom_multiplier)))
         base_font_size = max(10, int(round(14 * zoom_multiplier)))
         message_blocks = []
-        for _, row_data in thread_df.iterrows():
-            from_text = html.escape(
-                str(row_data.get("from", "") or row_data.get("from_mail", "")))
-            to_text = html.escape(
-                str(row_data.get("to", "") or row_data.get("to_mail", "")))
-            subject_text = html.escape(str(row_data.get("subject", "")))
-
-            date_value = row_data.get("date", "")
-            if hasattr(date_value, "strftime"):
-                date_text = date_value.strftime("%Y-%m-%d %H:%M:%S")
-            else:
-                date_text = str(date_value)
-            date_text = html.escape(date_text)
-
-            body_text = str(row_data.get("body", "") or "")
-            if "</body>" in body_text.lower():
-                body_match = re.search(
-                    r"<body[^>]*>(.*?)</body>",
-                    body_text,
-                    flags=re.IGNORECASE | re.DOTALL,
-                )
-                body_html = body_match.group(1) if body_match else body_text
-            else:
-                body_html = html.escape(body_text).replace("\n", "<br>")
-
+        for index, (_, row_data) in enumerate(thread_df.iterrows()):
             message_blocks.append(
-                f"""
-                <div style=\"margin:0 0 14px 0; padding:10px; border:1px solid #ddd; background:#fafafa;\">
-                    <div style=\"font-size:{meta_font_size}px; color:#444; margin-bottom:8px;\"><b>From:</b> {from_text}</div>
-                    <div style=\"font-size:{meta_font_size}px; color:#444; margin-bottom:8px;\"><b>To:</b> {to_text}</div>
-                    <div style=\"font-size:{meta_font_size}px; color:#666; margin-bottom:8px;\"><b>Date:</b> {date_text}</div>
-                    <div style=\"font-size:{subject_font_size}px; font-weight:600; margin:0 0 10px 0;\">{subject_text}</div>
-                    <div>{body_html}</div>
-                </div>
-                """
+                message_to_thread_html(
+                    row_data.to_dict(),
+                    show_metadata=index > 0,
+                )
             )
 
         return (
-            f"<html><body style='font-family: Arial, sans-serif; font-size: {base_font_size}px;'>"
-            + "<br><br>".join(message_blocks)
+            f"<html><body style='font-family: Arial, sans-serif; font-size: {base_font_size}px; line-height:1.5;'>"
+            + "".join(message_blocks)
             + "</body></html>"
         )
 
@@ -4316,6 +4495,7 @@ class MyMainClass:
             self.change_subject()
             GUI.lineEdit_original_from.setText(
                 var.inbox_data[var.inbox_group].iloc[row]["from"])
+            GUI.lineEdit_original_date.setText(header_date_text(var.email_in_view))
             GUI.textBrowser_show_email.clear()
             selected_row_data = var.inbox_data[var.inbox_group].iloc[row].to_dict(
             )

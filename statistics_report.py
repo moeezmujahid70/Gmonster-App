@@ -325,9 +325,11 @@ class StatisticsCalculator:
         report_path,
         followup_report_path,
         negative_words=None,
+        reply_classifier=None,
     ):
         self.report_path = report_path
         self.followup_report_path = followup_report_path
+        self.reply_classifier = reply_classifier
         self.negative_words = negative_words or [
             "no",
             "stop",
@@ -373,10 +375,16 @@ class StatisticsCalculator:
         sent_rows = self._read_sent_rows(self.report_path, date_range)
         followup_rows = self._read_sent_rows(self.followup_report_path, date_range)
         reply_counts = self._count_replies(inbox_tables, date_range)
+        reply_categories = _reply_category_counts(
+            inbox_tables, date_range, self.reply_classifier
+        )
         product_price_value = _parse_money(product_price)
         target_metrics = _target_metrics(target_table, sent_rows)
         provider_distribution = _provider_distribution(account_tables, sent_rows)
         leads_sourced_csv = target_metrics.pop("leads_sourced", 0)
+        average_response_time_hours = _average_response_time_hours(
+            sent_rows, inbox_tables, date_range
+        )
 
         return StatisticsSummary(
             leads_sourced=_manual_int(manual_metrics, "leads_sourced", leads_sourced_csv),
@@ -399,13 +407,13 @@ class StatisticsCalculator:
             clicks=_manual_int(manual_metrics, "clicks"),
             unsubscribes=_manual_int(manual_metrics, "unsubscribes"),
             forwards=_manual_int(manual_metrics, "forwards"),
-            neutral_replies=_manual_int(manual_metrics, "neutral_replies"),
-            interested_replies=_manual_int(manual_metrics, "interested_replies"),
-            objection_replies=_manual_int(manual_metrics, "objection_replies"),
-            not_now_replies=_manual_int(manual_metrics, "not_now_replies"),
-            referral_replies=_manual_int(manual_metrics, "referral_replies"),
-            out_of_office_replies=_manual_int(manual_metrics, "out_of_office_replies"),
-            automated_replies=_manual_int(manual_metrics, "automated_replies"),
+            neutral_replies=reply_categories["neutral_replies"],
+            interested_replies=reply_categories["interested_replies"],
+            objection_replies=reply_categories["objection_replies"],
+            not_now_replies=reply_categories["not_now_replies"],
+            referral_replies=reply_categories["referral_replies"],
+            out_of_office_replies=reply_categories["out_of_office_replies"],
+            automated_replies=reply_categories["automated_replies"],
             ongoing_conversations=_manual_int(manual_metrics, "ongoing_conversations"),
             sales_qualified_conversations=_manual_int(manual_metrics, "sales_qualified_conversations"),
             meetings_booked=_manual_int(manual_metrics, "meetings_booked"),
@@ -424,7 +432,7 @@ class StatisticsCalculator:
             high_value_accounts=_manual_int(manual_metrics, "high_value_accounts"),
             warmup_time_days=_manual_float(manual_metrics, "warmup_time_days"),
             warmup_progress_percent=_manual_float(manual_metrics, "warmup_progress_percent"),
-            average_response_time_hours=_manual_float(manual_metrics, "average_response_time_hours"),
+            average_response_time_hours=average_response_time_hours,
             best_sending_time=str(manual_metrics.get("best_sending_time") or ""),
             best_sending_day=str(manual_metrics.get("best_sending_day") or ""),
             best_subject_line=str(manual_metrics.get("best_subject_line") or ""),
@@ -667,6 +675,188 @@ def _target_metrics(target_table, sent_rows):
     except Exception:
         return result
     return result
+
+
+def _reply_category_counts(inbox_tables, date_range, reply_classifier=None):
+    counts = {
+        "neutral_replies": 0,
+        "interested_replies": 0,
+        "objection_replies": 0,
+        "not_now_replies": 0,
+        "referral_replies": 0,
+        "out_of_office_replies": 0,
+        "automated_replies": 0,
+    }
+    for row in _iter_inbound_reply_rows(inbox_tables, date_range):
+        category = _classify_reply_category(row, reply_classifier=reply_classifier)
+        counts[category] += 1
+    return counts
+
+
+def _iter_inbound_reply_rows(inbox_tables, date_range):
+    for table in inbox_tables or []:
+        if table is None or getattr(table, "empty", True):
+            continue
+        for _, row in table.iterrows():
+            if _is_sent_mail(row):
+                continue
+            if not date_range.contains(row.get("date", "")):
+                continue
+            yield row
+
+
+def _classify_reply_category(row, reply_classifier=None):
+    if reply_classifier:
+        try:
+            category = str(reply_classifier(row) or "").strip()
+            if category in _REPLY_CATEGORY_KEYS:
+                return category
+        except Exception:
+            pass
+
+    subject = str(row.get("subject", "") or "")
+    body = _reply_text(row.get("body", ""), row.get("to_mail", ""))
+    sender = str(row.get("from_mail", "") or row.get("from", "") or "")
+    text = " ".join([subject, body, sender]).lower()
+
+    if _contains_any(text, _OUT_OF_OFFICE_TERMS):
+        return "out_of_office_replies"
+    if _contains_any(text, _AUTOMATED_REPLY_TERMS):
+        return "automated_replies"
+    if _contains_any(text, _REFERRAL_TERMS):
+        return "referral_replies"
+    if _contains_any(text, _NOT_NOW_TERMS):
+        return "not_now_replies"
+    if _contains_any(text, _OBJECTION_TERMS):
+        return "objection_replies"
+    if _contains_any(text, _INTERESTED_TERMS):
+        return "interested_replies"
+    return "neutral_replies"
+
+
+_REPLY_CATEGORY_KEYS = {
+    "neutral_replies",
+    "interested_replies",
+    "objection_replies",
+    "not_now_replies",
+    "referral_replies",
+    "out_of_office_replies",
+    "automated_replies",
+}
+
+
+def _contains_any(text, terms):
+    return any(term in text for term in terms)
+
+
+_INTERESTED_TERMS = (
+    "interested",
+    "yes",
+    "tell me more",
+    "sounds good",
+    "send more",
+    "learn more",
+    "let's talk",
+    "lets talk",
+    "book a",
+    "schedule",
+    "call me",
+)
+_OBJECTION_TERMS = (
+    "not interested",
+    "no thanks",
+    "no thank",
+    "price",
+    "budget",
+    "too expensive",
+    "already have",
+    "not a fit",
+    "not relevant",
+    "remove me",
+    "unsubscribe",
+    "stop emailing",
+)
+_NOT_NOW_TERMS = (
+    "not now",
+    "later",
+    "next quarter",
+    "next month",
+    "follow up",
+    "circle back",
+    "reach out later",
+    "too busy",
+)
+_REFERRAL_TERMS = (
+    "contact my",
+    "contact our",
+    "colleague",
+    "talk to",
+    "speak with",
+    "forwarded to",
+    "looping in",
+    "connect you",
+)
+_OUT_OF_OFFICE_TERMS = (
+    "out of office",
+    "ooo",
+    "on vacation",
+    "away from",
+    "annual leave",
+    "automatic reply: away",
+    "autoreply: away",
+)
+_AUTOMATED_REPLY_TERMS = (
+    "mailer-daemon",
+    "postmaster",
+    "delivery status notification",
+    "delivery notification",
+    "undeliverable",
+    "automated delivery",
+    "auto-response",
+    "automatic reply",
+)
+
+
+def _average_response_time_hours(sent_rows, inbox_tables, date_range):
+    sent_by_pair = defaultdict(list)
+    for row in sent_rows:
+        target = _normalize_email(row.get("TARGET", ""))
+        sender = _normalize_email(row.get("FROMEMAIL", ""))
+        sent_at = _parse_datetime(row.get("DATETIME") or row.get("DATE"))
+        if target and sender and sent_at:
+            sent_by_pair[(target, sender)].append(sent_at)
+
+    if not sent_by_pair:
+        return 0
+
+    for dates in sent_by_pair.values():
+        dates.sort()
+
+    durations = []
+    for row in _iter_inbound_reply_rows(inbox_tables, date_range):
+        target = _normalize_email(row.get("from_mail", ""))
+        sender = _normalize_email(row.get("to_mail", ""))
+        replied_at = _parse_datetime(row.get("datetime") or row.get("date"))
+        if not target or not sender or not replied_at:
+            continue
+        sent_dates = sent_by_pair.get((target, sender), [])
+        candidates = [sent_at for sent_at in sent_dates if sent_at <= replied_at]
+        if not candidates:
+            continue
+        sent_at = candidates[-1]
+        durations.append((replied_at - sent_at).total_seconds() / 3600)
+
+    if not durations:
+        return 0
+    return sum(durations) / len(durations)
+
+
+def _normalize_email(value):
+    text = str(value or "").strip().lower()
+    match = re.search(r"[\w.+%-]+@[\w.-]+\.[A-Za-z]{2,}", text)
+    if match:
+        return match.group(0)
+    return text if "@" in text else ""
 
 
 def _provider_distribution(account_tables, sent_rows):
