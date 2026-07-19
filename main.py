@@ -3,6 +3,7 @@ from textblob import TextBlob
 from gui import Ui_MainWindow
 from database import update_target_verified
 from email_thread_display import header_date_text, message_to_thread_html
+from inbox_search import filter_inbox_emails, normalize_inbox_search_query
 from openai import OpenAI, AuthenticationError as OpenAIAuthError
 from statistics_report import (
     DateRange,
@@ -35,6 +36,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QTextEdit,
     QVBoxLayout,
+    QLineEdit,
     QSpinBox,
     QProgressBar,
 )
@@ -497,6 +499,7 @@ class MyMainClass:
         self.statistics_kpi_value_labels = {}
         self.setup_statistics_page()
         self.setup_inbox_date_header()
+        self.setup_inbox_search()
         self.setup_sidebar_icons()
         GUI.checkBox_delete_all.stateChanged.connect(
             lambda state: self.toggle_all_checkboxes(
@@ -935,6 +938,71 @@ class MyMainClass:
         GUI.lineEdit_original_date = value_label
         GUI.label_original_date = title_label
         GUI.verticalLayout_23.insertWidget(2, group_box)
+
+    def setup_inbox_search(self):
+        if hasattr(GUI, "lineEdit_inbox_search"):
+            return
+
+        search_widget = QtWidgets.QWidget(GUI.frame)
+        search_widget.setObjectName("widget_inbox_search")
+        search_layout = QHBoxLayout(search_widget)
+        search_layout.setContentsMargins(0, 4, 0, 4)
+        search_layout.setSpacing(6)
+
+        search_button = QPushButton(search_widget)
+        search_button.setObjectName("pushButton_inbox_search")
+        search_button.setCursor(Qt.PointingHandCursor)
+        search_button.setFixedSize(34, 34)
+        search_button.setToolTip("Search emails")
+        search_button.setText("")
+        search_button.setFlat(True)
+        search_button.setStyleSheet(
+            "QPushButton { border: none; color: #555; }"
+            "QPushButton:hover { color: #000; background-color: #e6eaf2; }"
+        )
+        if qta is not None:
+            search_button.setIcon(qta.icon("fa5s.search", color="#555"))
+            search_button.setIconSize(QtCore.QSize(16, 16))
+        else:
+            search_button.setText("Search")
+
+        search_input = QLineEdit(search_widget)
+        search_input.setObjectName("lineEdit_inbox_search")
+        search_input.setPlaceholderText("Search emails")
+        search_input.setClearButtonEnabled(True)
+        search_input.setMinimumHeight(34)
+        search_input.setStyleSheet(
+            "QLineEdit { background-color: #fff; border: 1px solid #d6dce8; "
+            "border-radius: 4px; padding: 6px 10px; color: #222; }"
+            "QLineEdit:focus { border-color: #9aa8c0; }"
+        )
+        search_input.hide()
+
+        search_layout.addWidget(search_button)
+        search_layout.addWidget(search_input)
+        GUI.verticalLayout_17.insertWidget(1, search_widget)
+
+        GUI.widget_inbox_search = search_widget
+        GUI.pushButton_inbox_search = search_button
+        GUI.lineEdit_inbox_search = search_input
+
+        search_button.clicked.connect(self.toggle_inbox_search)
+        search_input.textChanged.connect(self.inbox_show_changed)
+
+    def toggle_inbox_search(self):
+        search_input = GUI.lineEdit_inbox_search
+        should_show = not search_input.isVisible()
+        search_input.setVisible(should_show)
+        if should_show:
+            search_input.setFocus()
+            search_input.selectAll()
+        else:
+            search_input.clear()
+
+    def get_inbox_search_text(self):
+        if not hasattr(GUI, "lineEdit_inbox_search"):
+            return ""
+        return normalize_inbox_search_query(GUI.lineEdit_inbox_search.text())
 
     def select_inbox_group(self):
         if GUI.radioButton_group_a.isChecked():
@@ -4155,6 +4223,13 @@ class MyMainClass:
                 ~var.inbox_data[var.inbox_group]['from_mail'].str.lower().isin(
                     pool_set)
             ].copy()
+
+        search_text = self.get_inbox_search_text()
+        if search_text and not var.inbox_data[var.inbox_group].empty:
+            var.inbox_data[var.inbox_group] = filter_inbox_emails(
+                var.inbox_data[var.inbox_group],
+                search_text,
+            )
 
         self.sort_inbox_data(self.option)
 
