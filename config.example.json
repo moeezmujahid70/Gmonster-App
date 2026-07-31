@@ -186,6 +186,11 @@
                 }
             }
         },
+        "mailgenius": {
+            "enabled": false,
+            "rapidapi_key": "",
+            "rapidapi_host": "mailgenius-email-deliverability-api1.p.rapidapi.com"
+        },
         "date": "3/29/2025",
         "num_emails_per_address": "1 - 2",
         "delay_between_emails": "5 - 6",
