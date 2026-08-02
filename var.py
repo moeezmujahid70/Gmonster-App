@@ -244,12 +244,19 @@ login_email = ''
 login_password = ''
 login_machine_uuid = ''
 login_processor_id = ''
+# Short-lived server access token.  It deliberately remains memory-only.
+api_access_token = ''
 tracking = {}
 statistics = {
     "product_price": 0,
     "logo_path": "",
     "date_filter": "last_30_days",
     "manual_metrics": {},
+}
+mailgenius = {
+    "enabled": False,
+    "rapidapi_key": "",
+    "rapidapi_host": "",
 }
 webhook_link = ''
 api = 'https://enzim.pythonanywhere.com/'
@@ -328,6 +335,11 @@ try:
     elif isinstance(config['statistics'], dict):
         statistics.update(config['statistics'])
         config['statistics'] = statistics
+    if not isinstance(config.get('mailgenius'), dict):
+        config['mailgenius'] = mailgenius.copy()
+    else:
+        mailgenius.update(config['mailgenius'])
+        config['mailgenius'] = mailgenius
     date = config['date']
     if config['compose_email_subject']:
         compose_email_subject = config['compose_email_subject']
@@ -343,6 +355,7 @@ try:
     api = config.get('api', api)
     tracking = config['tracking']
     statistics = config.get('statistics', statistics)
+    mailgenius = config.get('mailgenius', mailgenius)
     webhook_link = config['webhook_link']
     check_for_blocks = config['check_for_blocks']
     remove_email_from_target = config['remove_email_from_target']
