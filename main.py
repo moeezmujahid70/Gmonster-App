@@ -17,6 +17,11 @@ from subscription_cancel import (
     build_cancel_request_payload,
     build_cancel_request_url,
 )
+from unsubscribe_client import add_manual, get_records, get_setting, update_setting
+from unsubscribe_management import default_export_path, export_records
+from unsubscribe_page import UnsubscribePage
+from unsubscribe_setting import UnsubscribeSettingController
+from campaign_progress import campaign_progress_state
 import subprocess
 import signal
 from datetime import datetime
@@ -497,6 +502,7 @@ class MyMainClass:
         self.statistics_manual_fields = {}
         self.statistics_calculated_labels = {}
         self.statistics_kpi_value_labels = {}
+        self.unsubscribe_page_index = None
         self.setup_statistics_page()
         self.setup_inbox_date_header()
         self.setup_inbox_search()
@@ -523,6 +529,13 @@ class MyMainClass:
         self.sub_exp = 0
         self.try_failed = 0
         GUI.stackedWidget.setCurrentIndex(0)
+        self.unsubscribe_page = UnsubscribePage(GUI.stackedWidget)
+        self.unsubscribe_page_index = GUI.stackedWidget.addWidget(self.unsubscribe_page)
+        GUI.listWidget.addItem("Unsubscribes")
+        self.unsubscribe_page.refreshRequested.connect(self.load_unsubscribe_records)
+        self.unsubscribe_page.manualAddRequested.connect(self.add_manual_unsubscribe)
+        self.unsubscribe_page.exportRequested.connect(self.export_unsubscribe_records)
+        self.setup_sidebar_icons()
         GUI.listWidget.currentRowChanged.connect(self.list_clicked)
         GUI.lineEdit_email_tracking_analytics_account.setText(
             str(var.tracking["analytics_account"])
@@ -605,6 +618,14 @@ class MyMainClass:
         GUI.checkBox_proxy_enabled.setChecked(var.proxy_on)
         GUI.checkBox_space_encoding.setChecked(var.space_encoding_checkbox)
         GUI.checkBox_hide_warmup_emails.setChecked(var.hide_warmup_emails)
+        self.unsubscribe_setting = UnsubscribeSettingController(
+            GUI.checkBox_insert_unsubscribe_link, get_setting, update_setting
+        )
+        GUI.checkBox_insert_unsubscribe_link.setEnabled(False)
+        GUI.checkBox_insert_unsubscribe_link.stateChanged.connect(
+            self.begin_save_unsubscribe_setting
+        )
+        Thread(target=self.load_unsubscribe_setting, daemon=True).start()
         self.auto_fire_responses_webhook_timer = QtCore.QTimer()
         self.auto_fire_responses_webhook_timer.setInterval(
             max(1, int(var.auto_fire_responses_webhook_interval * 3600 * 1000))
@@ -1060,6 +1081,9 @@ class MyMainClass:
         if item_text == "Statistics" and self.statistics_page_index is not None:
             GUI.stackedWidget.setCurrentIndex(self.statistics_page_index)
             self.refresh_statistics()
+        elif item_text == "Unsubscribes" and self.unsubscribe_page_index is not None:
+            GUI.stackedWidget.setCurrentIndex(self.unsubscribe_page_index)
+            self.load_unsubscribe_records()
         elif item_text in nav_map:
             GUI.stackedWidget.setCurrentIndex(nav_map[item_text])
             if item_text == "Account":
@@ -3143,6 +3167,7 @@ class MyMainClass:
             "Warm up": "fa5s.fire",
             "Settings": "fa5s.cog",
             "Account": "fa5s.user-circle",
+            "Unsubscribes": "fa5s.user-slash",
         }
         GUI.listWidget.setIconSize(QtCore.QSize(16, 16))
         for index in range(GUI.listWidget.count()):
@@ -3315,6 +3340,93 @@ class MyMainClass:
                 eval(command)
         except Exception as e:
             self.logger.error("Error at run_command - {}".format(e))
+
+    def load_unsubscribe_setting(self):
+        try:
+            self._loaded_unsubscribe_setting = get_setting()
+            var.command_q.put("self.finish_load_unsubscribe_setting()")
+        except Exception:
+            var.command_q.put("self.fail_load_unsubscribe_setting()")
+
+    def finish_load_unsubscribe_setting(self):
+        self.unsubscribe_setting.apply_loaded_value(self._loaded_unsubscribe_setting)
+
+    def fail_load_unsubscribe_setting(self):
+        GUI.checkBox_insert_unsubscribe_link.setEnabled(False)
+        alert(
+            text="Unable to load unsubscribe setting. Retry by reopening Gmonster.",
+            title="Unsubscribe setting",
+            button="OK",
+        )
+
+    def begin_save_unsubscribe_setting(self, _state):
+        requested = GUI.checkBox_insert_unsubscribe_link.isChecked()
+        GUI.checkBox_insert_unsubscribe_link.setEnabled(False)
+        Thread(target=self.save_unsubscribe_setting, args=(requested,), daemon=True).start()
+
+    def save_unsubscribe_setting(self, requested):
+        try:
+            self._saved_unsubscribe_setting = self.unsubscribe_setting.persist_value(requested)
+            var.command_q.put("self.finish_save_unsubscribe_setting()")
+        except Exception:
+            var.command_q.put("self.fail_save_unsubscribe_setting()")
+
+    def finish_save_unsubscribe_setting(self):
+        self.unsubscribe_setting.apply_loaded_value(self._saved_unsubscribe_setting)
+
+    def fail_save_unsubscribe_setting(self):
+        self.unsubscribe_setting.restore_current_value()
+        alert(
+            text="Unable to save unsubscribe setting. Your previous setting is still active.",
+            title="Unsubscribe setting",
+            button="OK",
+        )
+
+    def load_unsubscribe_records(self):
+        self.unsubscribe_page.set_loading()
+        Thread(target=self._load_unsubscribe_records, daemon=True).start()
+
+    def _load_unsubscribe_records(self):
+        try:
+            self._loaded_unsubscribe_records = get_records()
+            var.command_q.put("self.finish_load_unsubscribe_records()")
+        except Exception:
+            var.command_q.put("self.fail_load_unsubscribe_records()")
+
+    def finish_load_unsubscribe_records(self):
+        self.unsubscribe_page.set_records(self._loaded_unsubscribe_records)
+
+    def fail_load_unsubscribe_records(self):
+        self.unsubscribe_page.set_error("Unable to load unsubscribes. Please retry.")
+
+    def add_manual_unsubscribe(self, email):
+        self.unsubscribe_page.set_loading()
+        Thread(target=self._add_manual_unsubscribe, args=(email,), daemon=True).start()
+
+    def _add_manual_unsubscribe(self, email):
+        try:
+            add_manual(email)
+            var.command_q.put("self.load_unsubscribe_records()")
+        except Exception:
+            var.command_q.put("self.fail_manual_unsubscribe()")
+
+    def fail_manual_unsubscribe(self):
+        self.unsubscribe_page.set_error("Unable to add unsubscribe. Check the email and retry.")
+
+    def export_unsubscribe_records(self):
+        path, _ = QFileDialog.getSaveFileName(
+            None,
+            "Export unsubscribes",
+            default_export_path(self._downloads_folder()),
+            "CSV files (*.csv)",
+        )
+        if not path:
+            return
+        try:
+            count = export_records(path, self.unsubscribe_page.filtered_records)
+            alert(text="Exported {} unsubscribe record(s).".format(count), title="Export complete", button="OK")
+        except Exception:
+            alert(text="Unable to export unsubscribes.", title="Export failed", button="OK")
 
     def insert_row(self):
         GUI.model.insertRows()
@@ -3987,21 +4099,14 @@ class MyMainClass:
 
     def update_compose_progressbar(self):
         try:
-            value = (
-                var.send_campaign_email_count / var.total_email_to_be_sent * 100
+            value, count_label, status = campaign_progress_state(
+                var.send_campaign_email_count,
+                var.total_email_to_be_sent,
+                var.stop_send_campaign,
             )
-            GUI.label_campaign_status.setText(
-                "{}/{}".format(
-                    var.send_campaign_email_count, var.total_email_to_be_sent
-                )
-            )
-            if value >= 100:
-                GUI.lable_campaign_status_text.setText("Finished")
-            elif var.stop_send_campaign:
-                GUI.lable_campaign_status_text.setText("Stopped")
-            else:
-                GUI.lable_campaign_status_text.setText("Sending")
-            GUI.progressBar_compose.setValue(int(value))
+            GUI.label_campaign_status.setText(count_label)
+            GUI.lable_campaign_status_text.setText(status)
+            GUI.progressBar_compose.setValue(value)
         except Exception as e:
             logger.error(
                 "Error at main.py->update_compose_progressbar : {}".format(e))
