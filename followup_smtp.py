@@ -17,6 +17,7 @@ from proxy_smtplib import SMTP
 from smtp_base import SmtpBase
 from var import logger
 import var
+from unsubscribe_email import compose_alternatives
 
 
 class FollowUpSend(SmtpBase, threading.Thread):
@@ -104,10 +105,14 @@ class FollowUpSend(SmtpBase, threading.Thread):
                     item["TONAME"],
                     source="body",
                 )
-                msg.attach(MIMEText(body.encode("utf-8"), "html", "utf-8"))
-                msg.attach(
-                    MIMEText(html_to_text(body).encode("utf-8"), "plain", "utf-8")
+                plain_body, html_body = compose_alternatives(
+                    html_to_text(body),
+                    body,
+                    item.get("unsubscribe_url", ""),
+                    bool(item.get("unsubscribe_enabled", False)),
                 )
+                msg.attach(MIMEText(plain_body, "plain", "utf-8"))
+                msg.attach(MIMEText(html_body, "html", "utf-8"))
 
                 for part in t_part:
                     msg.attach(part)
