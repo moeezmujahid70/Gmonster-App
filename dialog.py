@@ -16,6 +16,7 @@ from threading import Thread
 import utils
 from compat_ui import alert, password, confirm
 import requests
+from gmonster_api import capture_access_token
 
 
 def get_request_timeout():
@@ -220,6 +221,7 @@ def make_sign_up_requests(email, password, endpoint):
         machine_uuid, processor_id = get_system_identifiers()
         print(machine_uuid, processor_id)
         if endpoint == "login":
+            var.api_access_token = ""
             var.login_machine_uuid = machine_uuid
             var.login_processor_id = processor_id
         url = var.api + "verify/" + endpoint
@@ -250,7 +252,13 @@ def make_sign_up_requests(email, password, endpoint):
             var.sign_up_label = status
         else:
             var.sign_in_label = status
+            if status == "Success":
+                capture_access_token(x)
+            else:
+                var.api_access_token = ""
     except requests.exceptions.Timeout:
+        if endpoint == "login":
+            var.api_access_token = ""
         status = "Server timeout. Please try again in a few moments."
         print(status)
         if endpoint == "register":
@@ -258,6 +266,8 @@ def make_sign_up_requests(email, password, endpoint):
         else:
             var.sign_in_label = status
     except Exception as e:
+        if endpoint == "login":
+            var.api_access_token = ""
         print("Error at reading system info : {}".format(e))
         status = "Couldn't connect - {}".format(e)
         print(status)
