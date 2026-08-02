@@ -36,6 +36,7 @@ import var
 from var import logger
 from unsubscribe_client import PreparationError, prepare_batches
 from unsubscribe_email import compose_alternatives
+from user_messages import followup_message, preparation_message, smtp_message
 
 logger = logger
 email_failed = 0
@@ -162,6 +163,7 @@ class TestMail(SmtpBase):
         self.send_to = send_to
         self.audit_recipient = audit_recipient
         self.mailgenius_delivery_error = None
+        self.failure_message = None
         self.target = var.target.iloc[0].to_dict()
         self.compose_email_subject = GUI.lineEdit_subject.text().strip()
         self.compose_email_body = GUI.textBrowser_compose.toPlainText().strip()
@@ -253,6 +255,7 @@ class TestMail(SmtpBase):
                 msg.attach(part)
             refused = server.sendmail(self.user, self.send_to, msg.as_string())
             if refused:
+                self.failure_message = smtp_message(rejected=True)
                 logger.error("Test SMTP delivery was rejected: %s", list(refused))
                 return False
 
@@ -267,6 +270,7 @@ class TestMail(SmtpBase):
                     self.mailgenius_delivery_error = (
                         "MailGenius SMTP delivery was rejected by the mail server."
                     )
+                    self.failure_message = smtp_message(rejected=True)
                     logger.error(
                         "MailGenius SMTP delivery was rejected for audit %s: %s",
                         self.audit_recipient.split("@", 1)[0],
@@ -284,9 +288,12 @@ class TestMail(SmtpBase):
             )
             return True
         except Exception as e:
+            self.failure_message = smtp_message(e)
             logger.error(
-                "Error at test send - {} - {}".format(
-                    self.user, traceback.format_exc())
+                "Error at test send [%s] - %s - %s",
+                self.failure_message.code,
+                self.user,
+                traceback.format_exc(),
             )
             return False
 
@@ -775,9 +782,13 @@ class Smtp(SmtpBase, threading.Thread):
                 server.quit()
         except Exception as e:
             email_failed += 1
+            user_message = smtp_message(e)
+            var.campaign_user_messages.append(user_message)
             self.logger.error(
-                "Error at Sending - {} - {}".format(
-                    self.name, traceback.format_exc())
+                "Error at Sending [%s] - %s - %s",
+                user_message.code,
+                self.name,
+                traceback.format_exc(),
             )
             t_dict = {
                 "TARGET": last_recipient,
@@ -962,6 +973,7 @@ def main(group, d_start, d_end, group_selected, num_emails_per_address_range):
         var.command_q.put("self.update_compose_progressbar()")
 
         email_failed = 0
+        var.campaign_user_messages = []
         sent_q = queue.Queue()
         target = var.target.copy()
         # it removes the rows that doesn't any email address
@@ -1000,13 +1012,18 @@ def main(group, d_start, d_end, group_selected, num_emails_per_address_range):
                 assignments, campaign_id, var.compose_email_subject
             )
         except PreparationError as exc:
+            message = preparation_message(exc)
             logger.error(
-                "Unsubscribe preparation failed for campaign %s: %s",
+                "Unsubscribe preparation failed [%s] for campaign %s: %s",
+                message.code,
                 campaign_id,
                 exc.__class__.__name__,
             )
             var.command_q.put(
-                "alert(text='Unable to prepare campaign recipients. No emails were sent; please retry.', title='Unsubscribe preparation', button='OK')"
+                "alert(text={!r}, title={!r}, button='OK')".format(
+                    message.body + "\n\nError reference: " + message.code,
+                    message.title,
+                )
             )
             return
 
@@ -1021,6 +1038,9 @@ def main(group, d_start, d_end, group_selected, num_emails_per_address_range):
         var.total_email_to_be_sent = target_len
 
         if target_len == 0:
+            var.campaign_user_messages = [
+                preparation_message(RuntimeError("no eligible recipients"))
+            ]
             logger.info(
                 "Campaign %s has no eligible recipients after unsubscribe preparation",
                 campaign_id,
@@ -1215,6 +1235,18 @@ def main(group, d_start, d_end, group_selected, num_emails_per_address_range):
                 var.send_campaign_email_count, email_failed, len(var.target)
             )
             alert_title = "Campaign Stopped"
+        elif var.campaign_user_messages:
+            messages = {message.code: message for message in var.campaign_user_messages}
+            explanation = "\n\n".join(
+                "{}\n{}\nError reference: {}".format(
+                    message.title, message.body, message.code
+                )
+                for message in messages.values()
+            )
+            alert_message = "Campaign completed with issues.\nTotal emails sent: {}\nAccounts failed: {}\n\n{}".format(
+                var.send_campaign_email_count, email_failed, explanation
+            )
+            alert_title = "Campaign needs attention"
         else:
             alert_message = "Campaign Completed!\nTotal Emails Sent : {}\nAccounts Failed : {}\nTargets Remaining : {}\ncheck app.log and report.csv".format(
                 var.send_campaign_email_count, email_failed, len(var.target)
@@ -1292,13 +1324,21 @@ def follow_up(campaign_id: str):
                         followup_required, campaign_id, var.followup_subject
                     )
                 except PreparationError as exc:
+                    message = followup_message(exc)
                     logger.error(
-                        "Unsubscribe preparation failed before follow-up %s: %s",
+                        "Unsubscribe preparation failed before follow-up [%s] %s: %s",
+                        message.code,
                         campaign_id,
                         exc.__class__.__name__,
                     )
                     var.command_q.put(
-                        "GUI.label_compose_status.setText('Follow-up cancelled: unsubscribe preparation failed')"
+                        "GUI.label_compose_status.setText('Follow-up cancelled: unsubscribe status could not be verified')"
+                    )
+                    var.command_q.put(
+                        "alert(text={!r}, title={!r}, button='OK')".format(
+                            message.body + "\n\nError reference: " + message.code,
+                            message.title,
+                        )
                     )
                     return
                 FollowUpSend.email_to_be_sent = sum(
@@ -1351,8 +1391,18 @@ def follow_up(campaign_id: str):
         var.command_q.put(
             "GUI.label_compose_status.setText('Follow Up: 2/2 Done')")
     except Exception as e:
+        message = followup_message(e)
         logger.error(
-            f"Error at follow_up, Campaign Id - {campaign_id}: {e}\n{traceback.format_exc()}"
+            f"Error at follow_up [{message.code}], Campaign Id - {campaign_id}: {e}\n{traceback.format_exc()}"
+        )
+        var.command_q.put(
+            "GUI.label_compose_status.setText({!r})".format(message.title)
+        )
+        var.command_q.put(
+            "alert(text={!r}, title={!r}, button='OK')".format(
+                message.body + "\n\nError reference: " + message.code,
+                message.title,
+            )
         )
     finally:
         var.command_q.put("self.send_button_visibility(on=True)")

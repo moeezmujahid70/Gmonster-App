@@ -246,6 +246,7 @@ login_machine_uuid = ''
 login_processor_id = ''
 # Short-lived server access token.  It deliberately remains memory-only.
 api_access_token = ''
+campaign_user_messages = []
 tracking = {}
 statistics = {
     "product_price": 0,
