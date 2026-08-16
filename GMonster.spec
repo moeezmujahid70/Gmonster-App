@@ -32,6 +32,10 @@ datas += _safe_copy_metadata('apscheduler', recursive=True)
 datas += _safe_collect_data_files('textblob.en')
 datas += _safe_collect_data_files('tzdata')
 datas += _safe_collect_data_files('qtawesome')
+if os.path.isfile(config_template_path):
+    datas += [(config_template_path, 'default-data')]
+if os.path.isfile(certificate_path):
+    datas += [(certificate_path, 'default-data')]
 
 block_cipher = None
 
@@ -56,11 +60,6 @@ if os.path.isdir(gmaps_scraper_assets_path):
         gmaps_scraper_assets_path,
         prefix='data/tools/google_maps_scraper'
     )
-if os.path.isfile(config_template_path):
-    a.datas += [(config_template_path, 'default-data')]
-if os.path.isfile(certificate_path):
-    a.datas += [(certificate_path, 'default-data')]
-
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
 

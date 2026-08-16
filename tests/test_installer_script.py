@@ -1,8 +1,16 @@
 from pathlib import Path
+import re
 import unittest
 
 
 class InstallerScriptTest(unittest.TestCase):
+    def test_spec_uses_analysis_data_pairs_not_internal_toc_entries(self):
+        spec = Path("GMonster.spec").read_text(encoding="utf-8")
+
+        self.assertIsNone(re.search(r"a\.datas\s*\+=\s*\[", spec))
+        self.assertIn("datas += [(config_template_path, 'default-data')]", spec)
+        self.assertIn("datas += [(certificate_path, 'default-data')]", spec)
+
     def test_installer_packages_both_executables_and_launches_gmonster(self):
         script = Path("installer/GMonster.iss").read_text(encoding="utf-8")
 
