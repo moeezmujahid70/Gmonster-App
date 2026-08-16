@@ -22,6 +22,7 @@ from unsubscribe_management import default_export_path, export_records
 from unsubscribe_page import UnsubscribePage
 from unsubscribe_setting import UnsubscribeSettingController
 from campaign_progress import campaign_progress_state
+from runtime_paths import wum_executable_path
 import subprocess
 import signal
 from datetime import datetime
@@ -1626,7 +1627,7 @@ class MyMainClass:
             GUI.checkbox_delete_all.show()
 
     def launch_wum(self):
-        wum_path = os.path.join(os.getcwd(), var.wum_exe_path)
+        wum_path = str(wum_executable_path(var.APP_DIR))
         if os.path.exists(wum_path):
             subprocess.Popen([wum_path])
             return

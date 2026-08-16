@@ -1,0 +1,103 @@
+name: Release Windows Installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      wum_ref:
+        description: WUM commit SHA or tag to package
+        required: false
+        default: a2396d9
+      release_version:
+        description: Installer version, for example 2.3.0
+        required: true
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-wum:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: moeezmujahid70/WUM-App
+          ref: ${{ inputs.wum_ref || 'a2396d9' }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install WUM dependencies and build
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+          pyinstaller --clean WUM.spec
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wum-exe
+          path: dist/WUM.exe
+          if-no-files-found: error
+
+  build-gmonster:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install GMonster dependencies and build
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-updated.txt
+          pip install pyinstaller
+          pyinstaller --clean GMonster.spec
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gmonster-exe
+          path: dist/GMonster.exe
+          if-no-files-found: error
+
+  package-installer:
+    needs: [build-wum, build-gmonster]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: gmonster-exe
+          path: release-input/gmonster
+      - uses: actions/download-artifact@v4
+        with:
+          name: wum-exe
+          path: release-input/wum
+      - name: Smoke-test both Windows executables
+        shell: pwsh
+        run: |
+          & .\release-input\gmonster\GMonster.exe --smoke-test
+          if ($LASTEXITCODE -ne 0) { throw "GMonster smoke test failed" }
+          & .\release-input\wum\WUM.exe --smoke-test
+          if ($LASTEXITCODE -ne 0) { throw "WUM smoke test failed" }
+      - name: Stage installer files
+        shell: pwsh
+        run: |
+          .\scripts\stage_windows_release.ps1 `
+            -GMonsterExePath .\release-input\gmonster\GMonster.exe `
+            -WumExePath .\release-input\wum\WUM.exe
+      - name: Install Inno Setup and create installer
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ inputs.release_version || github.ref_name }}
+        run: |
+          choco install innosetup --no-progress --yes
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$env:RELEASE_VERSION" installer\GMonster.iss
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GMonster-windows-installer
+          path: release/GMonster-*-Setup.exe
+          if-no-files-found: error
+      - name: Publish tagged release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/GMonster-*-Setup.exe

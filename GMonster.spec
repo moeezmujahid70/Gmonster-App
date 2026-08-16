@@ -1,5 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import copy_metadata, collect_data_files
+import certifi
 import os
 
 _spec_file = globals().get('__file__')
@@ -9,6 +10,8 @@ icons_path = os.path.join(spec_dir, 'icons')
 gmaps_scraper_assets_path = os.path.join(
     spec_dir, 'data', 'tools', 'google_maps_scraper'
 )
+config_template_path = os.path.join(spec_dir, 'config.example.json')
+certificate_path = certifi.where()
 
 
 def _safe_copy_metadata(package_name, recursive=False):
@@ -53,6 +56,10 @@ if os.path.isdir(gmaps_scraper_assets_path):
         gmaps_scraper_assets_path,
         prefix='data/tools/google_maps_scraper'
     )
+if os.path.isfile(config_template_path):
+    a.datas += [(config_template_path, 'default-data')]
+if os.path.isfile(certificate_path):
+    a.datas += [(certificate_path, 'default-data')]
 
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
