@@ -11,6 +11,14 @@ class InstallerScriptTest(unittest.TestCase):
         self.assertIn("datas += [(config_template_path, 'default-data')]", spec)
         self.assertIn("datas += [(certificate_path, 'default-data')]", spec)
 
+    def test_installer_workflow_uses_the_fixed_wum_revision(self):
+        workflow = Path(
+            ".github/workflows/release-windows-installer.yml"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("default: 227101e", workflow)
+        self.assertIn("|| '227101e'", workflow)
+
     def test_installer_packages_both_executables_and_launches_gmonster(self):
         script = Path("installer/GMonster.iss").read_text(encoding="utf-8")
 
