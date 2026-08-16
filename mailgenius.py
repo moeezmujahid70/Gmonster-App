@@ -1,12 +1,85 @@
 """MailGenius audit requests through the RapidAPI gateway."""
 
 from dataclasses import dataclass, field
+from html import escape
+from html.parser import HTMLParser
 import logging
+from urllib.parse import urlparse
 
 import requests
 
 
 logger = logging.getLogger("gmonster.mailgenius")
+
+
+class _MailGeniusHTMLSanitizer(HTMLParser):
+    """Keep the small rich-text subset supported by the audit details panel."""
+
+    allowed_tags = {"a", "b", "br", "code", "div", "em", "i", "li", "ol", "p", "strong", "u", "ul"}
+    blocked_tags = {"script", "style"}
+    allowed_link_schemes = {"http", "https", "mailto"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.parts = []
+        self.open_tags = []
+        self.blocked_depth = 0
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        if tag in self.blocked_tags:
+            self.blocked_depth += 1
+            return
+        if self.blocked_depth or tag not in self.allowed_tags:
+            return
+        if tag == "br":
+            self.parts.append("<br>")
+            return
+        if tag == "a":
+            href = next((value for name, value in attrs if name.lower() == "href"), "")
+            parsed_href = urlparse(href or "")
+            if parsed_href.scheme.lower() not in self.allowed_link_schemes:
+                return
+            self.parts.append('<a href="{}">'.format(escape(href, quote=True)))
+            self.open_tags.append(tag)
+            return
+        self.parts.append("<{}>".format(tag))
+        self.open_tags.append(tag)
+
+    def handle_startendtag(self, tag, attrs):
+        if tag.lower() == "br" and not self.blocked_depth:
+            self.parts.append("<br>")
+
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        if tag in self.blocked_tags:
+            self.blocked_depth = max(0, self.blocked_depth - 1)
+            return
+        if self.blocked_depth or tag not in self.allowed_tags or tag == "br":
+            return
+        if tag in self.open_tags:
+            while self.open_tags:
+                open_tag = self.open_tags.pop()
+                self.parts.append("</{}>".format(open_tag))
+                if open_tag == tag:
+                    break
+
+    def handle_data(self, data):
+        if not self.blocked_depth:
+            self.parts.append(escape(data))
+
+    def rendered_html(self):
+        while self.open_tags:
+            self.parts.append("</{}>".format(self.open_tags.pop()))
+        return "".join(self.parts)
+
+
+def sanitize_mailgenius_html(value):
+    """Return safe rich text from the MailGenius API for a QTextBrowser."""
+    sanitizer = _MailGeniusHTMLSanitizer()
+    sanitizer.feed(str(value))
+    sanitizer.close()
+    return sanitizer.rendered_html()
 
 
 class MailGeniusError(Exception):

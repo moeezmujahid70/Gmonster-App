@@ -77,6 +77,17 @@ class MailGeniusClientTest(unittest.TestCase):
         self.assertFalse(result.pending)
         self.assertEqual(result.data["spam_score"], 8)
 
+    def test_detail_html_keeps_safe_links_and_removes_scripts(self):
+        from mailgenius import sanitize_mailgenius_html
+
+        rendered = sanitize_mailgenius_html(
+            'Get <a href="https://example.com/help">help</a>'
+            '<script>alert("unsafe")</script>.'
+        )
+
+        self.assertIn('<a href="https://example.com/help">help</a>', rendered)
+        self.assertNotIn("<script", rendered)
+
 
 if __name__ == "__main__":
     unittest.main()

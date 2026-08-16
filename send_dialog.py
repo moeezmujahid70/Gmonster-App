@@ -8,7 +8,7 @@ from email_input_gui import Ui_Dialog
 import os, sys
 import html
 from smtp import ForwardMail, TestMail
-from mailgenius import MailGeniusClient, MailGeniusError
+from mailgenius import MailGeniusClient, MailGeniusError, sanitize_mailgenius_html
 from user_messages import mailgenius_message, smtp_message
 import re
 
@@ -275,13 +275,13 @@ class Send(Ui_Dialog):
                     ]
                     why = aspect.get("why_is_it_important")
                     if why:
-                        lines.append('<div style="color:#4b5563;font-size:11px;margin-top:5px;">{}</div>'.format(html.escape(str(why))))
+                        lines.append('<div style="color:#4b5563;font-size:11px;margin-top:5px;">{}</div>'.format(sanitize_mailgenius_html(why)))
                     factors = aspect.get("factors")
                     if isinstance(factors, list):
                         for factor in factors:
                             factor_text = self._mailgenius_factor_text(factor)
                             if factor_text:
-                                lines.append('<div style="color:#4b5563;font-size:11px;margin-top:3px;">• {}</div>'.format(html.escape(factor_text)))
+                                lines.append('<div style="color:#4b5563;font-size:11px;margin-top:3px;">• {}</div>'.format(sanitize_mailgenius_html(factor_text)))
                     lines.append("</div>")
                     detail_sections.append("".join(lines))
                 details = QtWidgets.QTextBrowser()
