@@ -20,6 +20,8 @@ class InstallerDispatcherWorkflowTest(unittest.TestCase):
         )
         self.assertIn("ref: ${{ inputs.source_ref }}", workflow)
         self.assertIn("GMonster-${{ inputs.release_version }}-Setup", workflow)
+        self.assertIn("GMONSTER_SMOKE_TEST_LOG", workflow)
+        self.assertIn("Get-Content $smokeTestLog", workflow)
         self.assertNotIn("softprops/action-gh-release", workflow)
 
 
