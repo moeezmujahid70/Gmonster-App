@@ -15,6 +15,9 @@ class InstallerDispatcherWorkflowTest(unittest.TestCase):
         self.assertIn("source_ref:", workflow)
         self.assertIn("release_version:", workflow)
         self.assertIn("wum_ref:", workflow)
+        self.assertIn(
+            "default: 227101e8aedddf8dad2dcff51d8df4fd01d3f48b", workflow
+        )
         self.assertIn("ref: ${{ inputs.source_ref }}", workflow)
         self.assertIn("GMonster-${{ inputs.release_version }}-Setup", workflow)
         self.assertNotIn("softprops/action-gh-release", workflow)
