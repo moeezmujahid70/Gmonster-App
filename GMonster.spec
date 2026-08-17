@@ -77,5 +77,5 @@ exe = EXE(pyz,
           upx=True,
           upx_exclude=[],
           runtime_tmpdir=None,
-          console=False,
+          console=os.environ.get("GMONSTER_CONSOLE_BUILD") == "1",
           icon=icon_path if os.path.isfile(icon_path) else None)

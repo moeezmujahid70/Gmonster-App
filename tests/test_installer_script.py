@@ -19,6 +19,13 @@ class InstallerScriptTest(unittest.TestCase):
         self.assertIn("default: 227101e", workflow)
         self.assertIn("|| '227101e'", workflow)
 
+    def test_spec_supports_an_opt_in_console_build_for_ci_diagnostics(self):
+        spec = Path("GMonster.spec").read_text(encoding="utf-8")
+
+        self.assertIn(
+            'console=os.environ.get("GMONSTER_CONSOLE_BUILD") == "1"', spec
+        )
+
     def test_installer_packages_both_executables_and_launches_gmonster(self):
         script = Path("installer/GMonster.iss").read_text(encoding="utf-8")
 
