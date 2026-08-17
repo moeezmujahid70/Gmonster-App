@@ -4,6 +4,7 @@ import sys
 import tempfile
 import unittest
 
+import runtime_paths
 from runtime_paths import run_smoke_test, update_staging_dir, wum_executable_path
 
 
@@ -26,6 +27,25 @@ class InstalledPathsTest(unittest.TestCase):
 
             self.assertEqual(run_smoke_test(data_dir), 0)
             self.assertTrue((data_dir / "gmonster_config").is_dir())
+
+    def test_smoke_test_writes_exception_details_when_initialization_fails(self):
+        self.assertTrue(
+            hasattr(runtime_paths, "run_smoke_test_with_diagnostics"),
+            "diagnostic smoke-test runner is missing",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            data_path = root / "data-file"
+            data_path.write_text("not a directory", encoding="utf-8")
+            diagnostic_path = root / "smoke-test-error.log"
+
+            self.assertEqual(
+                runtime_paths.run_smoke_test_with_diagnostics(
+                    data_path, diagnostic_path
+                ),
+                1,
+            )
+            self.assertIn("NotADirectoryError", diagnostic_path.read_text(encoding="utf-8"))
 
     def test_var_smoke_test_exits_without_importing_gui_dependencies(self):
         repository_root = Path(__file__).resolve().parents[1]

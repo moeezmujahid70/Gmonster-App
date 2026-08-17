@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 import shutil
+import traceback
 
 
 @dataclass(frozen=True)
@@ -107,3 +108,19 @@ def run_smoke_test(data_dir: str | Path, defaults_dir: str | Path | None = None)
     """Verify runtime storage can initialize without loading GUI dependencies."""
     initialize_runtime_data(data_dir, defaults_dir or Path(), legacy_data_dir=None)
     return 0
+
+
+def run_smoke_test_with_diagnostics(
+    data_dir: str | Path,
+    diagnostic_path: str | Path | None,
+    defaults_dir: str | Path | None = None,
+) -> int:
+    """Run the smoke test and record a traceback if a windowed build fails."""
+    try:
+        return run_smoke_test(data_dir, defaults_dir)
+    except Exception:
+        if diagnostic_path is not None:
+            diagnostic = Path(diagnostic_path)
+            diagnostic.parent.mkdir(parents=True, exist_ok=True)
+            diagnostic.write_text(traceback.format_exc(), encoding="utf-8")
+        return 1

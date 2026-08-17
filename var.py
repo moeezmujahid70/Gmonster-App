@@ -3,7 +3,7 @@ import sys
 from runtime_paths import (
     initialize_runtime_data,
     resolve_runtime_paths,
-    run_smoke_test,
+    run_smoke_test_with_diagnostics,
     update_staging_dir,
 )
 
@@ -26,10 +26,16 @@ DEFAULT_DATA_DIR = os.path.join(
 LEGACY_DATA_DIR = (
     os.path.join(APP_DIR, "data") if RUNTIME_PATHS.is_frozen_windows else None
 )
-initialize_runtime_data(RUNTIME_PATHS.data_dir, DEFAULT_DATA_DIR, LEGACY_DATA_DIR)
-
 if "--smoke-test" in sys.argv:
-    raise SystemExit(run_smoke_test(RUNTIME_PATHS.data_dir, DEFAULT_DATA_DIR))
+    raise SystemExit(
+        run_smoke_test_with_diagnostics(
+            RUNTIME_PATHS.data_dir,
+            os.environ.get("GMONSTER_SMOKE_TEST_LOG"),
+            DEFAULT_DATA_DIR,
+        )
+    )
+
+initialize_runtime_data(RUNTIME_PATHS.data_dir, DEFAULT_DATA_DIR, LEGACY_DATA_DIR)
 
 
 from logger import logger
