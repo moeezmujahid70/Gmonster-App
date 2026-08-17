@@ -12,9 +12,9 @@ on:
         required: true
         default: 2.2.0
       wum_ref:
-        description: WUM commit SHA or tag to package
+        description: WUM branch, tag, or full 40-character commit SHA to package
         required: true
-        default: 227101e
+        default: 227101e8aedddf8dad2dcff51d8df4fd01d3f48b
 
 permissions:
   contents: read
