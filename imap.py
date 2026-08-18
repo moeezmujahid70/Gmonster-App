@@ -37,6 +37,26 @@ def slashescape(err):
 codecs.register_error("slashescape", slashescape)
 
 
+def parse_proxy_port(proxy_port):
+    if not proxy_port:
+        return "", ""
+    proxy_port = str(proxy_port).strip()
+    if not proxy_port or proxy_port == " " or ":" not in proxy_port:
+        return "", ""
+    proxy_host, proxy_port_value = proxy_port.rsplit(":", 1)
+    proxy_host = proxy_host.strip()
+    proxy_port_value = proxy_port_value.strip()
+    if not proxy_host or not proxy_port_value:
+        return "", ""
+    try:
+        proxy_port_int = int(proxy_port_value)
+    except ValueError:
+        return "", ""
+    if proxy_port_int < 1 or proxy_port_int > 65535:
+        return "", ""
+    return proxy_host, proxy_port_int
+
+
 #TODO: to be changed in a more eficient function
 def check_if_blacklisted(input_string: str):
     for keyword in var.inbox_blacklist:
@@ -73,9 +93,14 @@ class ImapReadFlagEmail(ImapBase):
         try:
             imap = self._login()
             if self.is_sent:
-                imap.select('"[Gmail]/Sent Mail"')
+                sent_folder = self.resolve_folder(self.SENT_FOLDER_TOKEN)
+                if not sent_folder:
+                    raise Exception(
+                        f"Sent folder not configured for provider: {self.mail_vendor}"
+                    )
+                imap.select(sent_folder)
             else:
-                imap.select("Inbox")
+                imap.select("INBOX")
             imap.uid("STORE", self.uid, "+FLAGS", "\\Seen")
             imap.close()
             imap.logout()
@@ -114,10 +139,13 @@ class ImapDeleteEmail(ImapBase, threading.Thread):
             sent_emails = self.group[self.group["is_sent"] == True]
             if not inbox_emails.empty:
                 imap.select("INBOX")
+                expunge_required = False
                 for row_index, row in inbox_emails.iterrows():
                     if var.stop_delete:
                         break
-                    imap.uid("STORE", row["uid"], "+X-GM-LABELS", "\\Trash")
+                    expunge_required = (
+                        self.delete_message(imap, row["uid"]) or expunge_required
+                    )
                     var.delete_email_count += 1
                     var.inbox_data[var.inbox_group].drop(row_index, inplace=True)
                     matching_row = None
@@ -141,35 +169,48 @@ class ImapDeleteEmail(ImapBase, threading.Thread):
                             matching_row = match.index[0]
                     if matching_row is not None:
                         var.inbox_data_table[var.inbox_group].drop(matching_row, inplace=True)
+                if expunge_required:
+                    imap.expunge()
             if not sent_emails.empty:
-                imap.select('"[Gmail]/Sent Mail"')
-                for row_index, row in sent_emails.iterrows():
-                    if var.stop_delete:
-                        break
-                    imap.uid("STORE", row["uid"], "+X-GM-LABELS", "\\Trash")
-                    var.delete_email_count += 1
-                    var.inbox_data[var.inbox_group].drop(row_index, inplace=True)
-                    matching_row = None
-                    if (
-                        not var.inbox_data_table[var.inbox_group].empty
-                        and "uid" in var.inbox_data_table[var.inbox_group].columns
-                        and "uid" in row
-                    ):
-                        match = var.inbox_data_table[var.inbox_group][
-                            var.inbox_data_table[var.inbox_group]["uid"] == row["uid"]
-                        ]
-                        if not match.empty:
-                            matching_row = match.index[0]
-                    if matching_row is None:
-                        match = var.inbox_data_table[var.inbox_group][
-                            (var.inbox_data_table[var.inbox_group]["from"] == row["from"])
-                            & (var.inbox_data_table[var.inbox_group]["subject"] == row["subject"])
-                            & (var.inbox_data_table[var.inbox_group]["date"] == row["date"])
-                        ]
-                        if not match.empty:
-                            matching_row = match.index[0]
-                    if matching_row is not None:
-                        var.inbox_data_table[var.inbox_group].drop(matching_row, inplace=True)
+                sent_folder = self.resolve_folder(self.SENT_FOLDER_TOKEN)
+                if sent_folder:
+                    imap.select(sent_folder)
+                    expunge_required = False
+                    for row_index, row in sent_emails.iterrows():
+                        if var.stop_delete:
+                            break
+                        expunge_required = (
+                            self.delete_message(imap, row["uid"]) or expunge_required
+                        )
+                        var.delete_email_count += 1
+                        var.inbox_data[var.inbox_group].drop(row_index, inplace=True)
+                        matching_row = None
+                        if (
+                            not var.inbox_data_table[var.inbox_group].empty
+                            and "uid" in var.inbox_data_table[var.inbox_group].columns
+                            and "uid" in row
+                        ):
+                            match = var.inbox_data_table[var.inbox_group][
+                                var.inbox_data_table[var.inbox_group]["uid"] == row["uid"]
+                            ]
+                            if not match.empty:
+                                matching_row = match.index[0]
+                        if matching_row is None:
+                            match = var.inbox_data_table[var.inbox_group][
+                                (var.inbox_data_table[var.inbox_group]["from"] == row["from"])
+                                & (var.inbox_data_table[var.inbox_group]["subject"] == row["subject"])
+                                & (var.inbox_data_table[var.inbox_group]["date"] == row["date"])
+                            ]
+                            if not match.empty:
+                                matching_row = match.index[0]
+                        if matching_row is not None:
+                            var.inbox_data_table[var.inbox_group].drop(matching_row, inplace=True)
+                    if expunge_required:
+                        imap.expunge()
+                else:
+                    logger.warning(
+                        f"Skipping sent mail deletion for {self.imap_user}: no sent folder configured"
+                    )
             imap.close()
             imap.logout()
         except Exception as e:
@@ -342,17 +383,20 @@ class ImapDownload(ImapBase, threading.Thread):
                 for folder in self.folders:
                     if var.stop_download:
                         break
+                    resolved_folder = self.resolve_folder(folder)
+                    if not resolved_folder:
+                        continue
                     try:
                         if ImapDownload.auto_fire_responses_enabled:
-                            status, _ = imap.select(folder)
+                            status, _ = imap.select(resolved_folder)
                         else:
-                            status, _ = imap.select(folder, readonly=True)
+                            status, _ = imap.select(resolved_folder, readonly=True)
                         if status != "OK":
-                            logger.error(f"Failed to select folder: {folder}")
+                            logger.error(f"Failed to select folder: {resolved_folder}")
                             continue
                     except Exception as e:
                         self.logger.error(
-                            f"Error selecting folder {folder} for {self.imap_user}: {str(e)}"
+                            f"Error selecting folder {resolved_folder} for {self.imap_user}: {str(e)}"
                         )
                         continue
                     tmp, data = imap.search(
@@ -447,7 +491,7 @@ class ImapDownload(ImapBase, threading.Thread):
                                 mail_date = email.utils.parsedate_to_datetime(
                                     email_message["Date"]
                                 )
-                                is_sent = folder != "INBOX"
+                                is_sent = resolved_folder.upper() != "INBOX"
                                 
                                 t_dict = {
                                     "uid": uid,
@@ -457,6 +501,8 @@ class ImapDownload(ImapBase, threading.Thread):
                                     "message-id": email.utils.parseaddr(
                                         email_message["Message-ID"]
                                     )[1],
+                                    "in-reply-to": str(email_message.get("In-Reply-To", "") or "").strip(),
+                                    "references": str(email_message.get("References", "") or "").strip(),
                                     "from": "{} {}".format(from_name, from_mail),
                                     "from_name": from_name,
                                     "from_mail": from_mail,
@@ -549,21 +595,7 @@ def main(group, folders=None, date=None):
             if var.stop_download:
                 break
             name = item["EMAIL"]
-            if item["PROXY:PORT"] != " ":
-                test = item["PROXY:PORT"]
-                if (
-                    len(item["PROXY:PORT"].split(":")) >= 2
-                    and item["PROXY:PORT"].split(":")[0] != ""
-                    and (item["PROXY:PORT"].split(":")[1] != "")
-                ):
-                    proxy_host = item["PROXY:PORT"].split(":")[0]
-                    proxy_port = int(item["PROXY:PORT"].split(":")[1])
-                else:
-                    proxy_host = ""
-                    proxy_port = ""
-            else:
-                proxy_host = ""
-                proxy_port = ""
+            proxy_host, proxy_port = parse_proxy_port(item["PROXY:PORT"])
             kwargs = {
                 "proxy_host": proxy_host,
                 "proxy_port": proxy_port,

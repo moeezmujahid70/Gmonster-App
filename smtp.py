@@ -1,7 +1,8 @@
 import os
+import copy
 import pandas as pd
 from followup_smtp import FollowUpSend
-from proxy_smtplib import SMTP, SmtpProxy, Proxifier
+from proxy_smtplib import SMTP, SmtpProxy, SmtpProxySSL, Proxifier
 from smtp_base import SmtpBase
 from email.mime.multipart import MIMEMultipart
 from email.header import Header
@@ -33,10 +34,68 @@ import traceback
 import queue
 import var
 from var import logger
+from unsubscribe_client import PreparationError, prepare_batches
+from unsubscribe_email import compose_alternatives
+from user_messages import followup_message, preparation_message, smtp_message
 
 logger = logger
 email_failed = 0
 sent_q = queue.Queue()
+
+
+def build_sender_assignments(group, target, worker_email_counts):
+    """Assign target rows once, before SMTP workers may start."""
+    assignments, cursor = [], 0
+    target_indices = list(target.index)
+    for group_index, sender in group.iterrows():
+        count = worker_email_counts.get(group_index, 0)
+        for target_index in target_indices[cursor:cursor + count]:
+            assignments.append({
+                "ref": str(target_index),
+                "email": str(target.at[target_index, "EMAIL"]),
+                "sender_email": str(sender["EMAIL"]),
+                "group_index": group_index,
+            })
+        cursor += count
+    return assignments
+
+
+def prepare_sender_assignments(assignments, campaign_id, subject):
+    """Return only allowed recipients, enriched only in memory."""
+    enabled, results = prepare_batches(assignments, campaign_id, subject, "initial")
+    prepared = []
+    for assignment in assignments:
+        result = results[assignment["ref"]]
+        if result.status == "allowed":
+            prepared.append({
+                **assignment,
+                "unsubscribe_enabled": enabled,
+                "unsubscribe_url": result.unsubscribe_url,
+            })
+    return prepared
+
+
+def prepare_followup_groups(groups, campaign_id, subject):
+    """Refresh remaining recipients immediately before follow-up SMTP."""
+    assignments, lookup = [], {}
+    for group_index, group in enumerate(groups):
+        for target_index, target in enumerate(group["target_info"]):
+            ref = "{}:{}".format(group_index, target_index)
+            assignments.append({"ref": ref, "email": target["target_email"], "sender_email": group["user"]})
+            lookup[ref] = (group_index, target)
+    if not assignments:
+        return []
+    enabled, results = prepare_batches(assignments, campaign_id, subject, "follow_up")
+    prepared_groups = [{**group, "target_info": []} for group in groups]
+    for ref, (group_index, target) in lookup.items():
+        result = results[ref]
+        if result.status == "allowed":
+            prepared_groups[group_index]["target_info"].append({
+                **target,
+                "unsubscribe_enabled": enabled,
+                "unsubscribe_url": result.unsubscribe_url,
+            })
+    return [group for group in prepared_groups if group["target_info"]]
 
 
 def contains_non_ascii_characters(str):
@@ -62,19 +121,34 @@ def html_to_text(body):
     return soup.get_text("\n")
 
 
+def parse_proxy_port(proxy_port):
+    if not proxy_port:
+        return "", ""
+    proxy_port = str(proxy_port).strip()
+    if not proxy_port or proxy_port == " " or ":" not in proxy_port:
+        return "", ""
+    proxy_host, proxy_port_value = proxy_port.rsplit(":", 1)
+    proxy_host = proxy_host.strip()
+    proxy_port_value = proxy_port_value.strip()
+    if not proxy_host or not proxy_port_value:
+        return "", ""
+    try:
+        proxy_port_int = int(proxy_port_value)
+    except ValueError:
+        return "", ""
+    if proxy_port_int < 1 or proxy_port_int > 65535:
+        return "", ""
+    return proxy_host, proxy_port_int
+
+
 class TestMail(SmtpBase):
 
-    def __init__(self, send_to=None):
+    def __init__(self, send_to=None, audit_recipient=None):
         if GUI.radioButton_campaign_group_a.isChecked():
             self.send_info = var.group_a.iloc[0].to_dict()
         else:
             self.send_info = var.group_b.iloc[0].to_dict()
-        if self.send_info["PROXY:PORT"] != " ":
-            proxy_host = self.send_info["PROXY:PORT"].split(":")[0]
-            proxy_port = int(self.send_info["PROXY:PORT"].split(":")[1])
-        else:
-            proxy_host = ""
-            proxy_port = ""
+        proxy_host, proxy_port = parse_proxy_port(self.send_info["PROXY:PORT"])
         kwargs = {
             "proxy_host": proxy_host,
             "proxy_port": proxy_port,
@@ -87,6 +161,9 @@ class TestMail(SmtpBase):
         }
         super().__init__(**kwargs)
         self.send_to = send_to
+        self.audit_recipient = audit_recipient
+        self.mailgenius_delivery_error = None
+        self.failure_message = None
         self.target = var.target.iloc[0].to_dict()
         self.compose_email_subject = GUI.lineEdit_subject.text().strip()
         self.compose_email_body = GUI.textBrowser_compose.toPlainText().strip()
@@ -176,7 +253,34 @@ class TestMail(SmtpBase):
                 msg.attach(html_part)
             for part in t_part:
                 msg.attach(part)
-            server.sendmail(self.user, self.send_to, msg.as_string())
+            refused = server.sendmail(self.user, self.send_to, msg.as_string())
+            if refused:
+                self.failure_message = smtp_message(rejected=True)
+                logger.error("Test SMTP delivery was rejected: %s", list(refused))
+                return False
+
+            if self.audit_recipient:
+                audit_message = copy.deepcopy(msg)
+                del audit_message["To"]
+                audit_message["To"] = self.audit_recipient
+                audit_refused = server.sendmail(
+                    self.user, self.audit_recipient, audit_message.as_string()
+                )
+                if audit_refused:
+                    self.mailgenius_delivery_error = (
+                        "MailGenius SMTP delivery was rejected by the mail server."
+                    )
+                    self.failure_message = smtp_message(rejected=True)
+                    logger.error(
+                        "MailGenius SMTP delivery was rejected for audit %s: %s",
+                        self.audit_recipient.split("@", 1)[0],
+                        list(audit_refused),
+                    )
+                    return False
+                logger.info(
+                    "MailGenius SMTP delivery accepted for audit %s",
+                    self.audit_recipient.split("@", 1)[0],
+                )
             server.quit()
             server.close()
             logger.info(
@@ -184,9 +288,12 @@ class TestMail(SmtpBase):
             )
             return True
         except Exception as e:
+            self.failure_message = smtp_message(e)
             logger.error(
-                "Error at test send - {} - {}".format(
-                    self.user, traceback.format_exc())
+                "Error at test send [%s] - %s - %s",
+                self.failure_message.code,
+                self.user,
+                traceback.format_exc(),
             )
             return False
 
@@ -400,31 +507,61 @@ class Smtp(SmtpBase, threading.Thread):
                 len(self.target), self.user)
         )
 
+    def _open_smtp_server(self, use_proxy):
+        if use_proxy:
+            logger.info("send mail with proxy")
+            print("send mail with proxy")
+            if self.smtp_require_ssl:
+                return SmtpProxySSL(
+                    self.smtp_server,
+                    self.smtp_port,
+                    proxifier=Proxifier.get_proxifier(self.proxy),
+                    local_hostname=self.local_hostname,
+                    timeout=45,
+                )
+            return SmtpProxy(
+                self.smtp_server,
+                self.smtp_port,
+                proxifier=Proxifier.get_proxifier(self.proxy),
+                local_hostname=self.local_hostname,
+                timeout=45,
+            )
+
+        logger.info("send mail without proxy")
+        print("send mail without proxy")
+        if self.smtp_require_ssl:
+            return smtplib.SMTP_SSL(self.smtp_server, self.smtp_port, timeout=45)
+        server = smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=45)
+        server.set_debuglevel(0)
+        return server
+
+    def _login_server(self, use_proxy):
+        server = self._open_smtp_server(use_proxy)
+        server.ehlo()
+        if not self.smtp_require_ssl:
+            server.starttls()
+            server.ehlo()
+        server.login(self.user, self.passwd)
+        return server
+
     def _login(self):
         try:
             if var.add_custom_hostname:
                 self.local_hostname = (
                     f"{self.first_from_name.lower()}-{random.choice(var.hostname_list)}"
                 )
-            if self.proxy_host != "" and var.proxy_on:
-                logger.info("send mail with proxy")
-                print("send mail with proxy")
-                server = SmtpProxy(
-                    self.smtp_server,
-                    self.smtp_port,
-                    proxifier=Proxifier.get_proxifier(self.proxy),
-                    local_hostname=self.local_hostname,
-                )
-            else:
-                logger.info("send mail without proxy")
-                print("send mail without proxy")
-                server = smtplib.SMTP(self.smtp_server, self.smtp_port)
-                server.set_debuglevel(0)
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-            server.login(self.user, self.passwd)
-            return server
+            use_proxy = self.proxy_host != "" and var.proxy_on
+            try:
+                return self._login_server(use_proxy)
+            except Exception as proxy_error:
+                if use_proxy and self.proxy_fallback_direct:
+                    logger.warning(
+                        "SMTP proxy login failed for %s; retrying without proxy: %s",
+                        self.user,
+                        proxy_error.__class__.__name__,
+                    )
+                    return self._login_server(False)
+                raise
         except Exception as e:
             logger.info(
                 f"Error at SMTP_.login {self.name} : {e.__class__.__name__} : {str(e)}"
@@ -501,7 +638,7 @@ class Smtp(SmtpBase, threading.Thread):
                 msg["Date"] = formatdate(localtime=True)
                 msg["Message-ID"] = make_msgid(domain=self.user.split("@")[1])
                 if var.body_type == "Html":
-                    body = utils.format_email(
+                    html_body = utils.format_email(
                         var.compose_email_body_html,
                         self.first_from_name,
                         self.last_from_name,
@@ -514,11 +651,9 @@ class Smtp(SmtpBase, threading.Thread):
                         item["TONAME"],
                         source="body",
                     )
-                    html_part = MIMEText(body, "html")
-                    html_part["Content-Transfer-Encoding"] = "quoted-printable"
-                    msg.attach(html_part)
+                    plain_body = html_to_text(html_body)
                 else:
-                    body = utils.format_email(
+                    plain_body = utils.format_email(
                         var.compose_email_body,
                         self.first_from_name,
                         self.last_from_name,
@@ -531,17 +666,20 @@ class Smtp(SmtpBase, threading.Thread):
                         item["TONAME"],
                         source="body",
                     )
-                    plain_part = MIMEText(body, "plain")
-                    plain_part["Content-Transfer-Encoding"] = "quoted-printable"
-                    msg.attach(plain_part)
                     html_body = (
                         "<html><body><p>"
-                        + body.replace("\n", "<br>")
+                        + plain_body.replace("\n", "<br>")
                         + "</p></body></html>"
                     )
-                    html_part = MIMEText(html_body, "html")
-                    html_part["Content-Transfer-Encoding"] = "quoted-printable"
-                    msg.attach(html_part)
+                plain_body, html_body = compose_alternatives(
+                    plain_body,
+                    html_body,
+                    str(item.get("UNSUBSCRIBE_URL", "")),
+                    bool(item.get("UNSUBSCRIBE_ENABLED", False)),
+                )
+                msg.attach(MIMEText(plain_body, "plain", "utf-8"))
+                msg.attach(MIMEText(html_body, "html", "utf-8"))
+                body = html_body
                 for part in t_part:
                     msg.attach(part)
                 if count == 1:
@@ -644,9 +782,13 @@ class Smtp(SmtpBase, threading.Thread):
                 server.quit()
         except Exception as e:
             email_failed += 1
+            user_message = smtp_message(e)
+            var.campaign_user_messages.append(user_message)
             self.logger.error(
-                "Error at Sending - {} - {}".format(
-                    self.name, traceback.format_exc())
+                "Error at Sending [%s] - %s - %s",
+                user_message.code,
+                self.name,
+                traceback.format_exc(),
             )
             t_dict = {
                 "TARGET": last_recipient,
@@ -831,6 +973,7 @@ def main(group, d_start, d_end, group_selected, num_emails_per_address_range):
         var.command_q.put("self.update_compose_progressbar()")
 
         email_failed = 0
+        var.campaign_user_messages = []
         sent_q = queue.Queue()
         target = var.target.copy()
         # it removes the rows that doesn't any email address
@@ -839,6 +982,8 @@ def main(group, d_start, d_end, group_selected, num_emails_per_address_range):
         # Filter targets upfront to be unique by EMAIL
         original_count = len(target)
         target = target.drop_duplicates(subset=['EMAIL'], keep='first')
+        # Stable local identifiers are required to match server preparation.
+        target = target.reset_index(drop=True)
         unique_count = len(target)
         logger.info(
             f"Target filtering: {original_count} -> {unique_count} (removed {original_count - unique_count} duplicates)")
@@ -861,7 +1006,55 @@ def main(group, d_start, d_end, group_selected, num_emails_per_address_range):
             )
             worker_email_counts[index] = emails_to_be_sent
             total_emails_to_be_sent += emails_to_be_sent
-        var.total_email_to_be_sent = min(total_emails_to_be_sent, target_len)
+        assignments = build_sender_assignments(group, target, worker_email_counts)
+        try:
+            prepared_assignments = prepare_sender_assignments(
+                assignments, campaign_id, var.compose_email_subject
+            )
+        except PreparationError as exc:
+            message = preparation_message(exc)
+            logger.error(
+                "Unsubscribe preparation failed [%s] for campaign %s: %s",
+                message.code,
+                campaign_id,
+                exc.__class__.__name__,
+            )
+            var.command_q.put(
+                "alert(text={!r}, title={!r}, button='OK')".format(
+                    message.body + "\n\nError reference: " + message.code,
+                    message.title,
+                )
+            )
+            return
+
+        prepared_by_group = {}
+        allowed_refs = []
+        for assignment in prepared_assignments:
+            ref = int(assignment["ref"])
+            allowed_refs.append(ref)
+            prepared_by_group.setdefault(assignment["group_index"], []).append(assignment)
+        target = target.loc[allowed_refs].copy()
+        target_len = len(target)
+        var.total_email_to_be_sent = target_len
+
+        if target_len == 0:
+            var.campaign_user_messages = [
+                preparation_message(RuntimeError("no eligible recipients"))
+            ]
+            logger.info(
+                "Campaign %s has no eligible recipients after unsubscribe preparation",
+                campaign_id,
+            )
+            var.command_q.put("self.update_compose_progressbar()")
+            return
+
+        worker_targets = {}
+        for group_index, rows in prepared_by_group.items():
+            refs = [int(row["ref"]) for row in rows]
+            worker_target = target.loc[refs].copy()
+            worker_target["UNSUBSCRIBE_ENABLED"] = [row["unsubscribe_enabled"] for row in rows]
+            worker_target["UNSUBSCRIBE_URL"] = [row["unsubscribe_url"] for row in rows]
+            worker_targets[group_index] = worker_target
 
         logger.info(
             f"\n Starting Send Campaign : "
@@ -905,41 +1098,27 @@ def main(group, d_start, d_end, group_selected, num_emails_per_address_range):
             var.send_campaign_email_count < target_len
             and group["flag"].sum() < group_len
         ):
-            target = target[target["flag"] == 0]
-            target = target.reset_index(drop=True)
-            e_target_len = len(target)
-            temp = 0
-            end = 0
             if var.stop_send_campaign:
                 break
             for index, item in group.loc[group["flag"] == 0].iterrows():
                 try:
-                    if var.stop_send_campaign or temp > e_target_len - 1:
+                    if var.stop_send_campaign:
                         break
 
                     user = item["EMAIL"]
                     name = item["EMAIL"]
 
-                    if item["PROXY:PORT"] != " ":
-                        proxy_host = item["PROXY:PORT"].split(":")[0]
-                        proxy_port = int(item["PROXY:PORT"].split(":")[1])
-                    else:
-                        proxy_host = ""
-                        proxy_port = ""
+                    proxy_host, proxy_port = parse_proxy_port(item["PROXY:PORT"])
 
-                    # Use pre-calculated value instead of calculating in loop
-                    num_emails_per_address = worker_email_counts[index]
-                    start = temp
-                    end = start + num_emails_per_address - 1
-                    temp = end + 1
                     group.at[index, "flag"] = 1
+                    worker_target = worker_targets.get(index)
+                    if worker_target is None or worker_target.empty:
+                        continue
 
                     logger.info(
                         f"\nStarting Thread : Name - {name}"
-                        f"\nTargets Count - {len(target.loc[start:end])}"
+                        f"\nTargets Count - {len(worker_target)}"
                     )
-                    # + f"\nTargets - {json.dumps(target.loc[start:end].to_dict())}")
-
                     kwargs = {
                         "index": index,
                         "name": item["EMAIL"],
@@ -951,7 +1130,7 @@ def main(group, d_start, d_end, group_selected, num_emails_per_address_range):
                         "password": item["EMAIL_PASS"],
                         "FIRSTFROMNAME": item["FIRSTFROMNAME"],
                         "LASTFROMNAME": item["LASTFROMNAME"],
-                        "target": target.loc[start:end].copy(),
+                        "target": worker_target,
                         "d_start": d_start,
                         "d_end": d_end,
                         "campaign_id": campaign_id,
@@ -961,7 +1140,7 @@ def main(group, d_start, d_end, group_selected, num_emails_per_address_range):
                     Smtp(**kwargs).start()
 
                     logger.info(
-                        f"{name} set to sent {num_emails_per_address} emails")
+                        f"{name} set to send {len(worker_target)} prepared emails")
 
                     while (
                         var.thread_open_campaign >= var.limit_of_thread
@@ -1056,6 +1235,18 @@ def main(group, d_start, d_end, group_selected, num_emails_per_address_range):
                 var.send_campaign_email_count, email_failed, len(var.target)
             )
             alert_title = "Campaign Stopped"
+        elif var.campaign_user_messages:
+            messages = {message.code: message for message in var.campaign_user_messages}
+            explanation = "\n\n".join(
+                "{}\n{}\nError reference: {}".format(
+                    message.title, message.body, message.code
+                )
+                for message in messages.values()
+            )
+            alert_message = "Campaign completed with issues.\nTotal emails sent: {}\nAccounts failed: {}\n\n{}".format(
+                var.send_campaign_email_count, email_failed, explanation
+            )
+            alert_title = "Campaign needs attention"
         else:
             alert_message = "Campaign Completed!\nTotal Emails Sent : {}\nAccounts Failed : {}\nTargets Remaining : {}\ncheck app.log and report.csv".format(
                 var.send_campaign_email_count, email_failed, len(var.target)
@@ -1127,7 +1318,32 @@ def follow_up(campaign_id: str):
             var.command_q.put(
                 "GUI.label_compose_status.setText('Follow Up: 1/2')")
             followup_required = ImapFollowUpCheck.followup_required
-            FollowUpSend.email_to_be_sent = ImapFollowUpCheck.email_to_be_sent
+            if len(followup_required) > 0:
+                try:
+                    followup_required = prepare_followup_groups(
+                        followup_required, campaign_id, var.followup_subject
+                    )
+                except PreparationError as exc:
+                    message = followup_message(exc)
+                    logger.error(
+                        "Unsubscribe preparation failed before follow-up [%s] %s: %s",
+                        message.code,
+                        campaign_id,
+                        exc.__class__.__name__,
+                    )
+                    var.command_q.put(
+                        "GUI.label_compose_status.setText('Follow-up cancelled: unsubscribe status could not be verified')"
+                    )
+                    var.command_q.put(
+                        "alert(text={!r}, title={!r}, button='OK')".format(
+                            message.body + "\n\nError reference: " + message.code,
+                            message.title,
+                        )
+                    )
+                    return
+                FollowUpSend.email_to_be_sent = sum(
+                    len(item["target_info"]) for item in followup_required
+                )
             if len(followup_required) > 0:
                 logger.info(
                     f"follow_up, Campaign Id - {campaign_id}: {FollowUpSend.email_to_be_sent} email to be sent"
@@ -1175,8 +1391,18 @@ def follow_up(campaign_id: str):
         var.command_q.put(
             "GUI.label_compose_status.setText('Follow Up: 2/2 Done')")
     except Exception as e:
+        message = followup_message(e)
         logger.error(
-            f"Error at follow_up, Campaign Id - {campaign_id}: {e}\n{traceback.format_exc()}"
+            f"Error at follow_up [{message.code}], Campaign Id - {campaign_id}: {e}\n{traceback.format_exc()}"
+        )
+        var.command_q.put(
+            "GUI.label_compose_status.setText({!r})".format(message.title)
+        )
+        var.command_q.put(
+            "alert(text={!r}, title={!r}, button='OK')".format(
+                message.body + "\n\nError reference: " + message.code,
+                message.title,
+            )
         )
     finally:
         var.command_q.put("self.send_button_visibility(on=True)")

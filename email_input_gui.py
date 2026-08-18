@@ -15,7 +15,7 @@ import var
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        Dialog.resize(400, 149)
+        Dialog.resize(560, 260)
         Dialog.setStyleSheet("QLineEdit{\n"
 "    border:  1px solid #777;\n"
 "    border-radius: 3px;\n"
@@ -62,7 +62,7 @@ class Ui_Dialog(object):
 "    border: 1px solid #555;\n"
 "    border-radius: 3px;\n"
 "    border-style: Solid;\n"
-"    background: rgba(0, 138, 191);\n"
+"    background: rgb(0, 138, 191);\n"
 "    padding: 5px 28px;\n"
 "    color: rgb(255, 255, 255);\n"
 "    }\n"

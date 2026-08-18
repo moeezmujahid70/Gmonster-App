@@ -241,7 +241,24 @@ delay_between_emails = ''
 inbox_group = 0
 limit_of_thread = 100
 login_email = ''
+login_password = ''
+login_machine_uuid = ''
+login_processor_id = ''
+# Short-lived server access token.  It deliberately remains memory-only.
+api_access_token = ''
+campaign_user_messages = []
 tracking = {}
+statistics = {
+    "product_price": 0,
+    "logo_path": "",
+    "date_filter": "last_30_days",
+    "manual_metrics": {},
+}
+mailgenius = {
+    "enabled": False,
+    "rapidapi_key": "",
+    "rapidapi_host": "",
+}
 webhook_link = ''
 api = 'https://enzim.pythonanywhere.com/'
 API_CONNECT_TIMEOUT = 5
@@ -276,7 +293,7 @@ test_email = ''
 cc_emails = ''
 cc_emails_enabled = False
 open_ai_key = ''
-open_ai_model = 'gpt-5-mini'
+open_ai_model = 'gpt-5-nano'
 total_email_to_be_sent = 0
 try:
     if os.path.exists(id_file_path):
@@ -314,6 +331,16 @@ try:
         config['cc_emails_enabled'] = cc_emails_enabled
     if 'auto_fire_responses_webhook_interval' not in config:
         config['auto_fire_responses_webhook_interval'] = auto_fire_responses_webhook_interval
+    if 'statistics' not in config:
+        config['statistics'] = statistics
+    elif isinstance(config['statistics'], dict):
+        statistics.update(config['statistics'])
+        config['statistics'] = statistics
+    if not isinstance(config.get('mailgenius'), dict):
+        config['mailgenius'] = mailgenius.copy()
+    else:
+        mailgenius.update(config['mailgenius'])
+        config['mailgenius'] = mailgenius
     date = config['date']
     if config['compose_email_subject']:
         compose_email_subject = config['compose_email_subject']
@@ -328,6 +355,8 @@ try:
     login_email = config['login_email']
     api = config.get('api', api)
     tracking = config['tracking']
+    statistics = config.get('statistics', statistics)
+    mailgenius = config.get('mailgenius', mailgenius)
     webhook_link = config['webhook_link']
     check_for_blocks = config['check_for_blocks']
     remove_email_from_target = config['remove_email_from_target']

@@ -5814,13 +5814,13 @@ QScrollBar:vertical {
                             <property name="minimumSize">
                               <size>
                                 <width>0</width>
-                                <height>2100</height>
+                                <height>2250</height>
                               </size>
                             </property>
                             <property name="maximumSize">
                               <size>
                                 <width>16777215</width>
-                                <height>2500</height>
+                                <height>2700</height>
                               </size>
                             </property>
                             <property name="styleSheet">
@@ -5956,13 +5956,6 @@ QPushButton:pressed {
                                   </property>
                                   <property name="clearButtonEnabled">
                                     <bool>true</bool>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="7" column="4" colspan="3">
-                                <widget class="Line" name="line_7">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
                                   </property>
                                 </widget>
                               </item>
@@ -6303,7 +6296,7 @@ QPushButton:pressed {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="7" column="0" colspan="2">
+                              <item row="7" column="0" colspan="8">
                                 <widget class="Line" name="line_5">
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
@@ -6349,20 +6342,6 @@ QPushButton:pressed {
                                   </property>
                                   <property name="placeholderText">
                                     <string>Letters, numbers and "_" only (no spaces)</string>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="7" column="2" colspan="2">
-                                <widget class="Line" name="line_6">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="7" column="7">
-                                <widget class="Line" name="line_8">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
                                   </property>
                                 </widget>
                               </item>
@@ -6505,13 +6484,6 @@ QCheckBox:checked {
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="14" column="2" colspan="2">
-                                <widget class="Line" name="line_10">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
                               <item row="17" column="2">
                                 <widget class="QLabel" name="label_12">
                                   <property name="minimumSize">
@@ -6595,7 +6567,7 @@ QCheckBox:checked {
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="19" column="0" colspan="2">
+                              <item row="19" column="0" colspan="8">
                                 <widget class="Line" name="line_13">
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
@@ -6644,13 +6616,6 @@ QCheckBox:checked {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="14" column="7">
-                                <widget class="Line" name="line_12">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
                               <item row="12" column="7">
                                 <spacer name="spacerItem67">
                                   <property name="orientation">
@@ -6676,13 +6641,6 @@ QCheckBox:checked {
                                     </size>
                                   </property>
                                 </spacer>
-                              </item>
-                              <item row="14" column="4" colspan="3">
-                                <widget class="Line" name="line_11">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
                               </item>
                               <item row="21" column="4" colspan="2">
                                 <widget class="QLineEdit" name="lineEdit_target_blacklist">
@@ -6744,7 +6702,7 @@ QCheckBox:checked {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="14" column="0" colspan="2">
+                              <item row="14" column="0" colspan="8">
                                 <widget class="Line" name="line_9">
                                   <property name="styleSheet">
                                     <string notr="true" />
@@ -6793,13 +6751,6 @@ QCheckBox:checked {
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="19" column="2" colspan="2">
-                                <widget class="Line" name="line_14">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
                               <item row="21" column="7">
                                 <spacer name="spacerItem73">
                                   <property name="orientation">
@@ -6825,20 +6776,6 @@ QCheckBox:checked {
                                     </size>
                                   </property>
                                 </spacer>
-                              </item>
-                              <item row="25" column="4" colspan="3">
-                                <widget class="Line" name="line_19">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="25" column="7">
-                                <widget class="Line" name="line_20">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
                               </item>
                               <item row="26" column="0" colspan="1">
                                 <widget class="QLabel" name="label_31">
@@ -7069,7 +7006,7 @@ QCheckBox:checked {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="25" column="0" colspan="2">
+                              <item row="25" column="0" colspan="8">
                                 <widget class="Line" name="line_17">
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
@@ -7089,20 +7026,6 @@ QCheckBox:checked {
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="25" column="2" colspan="2">
-                                <widget class="Line" name="line_18">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="19" column="7">
-                                <widget class="Line" name="line_16">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
                               <item row="24" column="0" colspan="2">
                                 <spacer name="spacerItem82">
                                   <property name="orientation">
@@ -7115,20 +7038,6 @@ QCheckBox:checked {
                                     </size>
                                   </property>
                                 </spacer>
-                              </item>
-                              <item row="19" column="4" colspan="3">
-                                <widget class="Line" name="line_15">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="30" column="4" colspan="3">
-                                <widget class="Line" name="line_50">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
                               </item>
                               <item row="37" column="4" colspan="2">
                                 <widget class="QLineEdit" name="lineEdit_airtable_api_key">
@@ -7146,28 +7055,14 @@ QCheckBox:checked {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="30" column="7">
-                                <widget class="Line" name="line_51">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="30" column="2" colspan="2">
-                                <widget class="Line" name="line_27">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="34" column="0" colspan="2">
+                              <item row="34" column="0" colspan="8">
                                 <widget class="Line" name="line_52">
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
                                   </property>
                                 </widget>
                               </item>
-                              <item row="30" column="0" colspan="2">
+                              <item row="30" column="0" colspan="8">
                                 <widget class="Line" name="line_26">
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
@@ -7184,27 +7079,6 @@ QCheckBox:checked {
                                   </property>
                                   <property name="text">
                                     <string>Clear cache</string>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="34" column="2" colspan="2">
-                                <widget class="Line" name="line_78">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="34" column="4" colspan="3">
-                                <widget class="Line" name="line_79">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="34" column="7">
-                                <widget class="Line" name="line_80">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
                                   </property>
                                 </widget>
                               </item>
@@ -7479,28 +7353,7 @@ QPushButton:pressed {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="48" column="2" colspan="2">
-                                <widget class="Line" name="line_30">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="48" column="4" colspan="3">
-                                <widget class="Line" name="line_31">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="48" column="7">
-                                <widget class="Line" name="line_32">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="48" column="0" colspan="2">
+                              <item row="48" column="0" colspan="8">
                                 <widget class="Line" name="line_29">
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
@@ -7769,20 +7622,7 @@ QCheckBox:checked {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="52" column="0" colspan="1">
-                                <widget class="QLabel" name="label_32">
-                                  <property name="font">
-                                    <font>
-                                      <family>Arial</family>
-                                      <pointsize>14</pointsize>
-                                    </font>
-                                  </property>
-                                  <property name="text">
-                                    <string>Other</string>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="56" column="2" colspan="2">
+                              <item row="59" column="2" colspan="2">
                                 <widget class="QLabel" name="label_19">
                                   <property name="font">
                                     <font>
@@ -7798,7 +7638,7 @@ QCheckBox:checked {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="56" column="4" colspan="2">
+                              <item row="59" column="4" colspan="2">
                                 <widget class="QLabel" name="label_desktop_app_id2">
                                   <property name="font">
                                     <font>
@@ -7814,14 +7654,7 @@ QCheckBox:checked {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="51" column="2" colspan="2">
-                                <widget class="Line" name="line_22">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="56" column="6" colspan="2">
+                              <item row="59" column="6" colspan="2">
                                 <spacer name="spacerItem85">
                                   <property name="orientation">
                                     <enum>Qt::Vertical</enum>
@@ -7834,7 +7667,7 @@ QCheckBox:checked {
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="53" column="0" colspan="1">
+                              <item row="56" column="0" colspan="1">
                                 <spacer name="spacerItem86">
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
@@ -7847,7 +7680,7 @@ QCheckBox:checked {
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="53" column="7">
+                              <item row="56" column="7">
                                 <spacer name="spacerItem87">
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
@@ -7860,14 +7693,14 @@ QCheckBox:checked {
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="51" column="0" colspan="2">
+                              <item row="54" column="0" colspan="8">
                                 <widget class="Line" name="line_21">
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
                                   </property>
                                 </widget>
                               </item>
-                              <item row="57" column="7" colspan="1">
+                              <item row="60" column="7" colspan="1">
                                 <widget class="QPushButton" name="pushButton_configuration_save">
                                   <property name="enabled">
                                     <bool>true</bool>
@@ -7913,7 +7746,7 @@ QPushButton:pressed {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="54" column="0" colspan="1">
+                              <item row="57" column="0" colspan="1">
                                 <spacer name="spacerItem88">
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
@@ -7926,7 +7759,7 @@ QPushButton:pressed {
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="55" column="0" colspan="1">
+                              <item row="58" column="0" colspan="1">
                                 <spacer name="spacerItem89">
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
@@ -7939,7 +7772,7 @@ QPushButton:pressed {
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="48" column="0" colspan="2">
+                              <item row="49" column="0" colspan="2">
                                 <widget class="QLabel" name="label_34">
                                   <property name="font">
                                     <font>
@@ -7952,7 +7785,7 @@ QPushButton:pressed {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="49" column="0" colspan="3">
+                              <item row="50" column="0" colspan="3">
                                 <spacer name="spacerItem90">
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
@@ -7965,14 +7798,7 @@ QPushButton:pressed {
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="51" column="4" colspan="3">
-                                <widget class="Line" name="line_23">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="49" column="7">
+                              <item row="50" column="7">
                                 <spacer name="spacerItem91">
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
@@ -7985,7 +7811,7 @@ QPushButton:pressed {
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="53" column="2" colspan="2">
+                              <item row="56" column="2" colspan="2">
                                 <widget class="QCheckBox" name="checkBox_space_encoding">
                                   <property name="minimumSize">
                                     <size>
@@ -8028,7 +7854,7 @@ QCheckBox:checked {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="54" column="7">
+                              <item row="57" column="7">
                                 <spacer name="spacerItem92">
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
@@ -8041,14 +7867,7 @@ QCheckBox:checked {
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="51" column="7">
-                                <widget class="Line" name="line_24">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="49" column="3" colspan="1">
+                              <item row="50" column="3" colspan="1">
                                 <widget class="QLabel" name="label_22">
                                   <property name="minimumSize">
                                     <size>
@@ -8073,7 +7892,7 @@ QCheckBox:checked {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="49" column="4" colspan="2">
+                              <item row="50" column="4" colspan="2">
                                 <widget class="QLineEdit" name="lineEdit_open_ai_key">
                                   <property name="minimumSize">
                                     <size>
@@ -8098,7 +7917,79 @@ QCheckBox:checked {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="50" column="1" colspan="1">
+                              <item row="51" column="3" colspan="1">
+                                <widget class="QLabel" name="label_open_ai_model">
+                                  <property name="minimumSize">
+                                    <size>
+                                      <width>0</width>
+                                      <height>25</height>
+                                    </size>
+                                  </property>
+                                  <property name="font">
+                                    <font>
+                                      <family>Arial</family>
+                                      <pointsize>12</pointsize>
+                                    </font>
+                                  </property>
+                                  <property name="styleSheet">
+                                    <string notr="true">margin-left: 5px;</string>
+                                  </property>
+                                  <property name="text">
+                                    <string>OpenAI model</string>
+                                  </property>
+                                  <property name="alignment">
+                                    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item row="51" column="4" colspan="2">
+                                <widget class="QLineEdit" name="lineEdit_open_ai_model">
+                                  <property name="minimumSize">
+                                    <size>
+                                      <width>0</width>
+                                      <height>42</height>
+                                    </size>
+                                  </property>
+                                  <property name="font">
+                                    <font>
+                                      <family>Calibri</family>
+                                      <pointsize>11</pointsize>
+                                    </font>
+                                  </property>
+                                  <property name="styleSheet">
+                                    <string notr="true">background-color: rgb(255, 255, 255);</string>
+                                  </property>
+                                  <property name="frame">
+                                    <bool>false</bool>
+                                  </property>
+                                  <property name="clearButtonEnabled">
+                                    <bool>true</bool>
+                                  </property>
+                                  <property name="placeholderText">
+                                    <string>e.g. gpt-5-nano</string>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item row="52" column="3" colspan="4">
+                                <widget class="QLabel" name="label_open_ai_note">
+                                  <property name="font">
+                                    <font>
+                                      <family>Arial</family>
+                                      <pointsize>10</pointsize>
+                                    </font>
+                                  </property>
+                                  <property name="styleSheet">
+                                    <string notr="true">color: #666; margin-left: 5px;</string>
+                                  </property>
+                                  <property name="text">
+                                    <string>To set your desired model, enter your API key. Otherwise, default API and model will be used.</string>
+                                  </property>
+                                  <property name="wordWrap">
+                                    <bool>true</bool>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item row="53" column="1" colspan="1">
                                 <spacer name="spacerItem93">
                                   <property name="orientation">
                                     <enum>Qt::Vertical</enum>
@@ -8106,12 +7997,25 @@ QCheckBox:checked {
                                   <property name="sizeHint" stdset="0">
                                     <size>
                                       <width>20</width>
-                                      <height>37</height>
+                                      <height>40</height>
                                     </size>
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="54" column="2" colspan="1">
+                              <item row="55" column="0" colspan="1">
+                                <widget class="QLabel" name="label_32">
+                                  <property name="font">
+                                    <font>
+                                      <family>Arial</family>
+                                      <pointsize>14</pointsize>
+                                    </font>
+                                  </property>
+                                  <property name="text">
+                                    <string>Other</string>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item row="57" column="2" colspan="1">
                                 <widget class="QCheckBox" name="checkBox_proxy_enabled">
                                   <property name="font">
                                     <font>
@@ -8148,7 +8052,7 @@ QCheckBox:checked {
                                   </property>
                                 </widget>
                               </item>
-                              <item row="57" column="1" colspan="1">
+                              <item row="60" column="1" colspan="1">
                                 <spacer name="spacerItem_hide_warmup">
                                   <property name="orientation">
                                     <enum>Qt::Vertical</enum>
@@ -8161,7 +8065,7 @@ QCheckBox:checked {
                                   </property>
                                 </spacer>
                               </item>
-                              <item row="55" column="2" colspan="1">
+                              <item row="58" column="2" colspan="1">
                                 <widget class="QCheckBox" name="checkBox_hide_warmup_emails">
                                   <property name="font">
                                     <font>
@@ -8198,29 +8102,19 @@ QCheckBox:checked {
                                   </property>
                                 </widget>
                               </item>
-                            <item row="41" column="0" colspan="2">
+                              <item row="59" column="2">
+                                <widget class="QCheckBox" name="checkBox_insert_unsubscribe_link">
+                                  <property name="font">
+                                    <font><family>Arial</family><pointsize>12</pointsize></font>
+                                  </property>
+                                  <property name="styleSheet">
+                                    <string notr="true">QCheckBox { padding: 8px 16px; background-color: #e2e8f0; color: #4a5568; border-radius: 16px; font-weight: bold; border: 1px solid #cbd5e1; } QCheckBox::indicator { width: 0px; height: 0px; } QCheckBox:hover { background-color: #cbd5e1; } QCheckBox:checked { background-color: #028fc3; color: #ffffff; border: 1px solid #028fc3; }</string>
+                                  </property>
+                                  <property name="text"><string>Insert unsubscribe link</string></property>
+                                </widget>
+                              </item>
+                            <item row="41" column="0" colspan="8">
                                 <widget class="Line" name="line_52_sch">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="41" column="2" colspan="2">
-                                <widget class="Line" name="line_78_sch">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="41" column="4" colspan="3">
-                                <widget class="Line" name="line_79_sch">
-                                  <property name="orientation">
-                                    <enum>Qt::Horizontal</enum>
-                                  </property>
-                                </widget>
-                              </item>
-                              <item row="41" column="7">
-                                <widget class="Line" name="line_80_sch">
                                   <property name="orientation">
                                     <enum>Qt::Horizontal</enum>
                                   </property>
@@ -8976,6 +8870,57 @@ QPushButton:pressed {
                               </property>
                               <property name="text">
                                 <string>💬  Support</string>
+                              </property>
+                            </widget>
+                          </item>
+                          <item>
+                            <widget class="QPushButton" name="pushButton_account_cancel_subscription">
+                              <property name="minimumSize">
+                                <size>
+                                  <width>190</width>
+                                  <height>44</height>
+                                </size>
+                              </property>
+                              <property name="maximumSize">
+                                <size>
+                                  <width>240</width>
+                                  <height>44</height>
+                                </size>
+                              </property>
+                              <property name="font">
+                                <font>
+                                  <family>Arial</family>
+                                  <pointsize>13</pointsize>
+                                  <bold>true</bold>
+                                </font>
+                              </property>
+                              <property name="styleSheet">
+                                <string notr="true">QPushButton {
+    border: 1px solid #c62828;
+    border-radius: 6px;
+    color: #fff;
+    background-color: #c62828;
+    padding: 10px 24px;
+    font-family: Arial;
+    font-size: 13px;
+    font-weight: bold;
+}
+QPushButton:hover {
+    background-color: #ad1f1f;
+    color: #fff;
+}
+QPushButton:pressed {
+    background-color: #8f1717;
+    color: #fff;
+}
+QPushButton:disabled {
+    background-color: #d9a1a1;
+    border-color: #d9a1a1;
+    color: #fff;
+}</string>
+                              </property>
+                              <property name="text">
+                                <string>Cancel Subscription</string>
                               </property>
                             </widget>
                           </item>

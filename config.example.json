@@ -65,7 +65,9 @@
                     "server": "mail.gmx.com",
                     "port": 587,
                     "require_ssl": false
-                }
+                },
+                "sent_folder": "Sent",
+                "proxy_fallback_direct": true
             },
             "yandex": {
                 "imap": {
@@ -96,9 +98,11 @@
                 },
                 "smtp": {
                     "server": "smtp.mail.ru",
-                    "port": 587,
-                    "require_ssl": false
-                }
+                    "port": 465,
+                    "require_ssl": true
+                },
+                "sent_folder": "&BB4EQgQ,BEAEMAQyBDsENQQ9BD0ESwQ1-",
+                "proxy_fallback_direct": true
             },
             "yahoo": {
                 "imap": {
@@ -107,9 +111,11 @@
                 },
                 "smtp": {
                     "server": "smtp.mail.yahoo.com",
-                    "port": 587,
-                    "require_ssl": false
-                }
+                    "port": 465,
+                    "require_ssl": true
+                },
+                "sent_folder": "Sent",
+                "proxy_fallback_direct": true
             },
             "aol": {
                 "imap": {
@@ -118,9 +124,11 @@
                 },
                 "smtp": {
                     "server": "smtp.aol.com",
-                    "port": 587,
-                    "require_ssl": false
-                }
+                    "port": 465,
+                    "require_ssl": true
+                },
+                "sent_folder": "Sent",
+                "proxy_fallback_direct": true
             },
             "fastmail": {
                 "imap": {
@@ -178,6 +186,11 @@
                 }
             }
         },
+        "mailgenius": {
+            "enabled": false,
+            "rapidapi_key": "",
+            "rapidapi_host": "mailgenius-email-deliverability-api1.p.rapidapi.com"
+        },
         "date": "3/29/2025",
         "num_emails_per_address": "1 - 2",
         "delay_between_emails": "5 - 6",
@@ -192,6 +205,12 @@
             "campaign_name": "email_campaign_A",
             "domain_name": "https://example.com",
             "api_key": ""
+        },
+        "statistics": {
+            "product_price": 0,
+            "logo_path": "",
+            "date_filter": "last_30_days",
+            "manual_metrics": {}
         },
         "webhook_link": "",
         "check_for_blocks": true,

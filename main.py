@@ -2,7 +2,26 @@ from email_validator import validate_email
 from textblob import TextBlob
 from gui import Ui_MainWindow
 from database import update_target_verified
-from openai import OpenAI
+from email_thread_display import header_date_text, message_to_thread_html
+from inbox_search import filter_inbox_emails, normalize_inbox_search_query
+from openai import OpenAI, AuthenticationError as OpenAIAuthError
+from statistics_report import (
+    DateRange,
+    StatisticsCalculator,
+    create_statistics_report_preview,
+    export_statistics_pdf,
+    format_currency,
+    format_number,
+)
+from subscription_cancel import (
+    build_cancel_request_payload,
+    build_cancel_request_url,
+)
+from unsubscribe_client import add_manual, get_records, get_setting, update_setting
+from unsubscribe_management import default_export_path, export_records
+from unsubscribe_page import UnsubscribePage
+from unsubscribe_setting import UnsubscribeSettingController
+from campaign_progress import campaign_progress_state
 import subprocess
 import signal
 from datetime import datetime
@@ -22,6 +41,9 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QTextEdit,
     QVBoxLayout,
+    QLineEdit,
+    QSpinBox,
+    QProgressBar,
 )
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pandas as pd
@@ -61,15 +83,201 @@ def get_effective_openai_model():
     model_name = (var.open_ai_model or "").strip()
     if model_name:
         return model_name
-    return "gpt-5-mini"
+    return "gpt-5-nano"
+
+
+def _call_server_ai(prompt):
+    """Call the server-side AI endpoint when no user OpenAI key is configured."""
+    import requests as _requests
+    url = var.api + 'verify/ai_response'
+    last_error = None
+    for attempt in range(2):
+        try:
+            return _call_server_ai_once(prompt, _requests, url)
+        except Exception as e:
+            last_error = e
+            if attempt == 0 and _should_retry_ai_error(e):
+                sleep(1)
+                continue
+            raise
+    raise last_error
+
+
+def _call_server_ai_once(prompt, _requests, url):
+    resp = _requests.post(
+        url,
+        json={
+            'email': var.login_email,
+            'password': var.login_password,
+            'machine_uuid': var.login_machine_uuid,
+            'processor_id': var.login_processor_id,
+            'prompt': prompt,
+        },
+        timeout=(var.API_CONNECT_TIMEOUT, 40),
+    )
+    if not resp.ok:
+        raise ServerAIResponseError(_server_ai_error_message(resp), resp)
+    data = resp.json()
+    if data.get("status") == "ok":
+        return data.get('answer', '')
+    if data.get("error") or data.get("error_code") or data.get("message"):
+        raise ServerAIResponseError(_server_ai_error_message(resp), resp)
+    return data.get('answer', '')
+
+
+class ServerAIResponseError(Exception):
+    def __init__(self, message, response=None):
+        super().__init__(message)
+        self.response = response
+
+
+def _server_ai_error_message(response):
+    data = {}
+    try:
+        data = response.json()
+    except Exception:
+        data = {}
+    message = data.get("message")
+    if message:
+        return message
+    error_code = data.get("error_code") or data.get("error")
+    status_code = response.status_code
+    return _map_ai_error_message(status_code=status_code, error_code=error_code)
+
+
+def _map_ai_error_message(status_code=None, error_code=None):
+    if status_code == 504 or error_code == "ai_upstream_timeout":
+        return "The AI is taking too long to respond. Please try again."
+    if status_code == 429 or error_code == "ai_rate_limited":
+        return "The AI service is busy right now. Please wait a moment and retry."
+    if status_code == 503 or error_code == "ai_connection_error":
+        return "The server could not reach the AI service. Please try again."
+    if (
+        status_code == 502
+        or error_code in ("ai_provider_server_error", "ai_upstream_error")
+    ):
+        return "The AI service failed temporarily. Please try again later."
+    return "The AI service failed temporarily. Please try again later."
+
+
+def _should_retry_ai_error(error):
+    if isinstance(error, (requests.exceptions.Timeout, requests.exceptions.ConnectionError)):
+        return True
+    if isinstance(error, ServerAIResponseError) and error.response is not None:
+        try:
+            data = error.response.json()
+        except Exception:
+            data = {}
+        if data.get("retryable") is True:
+            return True
+        status_code = error.response.status_code
+        error_code = data.get("error_code") or data.get("error")
+        return status_code in (502, 503, 504) or error_code in (
+            "ai_upstream_timeout",
+            "ai_connection_error",
+            "ai_provider_server_error",
+            "ai_upstream_error",
+        )
+    return False
+
+
+def _ai_exception_message(error):
+    if isinstance(error, ServerAIResponseError):
+        return str(error)
+    if isinstance(error, requests.exceptions.Timeout):
+        return "The request took too long. Please try again."
+    if isinstance(error, requests.exceptions.ConnectionError):
+        return "Network error. Please check your internet connection and try again."
+    return "The AI service failed temporarily. Please try again later."
+
+
+STATISTICS_REPLY_CATEGORIES = {
+    "neutral_replies",
+    "interested_replies",
+    "objection_replies",
+    "not_now_replies",
+    "referral_replies",
+    "out_of_office_replies",
+    "automated_replies",
+}
+
+
+def _statistics_ai_reply_prompt(row):
+    subject = str(row.get("subject", "") or "")[:500]
+    sender = str(row.get("from_mail", "") or row.get("from", "") or "")[:300]
+    body = str(row.get("body", "") or "")[:2500]
+    return (
+        "Classify this inbound sales email reply into exactly one category key.\n"
+        "Return only the category key, with no punctuation or explanation.\n\n"
+        "Allowed category keys:\n"
+        "- interested_replies: positive buying intent, asks for more info, wants a call, says yes.\n"
+        "- objection_replies: objection, rejection, budget/price issue, not interested, not a fit.\n"
+        "- not_now_replies: asks to follow up later, timing delay, not now.\n"
+        "- referral_replies: points to another person or says someone else handles this.\n"
+        "- out_of_office_replies: vacation, away, OOO, unavailable auto-reply.\n"
+        "- automated_replies: delivery notification, mailer daemon, system-generated response.\n"
+        "- neutral_replies: real human reply that does not fit a stronger category.\n\n"
+        f"Sender: {sender}\n"
+        f"Subject: {subject}\n"
+        f"Body:\n{body}"
+    )
+
+
+def build_statistics_openai_reply_classifier():
+    api_key = get_effective_openai_key()
+    if not api_key:
+        return None
+    try:
+        client = OpenAI(api_key=api_key)
+    except Exception as e:
+        var.logger.error(f"Failed to initialize statistics OpenAI classifier: {str(e)}")
+        return None
+
+    cache = {}
+
+    def classify(row):
+        cache_key = (
+            str(row.get("from_mail", "") or row.get("from", "") or ""),
+            str(row.get("subject", "") or ""),
+            str(row.get("body", "") or "")[:2500],
+        )
+        if cache_key in cache:
+            return cache[cache_key]
+        try:
+            response = client.chat.completions.create(
+                model=get_effective_openai_model(),
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You classify cold email replies for sales analytics. "
+                            "You return exactly one allowed category key."
+                        ),
+                    },
+                    {"role": "user", "content": _statistics_ai_reply_prompt(row)},
+                ],
+            )
+            category = (response.choices[0].message.content or "").strip()
+            if category in STATISTICS_REPLY_CATEGORIES:
+                cache[cache_key] = category
+                return category
+        except Exception as e:
+            var.logger.error(f"Statistics OpenAI reply classification failed: {str(e)}")
+        return ""
+
+    return classify
 
 
 class AIPromptDialog(QDialog):
     promptSubmitted = pyqtSignal(str)
+    aiSucceeded = pyqtSignal(str)
+    aiFailed = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.client = None
+        self._request_in_progress = False
+        self._worker_thread = None
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setGeometry(300, 200, 400, 300)
@@ -78,6 +286,13 @@ class AIPromptDialog(QDialog):
         layout.addWidget(self.title_label)
         self.text_input = QTextEdit(var.compose_prompt)
         layout.addWidget(self.text_input)
+        self.status_label = QLabel("")
+        self.status_label.hide()
+        layout.addWidget(self.status_label)
+        self.loader = QProgressBar()
+        self.loader.setRange(0, 0)
+        self.loader.hide()
+        layout.addWidget(self.loader)
         button_layout = QHBoxLayout()
         button_layout.setContentsMargins(0, 0, 10, 10)
         self.send_button = QPushButton("Send Prompt")
@@ -91,40 +306,184 @@ class AIPromptDialog(QDialog):
         self.setStyleSheet(
             "\n            QLabel::indicator {\n                width: 0px; /* Hide the circle indicator */\n                height: 0px;\n            }\n            QLabel {\n                font-size: 20px;\n                color: #000;\n                background-color: transparent;\n                border: none;\n                padding: 10px;\n            }\n                                    \n            QDialog {\n                background-color: #f9f9f9;\n                border-radius: 20px;\n                padding: 10px;\n            }\n\n            QTextEdit {\n                border: 2px solid black;    /* Black border */\n                border-radius: 10px;\n                padding: 5px;\n                background-color: #ffffff;\n            }\n\n            QDialogButtonBox {\n                background-color: #d4d4d4;\n                border-radius: 10px;\n                padding: 5px;\n            }\n\n            QPushButton {\n                border: 1px solid #555;\n                border-radius: 3px;\n                border-style: Solid;\n                background: rgba(0, 138, 191);\n                padding: 5px 28px;\n                color: rgb(255, 255, 255);\n                }\n            \n            QPushButton:hover {\n                background: rgba(0, 138, 191, 0.6);\n                opacity: 0.2\n                }\n            \n            QPushButton:pressed {\n                border-style: inset;\n                background: rgb(0, 138, 191);\n                }\n        "
         )
+        self.aiSucceeded.connect(self._handle_ai_success)
+        self.aiFailed.connect(self._handle_ai_failure)
 
     def get_ai_response(self):
+        if self._request_in_progress:
+            return
         prompt = self.text_input.toPlainText().strip()
         var.compose_prompt = prompt
         Thread(target=update_config_json, daemon=True).start()
         if not prompt:
             alert(text="Please enter a prompt.", title="Warning", button="OK")
             return
+        self._set_ai_loading(True, "Generating response...")
+        QtCore.QTimer.singleShot(10000, self._show_slow_ai_status)
+        self._worker_thread = Thread(
+            target=self._run_ai_request,
+            daemon=True,
+            args=(prompt,),
+        )
+        self._worker_thread.start()
+
+    def _run_ai_request(self, prompt):
         effective_key = get_effective_openai_key()
-        if not effective_key:
-            alert(
-                text="No OpenAI API key found. Add your key in Configuration -> OpenAI key.",
-                title="Warning",
-                button="OK",
-            )
-            return
         try:
-            self.client = OpenAI(api_key=effective_key)
-            response = self.client.chat.completions.create(
-                model=get_effective_openai_model(),
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are an expert email copywriter.",
-                    },
-                    {"role": "user", "content": prompt},
-                ],
+            if effective_key:
+                self.client = OpenAI(api_key=effective_key)
+                response = self.client.chat.completions.create(
+                    model=get_effective_openai_model(),
+                    messages=[
+                        {"role": "system",
+                            "content": "You are an expert email copywriter."},
+                        {"role": "user", "content": prompt},
+                    ],
+                )
+                answer = response.choices[0].message.content
+            else:
+                answer = _call_server_ai(prompt)
+            self.aiSucceeded.emit(answer)
+        except OpenAIAuthError:
+            self.aiFailed.emit(
+                "Your OpenAI API key is invalid or has expired.\n\n"
+                "To use the built-in AI access instead, go to "
+                "Settings -> OpenAI key and clear the key field, then save."
             )
-            print(f"Using OpenAI model: {get_effective_openai_model()}")
-            answer = response.choices[0].message.content
-            self.promptSubmitted.emit(answer)
         except Exception as e:
-            alert(text=f"Failed to connect: {str(e)}",
-                  title="Error", button="OK")
+            self.aiFailed.emit(_ai_exception_message(e))
+
+    def _set_ai_loading(self, is_loading, status_text=""):
+        self._request_in_progress = is_loading
+        self.send_button.setEnabled(not is_loading)
+        self.loader.setVisible(is_loading)
+        self.status_label.setText(status_text)
+        self.status_label.setVisible(bool(status_text))
+
+    def _show_slow_ai_status(self):
+        if self._request_in_progress:
+            self.status_label.setText("Still working, this can take a little longer...")
+
+    def _handle_ai_success(self, answer):
+        self._set_ai_loading(False)
+        self.promptSubmitted.emit(answer)
+
+    def _handle_ai_failure(self, message):
+        self._set_ai_loading(False)
+        alert(text=message, title="Error", button="OK")
+
+
+class ImportSlotsDialog(QDialog):
+    def __init__(self, plan_limit, sheet_counts, group_a_enabled, group_b_enabled, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Import Accounts")
+        self.setModal(True)
+        self._plan_limit = plan_limit
+
+        layout = QVBoxLayout(self)
+
+        layout.addWidget(QLabel(f"Plan limit: {plan_limit} accounts total"))
+
+        a_row = QHBoxLayout()
+        a_row.addWidget(QLabel("Group A:"))
+        self._spin_a = QSpinBox()
+        self._spin_a.setRange(0, plan_limit)
+        self._spin_a.setEnabled(group_a_enabled)
+        a_row.addWidget(self._spin_a)
+        a_row.addWidget(
+            QLabel(f"(Sheet has {sheet_counts['group_a']} available)"))
+        layout.addLayout(a_row)
+
+        b_row = QHBoxLayout()
+        b_row.addWidget(QLabel("Group B:"))
+        self._spin_b = QSpinBox()
+        self._spin_b.setRange(0, plan_limit)
+        self._spin_b.setEnabled(group_b_enabled)
+        b_row.addWidget(self._spin_b)
+        b_row.addWidget(
+            QLabel(f"(Sheet has {sheet_counts['group_b']} available)"))
+        layout.addLayout(b_row)
+
+        self._total_label = QLabel()
+        layout.addWidget(self._total_label)
+
+        btn_row = QHBoxLayout()
+        self._ok_btn = QPushButton("Import")
+        cancel_btn = QPushButton("Cancel")
+        btn_row.addStretch()
+        btn_row.addWidget(cancel_btn)
+        btn_row.addWidget(self._ok_btn)
+        layout.addLayout(btn_row)
+
+        self._spin_a.valueChanged.connect(self._update_total)
+        self._spin_b.valueChanged.connect(self._update_total)
+        self._ok_btn.clicked.connect(self.accept)
+        cancel_btn.clicked.connect(self.reject)
+        self._update_total()
+
+    def _update_total(self):
+        total = self._spin_a.value() + self._spin_b.value()
+        self._total_label.setText(
+            f"Total selected: {total} / {self._plan_limit}")
+        over = total > self._plan_limit
+        self._total_label.setStyleSheet("color: red;" if over else "")
+        self._ok_btn.setEnabled(not over)
+
+    def slots(self):
+        return self._spin_a.value(), self._spin_b.value()
+
+
+class CancelSubscriptionDialog(QDialog):
+    def __init__(self, parent=None, email="", user_id="", plan=""):
+        super().__init__(parent)
+        self.setWindowTitle("Cancel Subscription")
+        self.setModal(True)
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(
+            QLabel(
+                "Send a manual subscription cancellation request to Gmonster support."
+            )
+        )
+
+        form = QtWidgets.QFormLayout()
+        self.name_input = QtWidgets.QLineEdit()
+        self.email_input = QtWidgets.QLineEdit(email)
+        self.user_id_input = QtWidgets.QLineEdit(user_id)
+        self.plan_input = QtWidgets.QLineEdit(plan)
+        form.addRow("Name *", self.name_input)
+        form.addRow("Email", self.email_input)
+        form.addRow("User ID", self.user_id_input)
+        form.addRow("Current Plan", self.plan_input)
+        layout.addLayout(form)
+
+        self.error_label = QLabel("")
+        self.error_label.setStyleSheet("color: #c62828;")
+        self.error_label.hide()
+        layout.addWidget(self.error_label)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.button(QDialogButtonBox.Ok).setText("Send Request")
+        buttons.accepted.connect(self._validate_and_accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def _validate_and_accept(self):
+        if not self.name_input.text().strip():
+            self.error_label.setText("Name is required.")
+            self.error_label.show()
+            self.name_input.setFocus()
+            return
+        self.accept()
+
+    def values(self):
+        return {
+            "name": self.name_input.text().strip(),
+            "email": self.email_input.text().strip(),
+            "user_id": self.user_id_input.text().strip(),
+            "plan": self.plan_input.text().strip(),
+        }
 
 
 class MyGui(Ui_MainWindow, QtWidgets.QWidget):
@@ -138,7 +497,15 @@ class MyMainClass:
     def __init__(self):
         self.compose_font_size = 13
         self.inbox_zoom_level = 0
-        self.setup_openai_config_ui()
+        self.statistics_summary = None
+        self.statistics_page_index = None
+        self.statistics_manual_fields = {}
+        self.statistics_calculated_labels = {}
+        self.statistics_kpi_value_labels = {}
+        self.unsubscribe_page_index = None
+        self.setup_statistics_page()
+        self.setup_inbox_date_header()
+        self.setup_inbox_search()
         self.setup_sidebar_icons()
         GUI.checkBox_delete_all.stateChanged.connect(
             lambda state: self.toggle_all_checkboxes(
@@ -162,6 +529,13 @@ class MyMainClass:
         self.sub_exp = 0
         self.try_failed = 0
         GUI.stackedWidget.setCurrentIndex(0)
+        self.unsubscribe_page = UnsubscribePage(GUI.stackedWidget)
+        self.unsubscribe_page_index = GUI.stackedWidget.addWidget(self.unsubscribe_page)
+        GUI.listWidget.addItem("Unsubscribes")
+        self.unsubscribe_page.refreshRequested.connect(self.load_unsubscribe_records)
+        self.unsubscribe_page.manualAddRequested.connect(self.add_manual_unsubscribe)
+        self.unsubscribe_page.exportRequested.connect(self.export_unsubscribe_records)
+        self.setup_sidebar_icons()
         GUI.listWidget.currentRowChanged.connect(self.list_clicked)
         GUI.lineEdit_email_tracking_analytics_account.setText(
             str(var.tracking["analytics_account"])
@@ -195,6 +569,8 @@ class MyMainClass:
         GUI.pushButton_account_support.clicked.connect(
             lambda: webbrowser.open("https://gmonster.co/support")
         )
+        GUI.pushButton_account_cancel_subscription.clicked.connect(
+            self.request_subscription_cancel)
         self.command_timer = QtCore.QTimer()
         self.command_timer.setInterval(10)
         self.command_timer.timeout.connect(self.run_command)
@@ -242,6 +618,14 @@ class MyMainClass:
         GUI.checkBox_proxy_enabled.setChecked(var.proxy_on)
         GUI.checkBox_space_encoding.setChecked(var.space_encoding_checkbox)
         GUI.checkBox_hide_warmup_emails.setChecked(var.hide_warmup_emails)
+        self.unsubscribe_setting = UnsubscribeSettingController(
+            GUI.checkBox_insert_unsubscribe_link, get_setting, update_setting
+        )
+        GUI.checkBox_insert_unsubscribe_link.setEnabled(False)
+        GUI.checkBox_insert_unsubscribe_link.stateChanged.connect(
+            self.begin_save_unsubscribe_setting
+        )
+        Thread(target=self.load_unsubscribe_setting, daemon=True).start()
         self.auto_fire_responses_webhook_timer = QtCore.QTimer()
         self.auto_fire_responses_webhook_timer.setInterval(
             max(1, int(var.auto_fire_responses_webhook_interval * 3600 * 1000))
@@ -538,6 +922,109 @@ class MyMainClass:
         ).start()
         threading.Thread(target=update_checker, daemon=True, args=[]).start()
 
+    def setup_inbox_date_header(self):
+        if hasattr(GUI, "lineEdit_original_date"):
+            return
+        group_box = QtWidgets.QGroupBox(GUI.groupBox)
+        group_box.setMinimumSize(QtCore.QSize(50, 0))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        group_box.setFont(font)
+        group_box.setStyleSheet("border:none;")
+        group_box.setTitle("")
+        group_box.setObjectName("groupBox_original_date")
+
+        grid = QtWidgets.QGridLayout(group_box)
+        grid.setObjectName("gridLayout_original_date")
+
+        value_label = QtWidgets.QLabel(group_box)
+        value_label.setStyleSheet("color: #555;")
+        value_label.setText("")
+        value_label.setObjectName("lineEdit_original_date")
+        grid.addWidget(value_label, 0, 1, 1, 1)
+
+        title_label = QtWidgets.QLabel(group_box)
+        title_label.setMinimumSize(QtCore.QSize(50, 0))
+        title_label.setMaximumSize(QtCore.QSize(50, 16777215))
+        title_font = QtGui.QFont()
+        title_font.setBold(True)
+        title_font.setWeight(75)
+        title_label.setFont(title_font)
+        title_label.setStyleSheet("color: #555;")
+        title_label.setText("Date:")
+        title_label.setObjectName("label_original_date")
+        grid.addWidget(title_label, 0, 0, 1, 1)
+
+        GUI.groupBox_original_date = group_box
+        GUI.lineEdit_original_date = value_label
+        GUI.label_original_date = title_label
+        GUI.verticalLayout_23.insertWidget(2, group_box)
+
+    def setup_inbox_search(self):
+        if hasattr(GUI, "lineEdit_inbox_search"):
+            return
+
+        search_widget = QtWidgets.QWidget(GUI.frame)
+        search_widget.setObjectName("widget_inbox_search")
+        search_layout = QHBoxLayout(search_widget)
+        search_layout.setContentsMargins(0, 4, 0, 4)
+        search_layout.setSpacing(6)
+
+        search_button = QPushButton(search_widget)
+        search_button.setObjectName("pushButton_inbox_search")
+        search_button.setCursor(Qt.PointingHandCursor)
+        search_button.setFixedSize(34, 34)
+        search_button.setToolTip("Search emails")
+        search_button.setText("")
+        search_button.setFlat(True)
+        search_button.setStyleSheet(
+            "QPushButton { border: none; color: #555; }"
+            "QPushButton:hover { color: #000; background-color: #e6eaf2; }"
+        )
+        if qta is not None:
+            search_button.setIcon(qta.icon("fa5s.search", color="#555"))
+            search_button.setIconSize(QtCore.QSize(16, 16))
+        else:
+            search_button.setText("Search")
+
+        search_input = QLineEdit(search_widget)
+        search_input.setObjectName("lineEdit_inbox_search")
+        search_input.setPlaceholderText("Search emails")
+        search_input.setClearButtonEnabled(True)
+        search_input.setMinimumHeight(34)
+        search_input.setStyleSheet(
+            "QLineEdit { background-color: #fff; border: 1px solid #d6dce8; "
+            "border-radius: 4px; padding: 6px 10px; color: #222; }"
+            "QLineEdit:focus { border-color: #9aa8c0; }"
+        )
+        search_input.hide()
+
+        search_layout.addWidget(search_button)
+        search_layout.addWidget(search_input)
+        GUI.verticalLayout_17.insertWidget(1, search_widget)
+
+        GUI.widget_inbox_search = search_widget
+        GUI.pushButton_inbox_search = search_button
+        GUI.lineEdit_inbox_search = search_input
+
+        search_button.clicked.connect(self.toggle_inbox_search)
+        search_input.textChanged.connect(self.inbox_show_changed)
+
+    def toggle_inbox_search(self):
+        search_input = GUI.lineEdit_inbox_search
+        should_show = not search_input.isVisible()
+        search_input.setVisible(should_show)
+        if should_show:
+            search_input.setFocus()
+            search_input.selectAll()
+        else:
+            search_input.clear()
+
+    def get_inbox_search_text(self):
+        if not hasattr(GUI, "lineEdit_inbox_search"):
+            return ""
+        return normalize_inbox_search_query(GUI.lineEdit_inbox_search.text())
+
     def select_inbox_group(self):
         if GUI.radioButton_group_a.isChecked():
             var.inbox_group = 0
@@ -575,48 +1062,42 @@ class MyMainClass:
             GUI.pushButton_fire_inbox_webhook.show()
 
     def list_clicked(self, index):
-        # ListWidget item → StackedWidget page mapping:
-        # 0: Inbox      → page 0  (stackedWidgetPage1)
-        # 1: Campaign   → page 1  (stackedWidgetPage2)
-        # 2: Database   → page 2  (stackedWidgetPage3)
-        # 3: Follow-up  → page 3  (stackedWidgetPage4)
-        # 4: Auto-reply → page 4  (page)
-        # 5: Store      → open URL
-        # 6: Leads      → open URL
-        # 7: Warm up    → launch_wum()
-        # 8: Settings   → page 5  (stackedWidgetPage5)
-        # 9: Account    → page 6  (accountPage)
+        item = GUI.listWidget.item(index)
+        item_text = item.text() if item else ""
         nav_map = {
-            0: 0,  # Inbox
-            1: 1,  # Campaign
-            2: 2,  # Database
-            3: 3,  # Follow-up
-            4: 4,  # Auto-reply
-            8: 5,  # Settings
-            9: 6,  # Account
+            "Inbox": 0,
+            "Campaign": 1,
+            "Database": 2,
+            "Follow-up": 3,
+            "Auto-reply": 4,
+            "Settings": 5,
+            "Account": 6,
         }
         url_mappings = {
             "Store": "https://gmonster.co/store",
             "Tutorials": "https://gmonster.co/tutorials",
             "Support": "https://gmonster.co/support",
         }
-        if index in nav_map:
-            GUI.stackedWidget.setCurrentIndex(nav_map[index])
-            if index == 9:  # Account page
+        if item_text == "Statistics" and self.statistics_page_index is not None:
+            GUI.stackedWidget.setCurrentIndex(self.statistics_page_index)
+            self.refresh_statistics()
+        elif item_text == "Unsubscribes" and self.unsubscribe_page_index is not None:
+            GUI.stackedWidget.setCurrentIndex(self.unsubscribe_page_index)
+            self.load_unsubscribe_records()
+        elif item_text in nav_map:
+            GUI.stackedWidget.setCurrentIndex(nav_map[item_text])
+            if item_text == "Account":
                 self.refresh_account_info()
-        elif index == 6:  # Leads
+        elif item_text == "Leads":
             self.show_leads_popup()
             GUI.listWidget.setCurrentRow(-1)
-        elif index == 7:  # Warm up
+        elif item_text == "Warm up":
             self.launch_wum()
         else:
-            item = GUI.listWidget.item(index)
-            if item:
-                item_text = item.text()
-                if item_text in url_mappings:
-                    webbrowser.open(url_mappings[item_text])
-                else:
-                    print(f"Invalid Index: {index} ({item_text})")
+            if item_text in url_mappings:
+                webbrowser.open(url_mappings[item_text])
+            elif item_text:
+                print(f"Invalid Index: {index} ({item_text})")
 
     def email_verify(self):
         emails = var.target["EMAIL"].tolist() if not var.target.empty else []
@@ -1161,6 +1642,13 @@ class MyMainClass:
     def show_leads_popup(self):
         msg = QMessageBox()
         msg.setWindowTitle("Leads")
+        icon_path = (os.path.join(sys._MEIPASS, "icons/icon.png")
+                     if hasattr(sys, "_MEIPASS")
+                     else os.path.join(os.path.abspath("."), "icons/icon.png"))
+        msg.setWindowIcon(QtGui.QIcon(icon_path))
+        pixmap = QtGui.QPixmap(icon_path).scaled(
+            64, 64, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+        msg.setIconPixmap(pixmap)
         msg.setText("Choose a lead generation option:")
         gmaps_btn = msg.addButton(
             "Google Maps Scraper", QMessageBox.ActionRole)
@@ -1676,23 +2164,18 @@ class MyMainClass:
         client = None
         if not var.autoReply_canned_switch:
             logger.info("send auto reply")
-            try:
-                effective_key = get_effective_openai_key()
-                if not effective_key:
-                    alert(
-                        text="No OpenAI API key found. Add your key in Configuration -> OpenAI key.",
-                        title="Warning",
-                        button="OK",
-                    )
-                    return
-                client = OpenAI(api_key=effective_key)
-                if not var.autoReply_prompt or not var.autoReply_prompt.strip():
-                    alert(text="Please enter a prompt.",
-                          title="Warning", button="OK")
-                    return
-            except Exception as e:
-                logger.error(f"Failed to initialize OpenAI client: {str(e)}")
+            if not var.autoReply_prompt or not var.autoReply_prompt.strip():
+                alert(text="Please enter a prompt.",
+                      title="Warning", button="OK")
                 return
+            effective_key = get_effective_openai_key()
+            if effective_key:
+                try:
+                    client = OpenAI(api_key=effective_key)
+                except Exception as e:
+                    logger.error(
+                        f"Failed to initialize OpenAI client: {str(e)}")
+                    return
 
         file_path = None
         if not var.autoReply_canned_switch:
@@ -1734,17 +2217,18 @@ class MyMainClass:
                         new_prompt = prompt.replace(
                             "[RECEIVEDEMAIL]", row["body"])
                         try:
-                            response = client.chat.completions.create(
-                                model=get_effective_openai_model(),
-                                messages=[
-                                    {
-                                        "role": "system",
-                                        "content": "You are an expert email copywriter.",
-                                    },
-                                    {"role": "user", "content": new_prompt},
-                                ],
-                            )
-                            answer = response.choices[0].message.content
+                            if client:
+                                response = client.chat.completions.create(
+                                    model=get_effective_openai_model(),
+                                    messages=[
+                                        {"role": "system",
+                                            "content": "You are an expert email copywriter."},
+                                        {"role": "user", "content": new_prompt},
+                                    ],
+                                )
+                                answer = response.choices[0].message.content
+                            else:
+                                answer = _call_server_ai(new_prompt)
                             var.email_in_view["body"] = answer
 
                             with open(file_path, "a", encoding="utf-8") as file:
@@ -1766,6 +2250,17 @@ class MyMainClass:
                                 )
 
                             logger.info(f"Response saved to {file_path}")
+                        except OpenAIAuthError:
+                            alert(
+                                text=(
+                                    "Your OpenAI API key is invalid or has expired.\n\n"
+                                    "To use the built-in AI access instead, go to "
+                                    "Configuration \u2192 OpenAI key and clear the key field, then save."
+                                ),
+                                title="Invalid API Key",
+                                button="OK",
+                            )
+                            return
                         except Exception as e:
                             logger.error(
                                 f"Failed to generate AI response: {str(e)}")
@@ -1917,47 +2412,743 @@ class MyMainClass:
     def change_open_ai_model(self):
         var.open_ai_model = GUI.lineEdit_open_ai_model.text().strip()
 
-    def setup_openai_config_ui(self):
-        if not hasattr(GUI, "lineEdit_open_ai_model"):
-            GUI.label_open_ai_model = QtWidgets.QLabel(GUI.groupBox_10)
-            font = QtGui.QFont()
-            font.setFamily("Arial")
-            font.setPointSize(12)
-            GUI.label_open_ai_model.setFont(font)
-            GUI.label_open_ai_model.setStyleSheet("margin-left: 5px;")
-            GUI.label_open_ai_model.setText("OpenAI model")
-            GUI.label_open_ai_model.setObjectName("label_open_ai_model")
-            GUI.gridLayout_4.addWidget(GUI.label_open_ai_model, 50, 3, 1, 1)
+    def setup_statistics_page(self):
+        if self.statistics_page_index is not None:
+            return
 
-            GUI.lineEdit_open_ai_model = QtWidgets.QLineEdit(GUI.groupBox_10)
-            GUI.lineEdit_open_ai_model.setMinimumSize(QtCore.QSize(0, 42))
-            font = QtGui.QFont()
-            font.setFamily("Calibri")
-            font.setPointSize(11)
-            GUI.lineEdit_open_ai_model.setFont(font)
-            GUI.lineEdit_open_ai_model.setStyleSheet(
-                "background-color: rgb(255, 255, 255);"
-            )
-            GUI.lineEdit_open_ai_model.setFrame(False)
-            GUI.lineEdit_open_ai_model.setClearButtonEnabled(True)
-            GUI.lineEdit_open_ai_model.setPlaceholderText("e.g. gpt-5-mini")
-            GUI.lineEdit_open_ai_model.setObjectName("lineEdit_open_ai_model")
-            GUI.gridLayout_4.addWidget(GUI.lineEdit_open_ai_model, 50, 4, 1, 2)
+        stats_item = QtWidgets.QListWidgetItem("Statistics")
+        GUI.listWidget.insertItem(5, stats_item)
 
-        if not hasattr(GUI, "label_open_ai_note"):
-            GUI.label_open_ai_note = QtWidgets.QLabel(GUI.groupBox_10)
-            font = QtGui.QFont()
-            font.setFamily("Arial")
-            font.setPointSize(10)
-            GUI.label_open_ai_note.setFont(font)
-            GUI.label_open_ai_note.setStyleSheet(
-                "color: #666; margin-left: 5px;")
-            GUI.label_open_ai_note.setWordWrap(True)
-            GUI.label_open_ai_note.setText(
-                "To set your desired model, enter your API key. Otherwise, default API and model will be used."
+        page = QtWidgets.QWidget()
+        page.setObjectName("statisticsPage")
+        page.setStyleSheet(
+            "QWidget#statisticsPage { background-color: #ffffff; }"
+            "QScrollArea { border: none; background: transparent; }"
+            "QScrollArea > QWidget > QWidget { background: transparent; }"
+            "QWidget#statisticsContent { background: transparent; }"
+            "QWidget#statisticsContent QLabel { background: transparent; border: none; padding: 0; }"
+            "QFrame#statisticsControls QLabel, QFrame#statisticsKpiCard QLabel { "
+            "background: transparent; border: none; padding: 0; }"
+        )
+        outer_layout = QtWidgets.QVBoxLayout(page)
+        outer_layout.setContentsMargins(24, 24, 24, 24)
+
+        scroll_area = QtWidgets.QScrollArea(page)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QtWidgets.QFrame.NoFrame)
+        content = QtWidgets.QWidget()
+        content.setObjectName("statisticsContent")
+        layout = QtWidgets.QVBoxLayout(content)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(20)
+
+        header = QtWidgets.QHBoxLayout()
+        header.setContentsMargins(0, 0, 0, 6)
+        header.setSpacing(16)
+        title_box = QtWidgets.QVBoxLayout()
+        title_box.setSpacing(6)
+        title = QtWidgets.QLabel("Statistics")
+        title.setMinimumHeight(34)
+        title.setStyleSheet(
+            "QLabel { background: transparent; border: none; padding: 0; "
+            "font-family: Arial; font-size: 26px; font-weight: bold; color: #111827; }"
+        )
+        subtitle = QtWidgets.QLabel("Executive campaign report and white-label PDF export")
+        subtitle.setMinimumHeight(18)
+        subtitle.setStyleSheet(
+            "QLabel { background: transparent; border: none; padding: 0; "
+            "font-family: Arial; font-size: 12px; color: #667085; }"
+        )
+        title_box.addWidget(title)
+        title_box.addWidget(subtitle)
+        header.addLayout(title_box)
+        header.addStretch()
+
+        self.pushButton_statistics_refresh = QtWidgets.QPushButton("Refresh")
+        self.pushButton_statistics_export_pdf = QtWidgets.QPushButton("Export PDF")
+        for button in [self.pushButton_statistics_refresh, self.pushButton_statistics_export_pdf]:
+            button.setMinimumSize(QtCore.QSize(126, 40))
+            button.setMaximumHeight(40)
+            button.setStyleSheet(self._statistics_button_style())
+            header.addWidget(button)
+        layout.addLayout(header)
+
+        controls = QtWidgets.QFrame()
+        controls.setObjectName("statisticsControls")
+        controls.setStyleSheet(self._statistics_panel_style())
+        controls_layout = QtWidgets.QGridLayout(controls)
+        controls_layout.setContentsMargins(24, 20, 24, 20)
+        controls_layout.setHorizontalSpacing(20)
+        controls_layout.setVerticalSpacing(14)
+        for column in range(4):
+            controls_layout.setColumnStretch(column, 1)
+
+        self.comboBox_statistics_date_filter = QtWidgets.QComboBox()
+        self.comboBox_statistics_date_filter.addItems(["Last 30 Days", "All Time", "Custom"])
+        self.dateEdit_statistics_start = QtWidgets.QDateEdit()
+        self.dateEdit_statistics_end = QtWidgets.QDateEdit()
+        self.comboBox_statistics_date_filter.setMinimumHeight(42)
+        self.comboBox_statistics_date_filter.setStyleSheet(
+            self._statistics_input_style())
+        for date_edit in [self.dateEdit_statistics_start, self.dateEdit_statistics_end]:
+            date_edit.setCalendarPopup(True)
+            date_edit.setDisplayFormat("yyyy-MM-dd")
+            date_edit.setStyleSheet(self._statistics_input_style())
+            date_edit.setMinimumHeight(42)
+        today = QtCore.QDate.currentDate()
+        self.dateEdit_statistics_start.setDate(today.addDays(-30))
+        self.dateEdit_statistics_end.setDate(today)
+
+        self.doubleSpinBox_statistics_product_price = QtWidgets.QDoubleSpinBox()
+        self.doubleSpinBox_statistics_product_price.setPrefix("$ ")
+        self.doubleSpinBox_statistics_product_price.setMaximum(100000000)
+        self.doubleSpinBox_statistics_product_price.setDecimals(2)
+        self.doubleSpinBox_statistics_product_price.setSingleStep(100)
+        self.doubleSpinBox_statistics_product_price.setMinimumHeight(42)
+        self.doubleSpinBox_statistics_product_price.setStyleSheet(
+            self._statistics_input_style())
+
+        self.label_statistics_logo_value = QtWidgets.QLabel("No logo selected")
+        self.label_statistics_logo_value.setMinimumHeight(44)
+        self.label_statistics_logo_value.setStyleSheet(
+            "QLabel { border: 1px solid #d8e0ea; border-radius: 8px; "
+            "background-color: #ffffff; padding: 0 12px; color: #667085; "
+            "font-family: Arial; font-size: 12px; }"
+        )
+        self.pushButton_statistics_choose_logo = QtWidgets.QPushButton("Choose Logo")
+        self.pushButton_statistics_clear_logo = QtWidgets.QPushButton("Clear Logo")
+        for button in [self.pushButton_statistics_choose_logo, self.pushButton_statistics_clear_logo]:
+            button.setMinimumHeight(44)
+            button.setStyleSheet(self._statistics_secondary_button_style())
+
+        controls_layout.addWidget(self._statistics_field_label("Date Range"), 0, 0)
+        controls_layout.addWidget(self.comboBox_statistics_date_filter, 1, 0)
+        controls_layout.addWidget(self._statistics_field_label("Start"), 0, 1)
+        controls_layout.addWidget(self.dateEdit_statistics_start, 1, 1)
+        controls_layout.addWidget(self._statistics_field_label("End"), 0, 2)
+        controls_layout.addWidget(self.dateEdit_statistics_end, 1, 2)
+        controls_layout.addWidget(self._statistics_field_label("Product Price"), 0, 3)
+        controls_layout.addWidget(self.doubleSpinBox_statistics_product_price, 1, 3)
+        controls_layout.addWidget(self._statistics_field_label("White-label Logo"), 2, 0)
+        controls_layout.addWidget(self.label_statistics_logo_value, 3, 0, 1, 2)
+        controls_layout.addWidget(self.pushButton_statistics_choose_logo, 3, 2)
+        controls_layout.addWidget(self.pushButton_statistics_clear_logo, 3, 3)
+        layout.addWidget(controls)
+
+        self.statistics_kpi_frame = self._build_statistics_kpi_frame(content)
+        layout.addWidget(self.statistics_kpi_frame)
+
+        self.statistics_metric_tabs = self._build_statistics_metric_tabs(content)
+        layout.addWidget(self.statistics_metric_tabs)
+
+        self.statistics_preview = create_statistics_report_preview(content)
+        layout.addWidget(self.statistics_preview)
+        scroll_area.setWidget(content)
+        outer_layout.addWidget(scroll_area)
+        self.statistics_page_index = GUI.stackedWidget.addWidget(page)
+
+        self._load_statistics_settings()
+        self._update_statistics_date_controls()
+        self.pushButton_statistics_refresh.clicked.connect(self.refresh_statistics)
+        self.pushButton_statistics_export_pdf.clicked.connect(self.export_statistics_pdf)
+        self.pushButton_statistics_choose_logo.clicked.connect(self.choose_statistics_logo)
+        self.pushButton_statistics_clear_logo.clicked.connect(self.clear_statistics_logo)
+        self.comboBox_statistics_date_filter.currentTextChanged.connect(
+            self._update_statistics_date_controls)
+        self.doubleSpinBox_statistics_product_price.editingFinished.connect(
+            self.save_statistics_settings)
+        self.refresh_statistics(save_settings=False)
+
+    def _build_statistics_kpi_frame(self, parent):
+        frame = QtWidgets.QFrame(parent)
+        frame.setObjectName("statisticsControls")
+        frame.setStyleSheet(self._statistics_panel_style())
+        grid = QtWidgets.QGridLayout(frame)
+        grid.setContentsMargins(18, 18, 18, 18)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(12)
+        cards = [
+            ("meetings_booked", "Meetings Booked"),
+            ("opportunities", "Opportunities"),
+            ("revenue_generated", "Revenue"),
+            ("positive_reply_rate", "Positive Reply"),
+            ("delivery_rate", "Deliverability"),
+            ("roi", "ROI"),
+            ("cost_per_meeting", "Cost / Meeting"),
+            ("valid_email_rate", "Lead Quality"),
+        ]
+        for index, (key, label) in enumerate(cards):
+            card = QtWidgets.QFrame(frame)
+            card.setObjectName("statisticsKpiCard")
+            card.setStyleSheet(self._statistics_panel_style())
+            card_layout = QtWidgets.QVBoxLayout(card)
+            card_layout.setContentsMargins(14, 12, 14, 12)
+            card_layout.setSpacing(6)
+            title = QtWidgets.QLabel(label)
+            title.setStyleSheet(
+                "QLabel { color: #667085; font-family: Arial; font-size: 10px; "
+                "font-weight: bold; text-transform: uppercase; }"
             )
-            GUI.label_open_ai_note.setObjectName("label_open_ai_note")
-            GUI.gridLayout_4.addWidget(GUI.label_open_ai_note, 52, 3, 1, 4)
+            value = QtWidgets.QLabel("0")
+            value.setMinimumHeight(28)
+            value.setStyleSheet(
+                "QLabel { color: #111827; font-family: Arial; font-size: 22px; "
+                "font-weight: bold; }"
+            )
+            card_layout.addWidget(title)
+            card_layout.addWidget(value)
+            self.statistics_kpi_value_labels[key] = value
+            grid.addWidget(card, index // 4, index % 4)
+        return frame
+
+    def _build_statistics_metric_tabs(self, parent):
+        tabs = QtWidgets.QTabWidget(parent)
+        tabs.setStyleSheet(
+            "QTabWidget::pane { border: 1px solid #d8e3ee; background: #ffffff; "
+            "border-radius: 8px; } "
+            "QTabWidget::pane > QWidget { background: #ffffff; } "
+            "QTabBar::tab { background: #dce5f0; color: #344054; padding: 9px 14px; "
+            "font-family: Arial; font-size: 11px; font-weight: bold; border-top-left-radius: 6px; "
+            "border-top-right-radius: 6px; margin-right: 3px; } "
+            "QTabBar::tab:selected { background: #ffffff; color: #028fc3; }"
+        )
+        for section_title, auto_fields, manual_fields, calculated_fields in self._statistics_sections():
+            page = QtWidgets.QWidget()
+            page.setAutoFillBackground(True)
+            page.setStyleSheet("QWidget { background-color: #ffffff; }")
+            layout = QtWidgets.QGridLayout(page)
+            layout.setContentsMargins(18, 18, 18, 18)
+            layout.setHorizontalSpacing(8)
+            layout.setVerticalSpacing(8)
+            for column in range(2):
+                layout.setColumnStretch(column, 1)
+            row = 0
+            if auto_fields:
+                auto_header = self._statistics_section_header("Auto-detected", kind="auto")
+                layout.addWidget(auto_header, row, 0, 1, 2)
+                row += 1
+                for index, (key, label, kind) in enumerate(auto_fields):
+                    self._add_statistics_calculated_field(
+                        layout, row + index // 2, index % 2, key, label, kind, source="auto"
+                    )
+                row += (len(auto_fields) + 1) // 2
+            if manual_fields:
+                manual_header = self._statistics_section_header("Manual overrides", kind="manual")
+                layout.addWidget(manual_header, row, 0, 1, 2)
+                row += 1
+                for index, (key, label, kind) in enumerate(manual_fields):
+                    self._add_statistics_manual_field(layout, row + index // 2, index % 2, key, label, kind)
+                row += (len(manual_fields) + 1) // 2
+            if calculated_fields:
+                calc_header = self._statistics_section_header("Calculated rates", kind="calc")
+                layout.addWidget(calc_header, row, 0, 1, 2)
+                row += 1
+                for index, (key, label, kind) in enumerate(calculated_fields):
+                    self._add_statistics_calculated_field(layout, row + index // 2, index % 2, key, label, kind)
+            tabs.addTab(page, section_title)
+        return tabs
+
+    def _statistics_section_header(self, text, kind="calc"):
+        container = QtWidgets.QWidget()
+        container.setStyleSheet("QWidget { background: transparent; }")
+        h = QtWidgets.QHBoxLayout(container)
+        h.setContentsMargins(0, 6, 0, 4)
+        h.setSpacing(6)
+        dot = QtWidgets.QLabel()
+        dot.setFixedSize(8, 8)
+        if kind == "manual":
+            color = "#6366f1"
+        elif kind == "auto":
+            color = "#059669"
+        else:
+            color = "#028fc3"
+        dot.setStyleSheet(f"background: {color}; border-radius: 4px;")
+        lbl = QtWidgets.QLabel(text.upper())
+        lbl.setStyleSheet(
+            "QLabel { color: #374151; font-family: Arial; font-size: 10px; "
+            "font-weight: bold; letter-spacing: 0.7px; background: transparent; border: none; }"
+        )
+        h.addWidget(dot)
+        h.addWidget(lbl)
+        h.addStretch()
+        return container
+
+    def _add_statistics_manual_field(self, layout, row, column, key, label, kind):
+        chip = QtWidgets.QFrame()
+        chip.setStyleSheet(
+            "QFrame { background: #ffffff; border: 1px solid #d1d5db; border-radius: 8px; }"
+            "QFrame QLabel { background: transparent; border: none; }"
+        )
+        chip_layout = QtWidgets.QVBoxLayout(chip)
+        chip_layout.setContentsMargins(10, 8, 10, 8)
+        chip_layout.setSpacing(4)
+        lbl = QtWidgets.QLabel(label)
+        lbl.setStyleSheet(
+            "QLabel { color: #6b7280; font-family: Arial; font-size: 10px; font-weight: 600; }"
+        )
+        chip_layout.addWidget(lbl)
+        if kind == "text":
+            field = QtWidgets.QLineEdit()
+            field.setStyleSheet(
+                "QLineEdit { border: none; background: transparent; padding: 0; "
+                "font-family: Arial; font-size: 13px; font-weight: 600; color: #374151; }"
+            )
+            field.editingFinished.connect(self.refresh_statistics)
+        else:
+            field = QtWidgets.QDoubleSpinBox()
+            field.setMaximum(1000000000)
+            field.setDecimals(2 if kind in ("currency", "decimal") else 0)
+            field.setSingleStep(100 if kind == "currency" else 1)
+            if kind == "currency":
+                field.setPrefix("$ ")
+            if kind == "percent":
+                field.setSuffix(" %")
+                field.setMaximum(100)
+            field.setStyleSheet(
+                "QDoubleSpinBox { border: none; background: transparent; padding: 0; "
+                "font-family: Arial; font-size: 13px; font-weight: 600; color: #374151; }"
+                "QDoubleSpinBox::up-button, QDoubleSpinBox::down-button "
+                "{ width: 18px; border: none; background: transparent; }"
+            )
+            field.editingFinished.connect(self.refresh_statistics)
+            field.valueChanged.connect(self.refresh_statistics)
+        self.statistics_manual_fields[key] = field
+        chip_layout.addWidget(field)
+        layout.addWidget(chip, row, column)
+
+    def _add_statistics_calculated_field(self, layout, row, column, key, label, kind, source="calc"):
+        chip = QtWidgets.QFrame()
+        if source == "auto":
+            chip.setStyleSheet(
+                "QFrame { background: #ecfdf3; border: 1px solid #bbf7d0; border-radius: 8px; }"
+                "QFrame QLabel { background: transparent; border: none; }"
+            )
+            value_color = "#047857"
+        else:
+            chip.setStyleSheet(
+                "QFrame { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; }"
+                "QFrame QLabel { background: transparent; border: none; }"
+            )
+            value_color = "#0369a1"
+        chip_layout = QtWidgets.QVBoxLayout(chip)
+        chip_layout.setContentsMargins(10, 8, 10, 8)
+        chip_layout.setSpacing(3)
+        lbl = QtWidgets.QLabel(label)
+        lbl.setStyleSheet(
+            "QLabel { color: #6b7280; font-family: Arial; font-size: 10px; font-weight: 600; }"
+        )
+        value = QtWidgets.QLabel("0")
+        value.setStyleSheet(
+            f"QLabel {{ color: {value_color}; font-family: Arial; font-size: 15px; font-weight: 700; }}"
+        )
+        chip_layout.addWidget(lbl)
+        chip_layout.addWidget(value)
+        self.statistics_calculated_labels.setdefault(key, []).append((value, kind))
+        layout.addWidget(chip, row, column)
+
+    def _statistics_field_label(self, text):
+        label = QtWidgets.QLabel(text)
+        label.setMinimumHeight(18)
+        label.setStyleSheet(
+            "QLabel { background: transparent; border: none; padding: 0; "
+            "font-family: Arial; font-size: 11px; color: #667085; font-weight: bold; }"
+        )
+        return label
+
+    def _statistics_panel_style(self):
+        return (
+            "QFrame#statisticsControls, QFrame#statisticsKpiCard { "
+            "background-color: #eef2f7; border: 1px solid #d8e3ee; "
+            "border-radius: 10px; } "
+            "QFrame#statisticsControls QLabel, QFrame#statisticsKpiCard QLabel { "
+            "background: transparent; border: none; padding: 0; }"
+        )
+
+    def _statistics_button_style(self):
+        return (
+            "QPushButton { border: 1px solid #028fc3; border-radius: 8px; "
+            "background-color: #028fc3; color: #ffffff; padding: 8px 18px; "
+            "font-family: Arial; font-size: 12px; font-weight: bold; } "
+            "QPushButton:hover { background-color: #027faf; }"
+        )
+
+    def _statistics_secondary_button_style(self):
+        return (
+            "QPushButton { border: 1px solid #cbd5e1; border-radius: 8px; "
+            "background-color: #ffffff; color: #344054; padding: 6px 12px; "
+            "font-family: Arial; font-size: 12px; font-weight: bold; } "
+            "QPushButton:hover { background-color: #f8fafc; }"
+        )
+
+    def _statistics_input_style(self):
+        return (
+            "QComboBox, QDateEdit, QDoubleSpinBox { "
+            "background-color: #ffffff; color: #111827; border: 1px solid #d8e0ea; "
+            "border-radius: 8px; padding: 7px 12px; font-family: Arial; font-size: 12px; "
+            "font-weight: bold; } "
+            "QComboBox::drop-down, QDateEdit::drop-down, QDoubleSpinBox::up-button, "
+            "QDoubleSpinBox::down-button { width: 22px; border: none; background: transparent; }"
+        )
+
+    def _statistics_text_input_style(self):
+        return (
+            "QLineEdit { background-color: #ffffff; color: #111827; border: 1px solid #d8e0ea; "
+            "border-radius: 8px; padding: 7px 12px; font-family: Arial; font-size: 12px; "
+            "font-weight: bold; }"
+        )
+
+    def _statistics_sections(self):
+        return [
+            (
+                "Deliverability",
+                [
+                    ("sent_emails", "Emails Sent", "number"),
+                    ("emails_delivered", "Emails Delivered", "number"),
+                ],
+                [
+                    ("hard_bounces", "Hard Bounces", "number"),
+                    ("soft_bounces", "Soft Bounces", "number"),
+                    ("deferred_emails", "Deferred Emails", "number"),
+                    ("blocked_emails", "Blocked Emails", "number"),
+                    ("inbox_placement", "Inbox Placement", "number"),
+                    ("spam_placement", "Spam Placement", "number"),
+                    ("spam_complaints", "Spam Complaints", "number"),
+                ],
+                [
+                    ("delivery_rate", "Delivery Rate", "percent"),
+                    ("bounce_rate", "Bounce Rate", "percent"),
+                    ("hard_bounce_rate", "Hard Bounce Rate", "percent"),
+                    ("soft_bounce_rate", "Soft Bounce Rate", "percent"),
+                    ("inbox_placement_rate", "Inbox Placement Rate", "percent"),
+                    ("spam_folder_placement_rate", "Spam Folder Rate", "percent"),
+                    ("spam_complaint_rate", "Spam Complaint Rate", "percent"),
+                    ("sending_velocity", "Sending Velocity / Day", "decimal"),
+                ],
+            ),
+            (
+                "Lead Quality",
+                [
+                    ("leads_sourced", "Leads Sourced", "number"),
+                    ("valid_email_count", "Valid Emails", "number"),
+                    ("invalid_email_count", "Invalid Emails", "number"),
+                    ("catch_all_count", "Catch-all Emails", "number"),
+                    ("verified_email_count", "Verified Emails", "number"),
+                    ("duplicate_lead_count", "Duplicate Leads", "number"),
+                    ("leads_not_emailed", "Leads Not Emailed", "number"),
+                ],
+                [
+                    ("high_value_accounts", "High-value Accounts", "number"),
+                ],
+                [
+                    ("valid_email_rate", "Valid Email Rate", "percent"),
+                    ("invalid_email_rate", "Invalid Email Rate", "percent"),
+                    ("catch_all_domain_percentage", "Catch-all Percentage", "percent"),
+                    ("verified_email_percentage", "Verified Percentage", "percent"),
+                    ("duplicate_lead_rate", "Duplicate Lead Rate", "percent"),
+                    ("high_value_account_percentage", "High-value Percentage", "percent"),
+                ],
+            ),
+            (
+                "Campaign",
+                [
+                    ("positive_replies", "Positive Replies", "number"),
+                    ("negative_replies", "Negative Replies", "number"),
+                ],
+                [
+                    ("open_total", "Total Opens", "number"),
+                    ("unique_opens", "Unique Opens", "number"),
+                    ("clicks", "Clicks", "number"),
+                    ("unsubscribes", "Unsubscribes", "number"),
+                    ("forwards", "Forwards", "number"),
+                ],
+                [
+                    ("open_rate", "Open Rate", "percent"),
+                    ("unique_open_rate", "Unique Open Rate", "percent"),
+                    ("click_through_rate", "CTR", "percent"),
+                    ("total_reply_rate", "Reply Rate", "percent"),
+                    ("unsubscribe_rate", "Unsubscribe Rate", "percent"),
+                    ("forwarding_rate", "Forwarding Rate", "percent"),
+                    ("calendar_booking_rate", "Calendar Booking Rate", "percent"),
+                    ("conversion_rate", "Conversion Rate", "percent"),
+                ],
+            ),
+            (
+                "Replies",
+                [
+                    ("neutral_replies", "Neutral Replies", "number"),
+                    ("interested_replies", "Interested Replies", "number"),
+                    ("objection_replies", "Objection Replies", "number"),
+                    ("not_now_replies", "Not-now Replies", "number"),
+                    ("referral_replies", "Referral Replies", "number"),
+                    ("out_of_office_replies", "Out-of-office Replies", "number"),
+                    ("automated_replies", "Automated Replies", "number"),
+                    ("average_response_time_hours", "Avg Response Time Hours", "decimal"),
+                ],
+                [
+                    ("ongoing_conversations", "Ongoing Conversations", "number"),
+                    ("sales_qualified_conversations", "Sales-qualified Conversations", "number"),
+                ],
+                [
+                    ("positive_sentiment_ratio", "Positive Sentiment Ratio", "percent"),
+                    ("negative_sentiment_ratio", "Negative Sentiment Ratio", "percent"),
+                    ("positive_reply_rate", "Positive Reply Rate", "percent"),
+                    ("negative_reply_rate", "Negative Reply Rate", "percent"),
+                    ("neutral_reply_rate", "Neutral Reply Rate", "percent"),
+                    ("interested_reply_rate", "Interested Reply Rate", "percent"),
+                    ("objection_rate", "Objection Rate", "percent"),
+                    ("conversation_continuation_rate", "Continuation Rate", "percent"),
+                    ("sales_qualified_conversation_rate", "SQ Conversation Rate", "percent"),
+                ],
+            ),
+            (
+                "Sales / ROI",
+                [],
+                [
+                    ("meetings_booked", "Meetings Booked", "number"),
+                    ("meetings_held", "Meetings Held", "number"),
+                    ("no_shows", "No-shows", "number"),
+                    ("opportunities", "Opportunities", "number"),
+                    ("accepted_opportunities", "Accepted Opportunities", "number"),
+                    ("closed_deals", "Closed Deals", "number"),
+                    ("pipeline_generated", "Pipeline Generated", "currency"),
+                    ("revenue_generated", "Revenue Generated", "currency"),
+                    ("total_cost", "Total Cost", "currency"),
+                    ("lifetime_value", "Lifetime Value", "currency"),
+                    ("payback_period_days", "Payback Period Days", "decimal"),
+                    ("sales_cycle_length_days", "Sales Cycle Length Days", "decimal"),
+                ],
+                [
+                    ("potential_earnings", "Potential Earnings", "currency"),
+                    ("meeting_rate", "Meeting Rate", "percent"),
+                    ("show_up_rate", "Show-up Rate", "percent"),
+                    ("no_show_rate", "No-show Rate", "percent"),
+                    ("opportunity_acceptance_rate", "Opportunity Acceptance", "percent"),
+                    ("lead_to_opportunity_rate", "Lead-to-opportunity", "percent"),
+                    ("lead_to_close_rate", "Lead-to-close", "percent"),
+                    ("revenue_per_email_sent", "Revenue / Email", "currency"),
+                    ("revenue_per_lead", "Revenue / Lead", "currency"),
+                    ("revenue_per_meeting", "Revenue / Meeting", "currency"),
+                    ("roi", "ROI", "percent"),
+                    ("cost_per_meeting", "Cost / Meeting", "currency"),
+                    ("cost_per_opportunity", "Cost / Opportunity", "currency"),
+                    ("cost_per_acquisition", "Cost / Acquisition", "currency"),
+                ],
+            ),
+            (
+                "Warm-up",
+                [
+                    ("warmup_email_amounts", "Warm-up Emails", "number"),
+                    ("second_emails", "Follow-ups / Warm-up Sent", "number"),
+                    ("mailbox_provider_summary", "Mailbox Provider Distribution", "text"),
+                ],
+                [
+                    ("warmup_time_days", "Time in Warm-up Days", "decimal"),
+                    ("warmup_progress_percent", "Warm-up Progress", "percent"),
+                    ("best_sending_time", "Best Sending Time", "text"),
+                    ("best_sending_day", "Best Sending Day", "text"),
+                    ("best_subject_line", "Best Subject Line", "text"),
+                ],
+                [
+                    ("sent_emails", "Emails Sent", "number"),
+                    ("warmup_progress_rate", "Warm-up Progress Rate", "percent"),
+                ],
+            ),
+        ]
+
+    def _load_statistics_settings(self):
+        settings = getattr(var, "statistics", {}) or {}
+        self.doubleSpinBox_statistics_product_price.setValue(
+            float(settings.get("product_price") or 0)
+        )
+        date_filter = settings.get("date_filter", "last_30_days")
+        index_by_filter = {"last_30_days": 0, "all_time": 1, "custom": 2}
+        self.comboBox_statistics_date_filter.setCurrentIndex(
+            index_by_filter.get(date_filter, 0)
+        )
+        self._load_statistics_manual_metrics(settings.get("manual_metrics", {}))
+        self._update_statistics_logo_label()
+
+    def _load_statistics_manual_metrics(self, manual_metrics):
+        manual_metrics = manual_metrics or {}
+        for key, field in self.statistics_manual_fields.items():
+            value = manual_metrics.get(key, "")
+            if isinstance(field, QtWidgets.QLineEdit):
+                field.setText(str(value or ""))
+            else:
+                try:
+                    field.setValue(float(value or 0))
+                except Exception:
+                    field.setValue(0)
+
+    def _update_statistics_logo_label(self):
+        logo_path = (getattr(var, "statistics", {}) or {}).get("logo_path", "")
+        if logo_path:
+            self.label_statistics_logo_value.setText(os.path.basename(logo_path))
+        else:
+            self.label_statistics_logo_value.setText("No logo selected")
+
+    def _update_statistics_date_controls(self):
+        custom = self.comboBox_statistics_date_filter.currentText() == "Custom"
+        self.dateEdit_statistics_start.setEnabled(custom)
+        self.dateEdit_statistics_end.setEnabled(custom)
+
+    def _statistics_date_range(self):
+        selected = self.comboBox_statistics_date_filter.currentText()
+        if selected == "All Time":
+            return DateRange(), "All time", "all_time"
+        if selected == "Custom":
+            start = self.dateEdit_statistics_start.date().toString("yyyy-MM-dd")
+            end = self.dateEdit_statistics_end.date().toString("yyyy-MM-dd")
+            return DateRange.from_dates(start, end), f"{start} to {end}", "custom"
+        end = datetime.now()
+        start = end - pd.Timedelta(days=30)
+        return DateRange(start=start.to_pydatetime() if hasattr(start, "to_pydatetime") else start, end=end), "Last 30 days", "last_30_days"
+
+    def save_statistics_settings(self):
+        _, _, date_filter = self._statistics_date_range()
+        var.statistics["product_price"] = self.doubleSpinBox_statistics_product_price.value()
+        var.statistics["date_filter"] = date_filter
+        var.statistics["manual_metrics"] = self._statistics_manual_metrics()
+        Thread(target=update_config_json, daemon=True).start()
+
+    def _statistics_manual_metrics(self):
+        metrics = {}
+        for key, field in self.statistics_manual_fields.items():
+            if isinstance(field, QtWidgets.QLineEdit):
+                metrics[key] = field.text().strip()
+            else:
+                metrics[key] = field.value()
+        return metrics
+
+    def _statistics_negative_words(self):
+        try:
+            with open(var.blacklist_file_path, "r", encoding="utf-8") as file:
+                return [line.strip() for line in file if line.strip()]
+        except FileNotFoundError:
+            return None
+
+    def refresh_statistics(self, save_settings=True):
+        if save_settings:
+            self.save_statistics_settings()
+        date_range, date_label, _ = self._statistics_date_range()
+        calculator = StatisticsCalculator(
+            report_path=var.report_file_path,
+            followup_report_path=var.followup_report_file_path,
+            negative_words=self._statistics_negative_words(),
+            reply_classifier=build_statistics_openai_reply_classifier(),
+        )
+        summary = calculator.calculate(
+            inbox_tables=var.inbox_data_table,
+            date_range=date_range,
+            product_price=self.doubleSpinBox_statistics_product_price.value(),
+            manual_metrics=self._statistics_manual_metrics(),
+            target_table=getattr(var, "target", None),
+            account_tables=[getattr(var, "group_a", None), getattr(var, "group_b", None)],
+        )
+        self.statistics_summary = summary
+        self._update_statistics_metric_labels(summary)
+        logo_path = var.statistics.get("logo_path", "")
+        self.statistics_preview.set_report(
+            summary,
+            logo_path=logo_path,
+            title="Outreach Performance",
+            date_label=date_label,
+        )
+
+    def _update_statistics_metric_labels(self, summary):
+        for key, labels in self.statistics_calculated_labels.items():
+            for label, kind in labels:
+                label.setText(self._format_statistics_value(getattr(summary, key, 0), kind))
+        kpi_kinds = {
+            "meetings_booked": "number",
+            "opportunities": "number",
+            "revenue_generated": "currency",
+            "positive_reply_rate": "percent",
+            "delivery_rate": "percent",
+            "roi": "percent",
+            "cost_per_meeting": "currency",
+            "valid_email_rate": "percent",
+        }
+        for key, label in self.statistics_kpi_value_labels.items():
+            label.setText(self._format_statistics_value(getattr(summary, key, 0), kpi_kinds.get(key, "number")))
+
+    def _format_statistics_value(self, value, kind):
+        if kind == "currency":
+            return format_currency(value)
+        if kind == "percent":
+            try:
+                return "{}%".format(int(round(float(value) * 100)))
+            except Exception:
+                return "0%"
+        if kind == "decimal":
+            try:
+                return "{:,.2f}".format(float(value)).rstrip("0").rstrip(".")
+            except Exception:
+                return "0"
+        if kind == "text":
+            return str(value or "")
+        return format_number(value)
+
+    def choose_statistics_logo(self):
+        file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            mainWindow,
+            "Choose Logo",
+            "",
+            "Images (*.png *.jpg *.jpeg *.bmp)",
+        )
+        if not file_path:
+            return
+        var.statistics["logo_path"] = file_path
+        self._update_statistics_logo_label()
+        self.save_statistics_settings()
+        self.refresh_statistics(save_settings=False)
+
+    def clear_statistics_logo(self):
+        var.statistics["logo_path"] = ""
+        self._update_statistics_logo_label()
+        self.save_statistics_settings()
+        self.refresh_statistics(save_settings=False)
+
+    def export_statistics_pdf(self):
+        self.refresh_statistics()
+        default_name = os.path.join(
+            self._downloads_folder(),
+            f"gmonster-statistics-{datetime.now().strftime('%Y%m%d-%H%M')}.pdf",
+        )
+        file_path, _ = QtWidgets.QFileDialog.getSaveFileName(
+            mainWindow,
+            "Export Statistics PDF",
+            default_name,
+            "PDF Files (*.pdf)",
+        )
+        if not file_path:
+            return
+        if not file_path.lower().endswith(".pdf"):
+            file_path += ".pdf"
+        try:
+            _, date_label, _ = self._statistics_date_range()
+            export_statistics_pdf(
+                file_path,
+                self.statistics_summary,
+                logo_path=var.statistics.get("logo_path", ""),
+                title="Outreach Performance",
+                date_label=date_label,
+            )
+            alert(text=f"Statistics PDF exported to:\n{file_path}", title="Export complete", button="OK")
+        except Exception as e:
+            logger.error(f"Statistics PDF export failed: {traceback.format_exc()}")
+            alert(text=f"Statistics PDF export failed: {e}", title="Error", button="OK")
+
+    def _downloads_folder(self):
+        download_path = QtCore.QStandardPaths.writableLocation(
+            QtCore.QStandardPaths.DownloadLocation
+        )
+        if download_path:
+            return download_path
+        fallback = os.path.join(os.path.expanduser("~"), "Downloads")
+        if os.path.isdir(fallback):
+            return fallback
+        return os.path.expanduser("~")
 
     def setup_sidebar_icons(self):
         if qta is None:
@@ -1968,6 +3159,7 @@ class MyMainClass:
             "Database": "fa5s.database",
             "Follow-up": "fa5s.reply",
             "Auto-reply": "fa5s.robot",
+            "Statistics": "fa5s.chart-bar",
             "Store": "fa5s.shopping-bag",
             "Leads": "fa5s.user-friends",
             "Tutorials": "fa5s.book-open",
@@ -1975,6 +3167,7 @@ class MyMainClass:
             "Warm up": "fa5s.fire",
             "Settings": "fa5s.cog",
             "Account": "fa5s.user-circle",
+            "Unsubscribes": "fa5s.user-slash",
         }
         GUI.listWidget.setIconSize(QtCore.QSize(16, 16))
         for index in range(GUI.listWidget.count()):
@@ -2147,6 +3340,93 @@ class MyMainClass:
                 eval(command)
         except Exception as e:
             self.logger.error("Error at run_command - {}".format(e))
+
+    def load_unsubscribe_setting(self):
+        try:
+            self._loaded_unsubscribe_setting = get_setting()
+            var.command_q.put("self.finish_load_unsubscribe_setting()")
+        except Exception:
+            var.command_q.put("self.fail_load_unsubscribe_setting()")
+
+    def finish_load_unsubscribe_setting(self):
+        self.unsubscribe_setting.apply_loaded_value(self._loaded_unsubscribe_setting)
+
+    def fail_load_unsubscribe_setting(self):
+        GUI.checkBox_insert_unsubscribe_link.setEnabled(False)
+        alert(
+            text="Unable to load unsubscribe setting. Retry by reopening Gmonster.",
+            title="Unsubscribe setting",
+            button="OK",
+        )
+
+    def begin_save_unsubscribe_setting(self, _state):
+        requested = GUI.checkBox_insert_unsubscribe_link.isChecked()
+        GUI.checkBox_insert_unsubscribe_link.setEnabled(False)
+        Thread(target=self.save_unsubscribe_setting, args=(requested,), daemon=True).start()
+
+    def save_unsubscribe_setting(self, requested):
+        try:
+            self._saved_unsubscribe_setting = self.unsubscribe_setting.persist_value(requested)
+            var.command_q.put("self.finish_save_unsubscribe_setting()")
+        except Exception:
+            var.command_q.put("self.fail_save_unsubscribe_setting()")
+
+    def finish_save_unsubscribe_setting(self):
+        self.unsubscribe_setting.apply_loaded_value(self._saved_unsubscribe_setting)
+
+    def fail_save_unsubscribe_setting(self):
+        self.unsubscribe_setting.restore_current_value()
+        alert(
+            text="Unable to save unsubscribe setting. Your previous setting is still active.",
+            title="Unsubscribe setting",
+            button="OK",
+        )
+
+    def load_unsubscribe_records(self):
+        self.unsubscribe_page.set_loading()
+        Thread(target=self._load_unsubscribe_records, daemon=True).start()
+
+    def _load_unsubscribe_records(self):
+        try:
+            self._loaded_unsubscribe_records = get_records()
+            var.command_q.put("self.finish_load_unsubscribe_records()")
+        except Exception:
+            var.command_q.put("self.fail_load_unsubscribe_records()")
+
+    def finish_load_unsubscribe_records(self):
+        self.unsubscribe_page.set_records(self._loaded_unsubscribe_records)
+
+    def fail_load_unsubscribe_records(self):
+        self.unsubscribe_page.set_error("Unable to load unsubscribes. Please retry.")
+
+    def add_manual_unsubscribe(self, email):
+        self.unsubscribe_page.set_loading()
+        Thread(target=self._add_manual_unsubscribe, args=(email,), daemon=True).start()
+
+    def _add_manual_unsubscribe(self, email):
+        try:
+            add_manual(email)
+            var.command_q.put("self.load_unsubscribe_records()")
+        except Exception:
+            var.command_q.put("self.fail_manual_unsubscribe()")
+
+    def fail_manual_unsubscribe(self):
+        self.unsubscribe_page.set_error("Unable to add unsubscribe. Check the email and retry.")
+
+    def export_unsubscribe_records(self):
+        path, _ = QFileDialog.getSaveFileName(
+            None,
+            "Export unsubscribes",
+            default_export_path(self._downloads_folder()),
+            "CSV files (*.csv)",
+        )
+        if not path:
+            return
+        try:
+            count = export_records(path, self.unsubscribe_page.filtered_records)
+            alert(text="Exported {} unsubscribe record(s).".format(count), title="Export complete", button="OK")
+        except Exception:
+            alert(text="Unable to export unsubscribes.", title="Export failed", button="OK")
 
     def insert_row(self):
         GUI.model.insertRows()
@@ -2449,6 +3729,81 @@ class MyMainClass:
             logger.error(
                 f"Error fetching account info: {traceback.format_exc()}")
 
+    def request_subscription_cancel(self):
+        dialog = CancelSubscriptionDialog(
+            parent=mainWindow,
+            email=(var.login_email or "").strip(),
+            user_id=getattr(var, "gmonster_desktop_id", ""),
+            plan="",
+        )
+        if dialog.exec_() != QDialog.Accepted:
+            return
+
+        request_values = dialog.values()
+
+        GUI.pushButton_account_cancel_subscription.setEnabled(False)
+        GUI.pushButton_account_cancel_subscription.setText("Sending...")
+        Thread(
+            target=self._send_subscription_cancel_request,
+            args=(request_values,),
+            daemon=True,
+        ).start()
+
+    def _send_subscription_cancel_request(self, request_values):
+        try:
+            payload = build_cancel_request_payload(
+                name=request_values["name"],
+                email=request_values["email"],
+                user_id=request_values["user_id"],
+                plan=request_values["plan"],
+            )
+            response = requests.post(
+                build_cancel_request_url(var.api),
+                json=payload,
+                timeout=var.API_TIMEOUT,
+            )
+
+            if response.status_code == 200:
+                message = "Cancellation request sent successfully"
+                try:
+                    data = response.json()
+                    message = data.get("message") or message
+                except Exception:
+                    pass
+                self._subscription_cancel_result = (True, message)
+            else:
+                self._subscription_cancel_result = (
+                    False,
+                    "Unable to send cancellation request. Please try again or contact support.",
+                )
+                logger.error(
+                    f"Subscription cancellation failed: HTTP {response.status_code} - {response.text}"
+                )
+        except Exception:
+            self._subscription_cancel_result = (
+                False,
+                "Unable to send cancellation request. Please try again or contact support.",
+            )
+            logger.error(
+                f"Error sending subscription cancellation request: {traceback.format_exc()}"
+            )
+        var.command_q.put("self._finish_subscription_cancel_request()")
+
+    def _finish_subscription_cancel_request(self):
+        success, message = getattr(
+            self,
+            "_subscription_cancel_result",
+            (False, "Cancellation request failed."),
+        )
+        GUI.pushButton_account_cancel_subscription.setEnabled(True)
+        GUI.pushButton_account_cancel_subscription.setText(
+            "Cancel Subscription")
+        alert(
+            text=message,
+            title="Cancel Subscription" if success else "Error",
+            button="OK",
+        )
+
     def test_send(self):
         dialog = QtWidgets.QDialog()
         dialog.ui = Send(dialog, parent="test")
@@ -2514,11 +3869,16 @@ class MyMainClass:
             self.logger.error("Error at batch_delete - {}".format(e))
 
     def load_db(self):
-        result = confirm(
-            text="Are you sure?", title="Confirmation Window", buttons=["OK", "Cancel"]
-        )
-        if result == "OK":
-            Thread(target=database.load_db, daemon=True).start()
+        plan_limit = database._fetch_accounts_limit()
+        sheet_counts = database.get_sheet_counts()
+        group_a_enabled = var.db_file_loading_config.get("group_a", True)
+        group_b_enabled = var.db_file_loading_config.get("group_b", True)
+        dlg = ImportSlotsDialog(plan_limit, sheet_counts,
+                                group_a_enabled, group_b_enabled, parent=None)
+        if dlg.exec_() == QDialog.Accepted:
+            a_slots, b_slots = dlg.slots()
+            Thread(target=database.load_db, args=(
+                a_slots, b_slots), daemon=True).start()
         else:
             print("cancelled")
 
@@ -2739,21 +4099,14 @@ class MyMainClass:
 
     def update_compose_progressbar(self):
         try:
-            value = (
-                var.send_campaign_email_count / var.total_email_to_be_sent * 100
+            value, count_label, status = campaign_progress_state(
+                var.send_campaign_email_count,
+                var.total_email_to_be_sent,
+                var.stop_send_campaign,
             )
-            GUI.label_campaign_status.setText(
-                "{}/{}".format(
-                    var.send_campaign_email_count, var.total_email_to_be_sent
-                )
-            )
-            if value >= 100:
-                GUI.lable_campaign_status_text.setText("Finished")
-            elif var.stop_send_campaign:
-                GUI.lable_campaign_status_text.setText("Stopped")
-            else:
-                GUI.lable_campaign_status_text.setText("Sending")
-            GUI.progressBar_compose.setValue(int(value))
+            GUI.label_campaign_status.setText(count_label)
+            GUI.lable_campaign_status_text.setText(status)
+            GUI.progressBar_compose.setValue(value)
         except Exception as e:
             logger.error(
                 "Error at main.py->update_compose_progressbar : {}".format(e))
@@ -2864,7 +4217,7 @@ class MyMainClass:
                     Thread(target=update_config_json, daemon=True).start()
                     dialog.ui = Download(
                         dialog, var.group_a, folders=[
-                            "INBOX", '"[Gmail]/Sent Mail"']
+                            "INBOX", "__SENT__"]
                     )
                 else:
                     if GUI.radioButton_group_b.isChecked() and len(var.group_b) > 0:
@@ -2875,7 +4228,7 @@ class MyMainClass:
                         dialog.ui = Download(
                             dialog,
                             var.group_b,
-                            folders=["INBOX", '"[Gmail]/Sent Mail"'],
+                            folders=["INBOX", "__SENT__"],
                         )
                     else:
                         self.logger.info("Downloading_email no db")
@@ -2910,10 +4263,16 @@ class MyMainClass:
                     [var.inbox_data_table[var.inbox_group], pd.DataFrame([row_data])], ignore_index=True
                 )
             self.inbox_show_changed()
-            unread_count = sum(
-                (1 for flag in var.inbox_data[var.inbox_group]
-                 ["flag"] if flag == "UNSEEN")
-            )
+            unread_count = 0
+            if (
+                not var.inbox_data[var.inbox_group].empty
+                and "flag" in var.inbox_data[var.inbox_group].columns
+            ):
+                unread_count = sum(
+                    1
+                    for flag in var.inbox_data[var.inbox_group]["flag"]
+                    if flag == "UNSEEN"
+                )
             if unread_count > 0:
                 GUI.label_unread_count.setText(str(unread_count))
             else:
@@ -2969,6 +4328,13 @@ class MyMainClass:
                 ~var.inbox_data[var.inbox_group]['from_mail'].str.lower().isin(
                     pool_set)
             ].copy()
+
+        search_text = self.get_inbox_search_text()
+        if search_text and not var.inbox_data[var.inbox_group].empty:
+            var.inbox_data[var.inbox_group] = filter_inbox_emails(
+                var.inbox_data[var.inbox_group],
+                search_text,
+            )
 
         self.sort_inbox_data(self.option)
 
@@ -3156,49 +4522,18 @@ class MyMainClass:
 
     def _build_thread_view_html(self, thread_df):
         zoom_multiplier = 1 + (self.inbox_zoom_level * 0.1)
-        meta_font_size = max(9, int(round(12 * zoom_multiplier)))
-        subject_font_size = max(14, int(round(20 * zoom_multiplier)))
         base_font_size = max(10, int(round(14 * zoom_multiplier)))
         message_blocks = []
-        for _, row_data in thread_df.iterrows():
-            from_text = html.escape(
-                str(row_data.get("from", "") or row_data.get("from_mail", "")))
-            to_text = html.escape(
-                str(row_data.get("to", "") or row_data.get("to_mail", "")))
-            subject_text = html.escape(str(row_data.get("subject", "")))
-
-            date_value = row_data.get("date", "")
-            if hasattr(date_value, "strftime"):
-                date_text = date_value.strftime("%Y-%m-%d %H:%M:%S")
-            else:
-                date_text = str(date_value)
-            date_text = html.escape(date_text)
-
-            body_text = str(row_data.get("body", "") or "")
-            if "</body>" in body_text.lower():
-                body_match = re.search(
-                    r"<body[^>]*>(.*?)</body>",
-                    body_text,
-                    flags=re.IGNORECASE | re.DOTALL,
-                )
-                body_html = body_match.group(1) if body_match else body_text
-            else:
-                body_html = html.escape(body_text).replace("\n", "<br>")
-
+        for index, (_, row_data) in enumerate(thread_df.iterrows()):
             message_blocks.append(
-                f"""
-                <div style=\"margin:0 0 14px 0; padding:10px; border:1px solid #ddd; background:#fafafa;\">
-                    <div style=\"font-size:{meta_font_size}px; color:#444; margin-bottom:8px;\"><b>From:</b> {from_text}</div>
-                    <div style=\"font-size:{meta_font_size}px; color:#444; margin-bottom:8px;\"><b>To:</b> {to_text}</div>
-                    <div style=\"font-size:{meta_font_size}px; color:#666; margin-bottom:8px;\"><b>Date:</b> {date_text}</div>
-                    <div style=\"font-size:{subject_font_size}px; font-weight:600; margin:0 0 10px 0;\">{subject_text}</div>
-                    <div>{body_html}</div>
-                </div>
-                """
+                message_to_thread_html(
+                    row_data.to_dict(),
+                    show_metadata=index > 0,
+                )
             )
 
         return (
-            f"<html><body style='font-family: Arial, sans-serif; font-size: {base_font_size}px;'>"
+            f"<html><body style='font-family: Arial, sans-serif; font-size: {base_font_size}px; line-height:1.5;'>"
             + "".join(message_blocks)
             + "</body></html>"
         )
@@ -3340,6 +4675,7 @@ class MyMainClass:
             self.change_subject()
             GUI.lineEdit_original_from.setText(
                 var.inbox_data[var.inbox_group].iloc[row]["from"])
+            GUI.lineEdit_original_date.setText(header_date_text(var.email_in_view))
             GUI.textBrowser_show_email.clear()
             selected_row_data = var.inbox_data[var.inbox_group].iloc[row].to_dict(
             )

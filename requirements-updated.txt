@@ -66,6 +66,7 @@ pywin32>=305; sys_platform == "win32"
 pywin32-ctypes>=0.2.2; sys_platform == "win32"
 QtPy>=2.3.0
 regex==2024.11.6
+reportlab>=4.5.1
 requests>=2.31.0
 scipy>=1.10.0
 six==1.16.0
