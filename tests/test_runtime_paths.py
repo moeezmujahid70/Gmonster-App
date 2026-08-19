@@ -77,6 +77,39 @@ class RuntimePathsTest(unittest.TestCase):
                 '{"config": {"safe": true}}',
             )
 
+    def test_initialize_runtime_data_seeds_starter_sheets_without_replacing_them(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            starter_data = root / "starter-data"
+            starter_sheets = starter_data / "sheets"
+            starter_sheets.mkdir(parents=True)
+            (starter_sheets / "target.xlsx").write_bytes(b"starter-target")
+            (starter_sheets / "group_a.xlsx").write_bytes(b"starter-group-a")
+            destination = root / "runtime" / "data"
+
+            initialize_runtime_data(
+                destination,
+                root / "defaults",
+                legacy_data_dir=None,
+                starter_data_dir=starter_data,
+            )
+
+            target = destination / "sheets" / "target.xlsx"
+            self.assertEqual(target.read_bytes(), b"starter-target")
+            self.assertEqual(
+                (destination / "sheets" / "group_a.xlsx").read_bytes(),
+                b"starter-group-a",
+            )
+
+            target.write_bytes(b"customer-target")
+            initialize_runtime_data(
+                destination,
+                root / "defaults",
+                legacy_data_dir=None,
+                starter_data_dir=starter_data,
+            )
+            self.assertEqual(target.read_bytes(), b"customer-target")
+
     def test_initialize_runtime_data_preserves_newer_files_during_migration(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()

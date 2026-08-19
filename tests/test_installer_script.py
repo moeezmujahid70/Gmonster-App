@@ -26,6 +26,14 @@ class InstallerScriptTest(unittest.TestCase):
             'console=os.environ.get("GMONSTER_CONSOLE_BUILD") == "1"', spec
         )
 
+    def test_spec_packages_clean_starter_sheet_templates(self):
+        spec = Path("GMonster.spec").read_text(encoding="utf-8")
+
+        self.assertIn("starter_data_path", spec)
+        self.assertIn("Tree(starter_data_path, prefix='starter-data')", spec)
+        for filename in ("group_a.xlsx", "group_b.xlsx", "target.xlsx"):
+            self.assertTrue((Path("starter-data") / "sheets" / filename).is_file())
+
     def test_installer_packages_both_executables_and_launches_gmonster(self):
         script = Path("installer/GMonster.iss").read_text(encoding="utf-8")
 

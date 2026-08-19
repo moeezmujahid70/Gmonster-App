@@ -23,6 +23,9 @@ RESOURCE_DIR = str(RUNTIME_PATHS.resource_dir)
 DEFAULT_DATA_DIR = os.path.join(
     RESOURCE_DIR, "default-data"
 ) if getattr(sys, "frozen", False) else APP_DIR
+STARTER_DATA_DIR = os.path.join(RESOURCE_DIR, "starter-data") if getattr(
+    sys, "frozen", False
+) else os.path.join(APP_DIR, "starter-data")
 LEGACY_DATA_DIR = (
     os.path.join(APP_DIR, "data") if RUNTIME_PATHS.is_frozen_windows else None
 )
@@ -32,10 +35,16 @@ if "--smoke-test" in sys.argv:
             RUNTIME_PATHS.data_dir,
             os.environ.get("GMONSTER_SMOKE_TEST_LOG"),
             DEFAULT_DATA_DIR,
+            STARTER_DATA_DIR,
         )
     )
 
-initialize_runtime_data(RUNTIME_PATHS.data_dir, DEFAULT_DATA_DIR, LEGACY_DATA_DIR)
+initialize_runtime_data(
+    RUNTIME_PATHS.data_dir,
+    DEFAULT_DATA_DIR,
+    LEGACY_DATA_DIR,
+    STARTER_DATA_DIR,
+)
 
 
 from logger import logger

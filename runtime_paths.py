@@ -59,6 +59,7 @@ def initialize_runtime_data(
     data_dir: str | Path,
     defaults_dir: str | Path,
     legacy_data_dir: str | Path | None,
+    starter_data_dir: str | Path | None = None,
 ) -> None:
     """Create missing runtime folders and safely seed or migrate user data."""
     destination = Path(data_dir)
@@ -75,23 +76,35 @@ def initialize_runtime_data(
         if source.is_file() and not target.exists():
             shutil.copy2(source, target)
 
-    if legacy_data_dir is None:
+    if legacy_data_dir is not None:
+        legacy = Path(legacy_data_dir)
+        migration_marker = config_dir / ".legacy_data_migrated"
+        if legacy.is_dir() and not migration_marker.exists():
+            for source in legacy.rglob("*"):
+                if not source.is_file():
+                    continue
+                target = destination / source.relative_to(legacy)
+                if target.exists():
+                    continue
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source, target)
+            migration_marker.touch()
+
+    if starter_data_dir is None:
         return
 
-    legacy = Path(legacy_data_dir)
-    migration_marker = config_dir / ".legacy_data_migrated"
-    if not legacy.is_dir() or migration_marker.exists():
+    starter_sheets = Path(starter_data_dir) / "sheets"
+    if not starter_sheets.is_dir():
         return
 
-    for source in legacy.rglob("*"):
+    for source in starter_sheets.rglob("*"):
         if not source.is_file():
             continue
-        target = destination / source.relative_to(legacy)
+        target = destination / "sheets" / source.relative_to(starter_sheets)
         if target.exists():
             continue
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, target)
-    migration_marker.touch()
 
 
 def wum_executable_path(app_dir: str | Path) -> Path:
@@ -104,9 +117,18 @@ def update_staging_dir(data_dir: str | Path) -> Path:
     return Path(data_dir) / "updates"
 
 
-def run_smoke_test(data_dir: str | Path, defaults_dir: str | Path | None = None) -> int:
+def run_smoke_test(
+    data_dir: str | Path,
+    defaults_dir: str | Path | None = None,
+    starter_data_dir: str | Path | None = None,
+) -> int:
     """Verify runtime storage can initialize without loading GUI dependencies."""
-    initialize_runtime_data(data_dir, defaults_dir or Path(), legacy_data_dir=None)
+    initialize_runtime_data(
+        data_dir,
+        defaults_dir or Path(),
+        legacy_data_dir=None,
+        starter_data_dir=starter_data_dir,
+    )
     return 0
 
 
@@ -114,10 +136,11 @@ def run_smoke_test_with_diagnostics(
     data_dir: str | Path,
     diagnostic_path: str | Path | None,
     defaults_dir: str | Path | None = None,
+    starter_data_dir: str | Path | None = None,
 ) -> int:
     """Run the smoke test and record a traceback if a windowed build fails."""
     try:
-        return run_smoke_test(data_dir, defaults_dir)
+        return run_smoke_test(data_dir, defaults_dir, starter_data_dir)
     except Exception:
         if diagnostic_path is not None:
             diagnostic = Path(diagnostic_path)

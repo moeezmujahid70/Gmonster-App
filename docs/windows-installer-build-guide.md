@@ -133,6 +133,16 @@ Both installed apps use that same location:
 
 Safe packaged defaults, including the configuration template and certificate, are copied there only when missing. Existing customer settings and sheets are preserved during upgrades.
 
+The installer also includes three safe spreadsheet templates on first launch:
+
+```text
+group_a.xlsx
+group_b.xlsx
+target.xlsx
+```
+
+They are copied to `%LOCALAPPDATA%\GMonster\data\sheets` only if the corresponding file does not already exist. They contain spreadsheet headers and a fictional target example only—no real accounts, passwords, proxies, or customer contacts.
+
 For local Mac development, nothing changes: running `python3 var.py` still uses the repository's local `data/` folder.
 
 ## Installation and upgrades

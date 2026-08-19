@@ -10,6 +10,7 @@ icons_path = os.path.join(spec_dir, 'icons')
 gmaps_scraper_assets_path = os.path.join(
     spec_dir, 'data', 'tools', 'google_maps_scraper'
 )
+starter_data_path = os.path.join(spec_dir, 'starter-data')
 config_template_path = os.path.join(spec_dir, 'config.example.json')
 certificate_path = certifi.where()
 
@@ -60,6 +61,8 @@ if os.path.isdir(gmaps_scraper_assets_path):
         gmaps_scraper_assets_path,
         prefix='data/tools/google_maps_scraper'
     )
+if os.path.isdir(starter_data_path):
+    a.datas += Tree(starter_data_path, prefix='starter-data')
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
 
