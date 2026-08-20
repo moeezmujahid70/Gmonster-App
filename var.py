@@ -303,8 +303,6 @@ statistics = {
 }
 mailgenius = {
     "enabled": False,
-    "rapidapi_key": "",
-    "rapidapi_host": "",
 }
 webhook_link = ''
 api = 'https://enzim.pythonanywhere.com/'
@@ -386,7 +384,9 @@ try:
     if not isinstance(config.get('mailgenius'), dict):
         config['mailgenius'] = mailgenius.copy()
     else:
-        mailgenius.update(config['mailgenius'])
+        mailgenius = {
+            'enabled': bool(config['mailgenius'].get('enabled', False)),
+        }
         config['mailgenius'] = mailgenius
     date = config['date']
     if config['compose_email_subject']:

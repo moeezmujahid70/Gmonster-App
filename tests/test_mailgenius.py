@@ -1,31 +1,15 @@
 import pathlib
 import unittest
-
-
-class FakeResponse:
-    def __init__(self, payload, status_code=200):
-        self.payload = payload
-        self.status_code = status_code
-
-    def json(self):
-        return self.payload
-
-
-class FakeSession:
-    def __init__(self, responses):
-        self.responses = list(responses)
-        self.calls = []
-
-    def get(self, url, headers, timeout):
-        self.calls.append((url, headers, timeout))
-        return self.responses.pop(0)
+from unittest.mock import Mock, patch
 
 
 class MailGeniusClientTest(unittest.TestCase):
-    def test_config_export_preserves_mailgenius_settings(self):
-        source = pathlib.Path("utils.py").read_text(encoding="utf-8")
+    def test_config_export_keeps_only_the_mailgenius_enabled_setting(self):
+        source = pathlib.Path("var.py").read_text(encoding="utf-8")
 
-        self.assertIn('"mailgenius": var.mailgenius,', source)
+        self.assertIn('mailgenius = {\n    "enabled": False,\n}', source)
+        self.assertNotIn('"rapidapi_key"', source)
+        self.assertNotIn('"rapidapi_host"', source)
 
     def test_test_mail_sends_a_separate_visible_audit_copy(self):
         source = pathlib.Path("smtp.py").read_text(encoding="utf-8")
@@ -33,49 +17,55 @@ class MailGeniusClientTest(unittest.TestCase):
         self.assertIn('audit_message["To"] = self.audit_recipient', source)
         self.assertIn("MailGenius SMTP delivery was rejected", source)
 
-    def test_start_audit_returns_slug_and_test_address(self):
+    def test_send_dialog_uses_the_server_backed_mailgenius_client(self):
+        source = pathlib.Path("send_dialog.py").read_text(encoding="utf-8")
+
+        self.assertIn("MailGeniusClient().start_audit()", source)
+        self.assertIn("MailGeniusClient().wait_for_result", source)
+        self.assertNotIn("MailGeniusClient(var.mailgenius)", source)
+
+    @patch("mailgenius._server_request")
+    def test_start_audit_returns_server_owned_id_and_test_address(self, request):
         from mailgenius import MailGeniusClient
 
-        session = FakeSession(
-            [FakeResponse({"test_email": "test-audit-1@test.mailgenius.com"})]
+        request.return_value = Mock(
+            status_code=201,
+            json=lambda: {
+                "audit_id": "0c6e4f05-2f9b-4ad3-9a30-6a8f6ef8a68f",
+                "test_email": "test-audit-1@test.mailgenius.com",
+            },
         )
-        client = MailGeniusClient(
-            {"rapidapi_key": "key", "rapidapi_host": "host.test"},
-            session=session,
-        )
+        client = MailGeniusClient()
 
         audit = client.start_audit()
 
-        self.assertEqual(audit.slug, "audit-1")
+        self.assertEqual(audit.audit_id, "0c6e4f05-2f9b-4ad3-9a30-6a8f6ef8a68f")
         self.assertEqual(audit.test_email, "test-audit-1@test.mailgenius.com")
-        self.assertEqual(
-            session.calls[0][0],
-            "https://host.test/external/api/email-audit",
-        )
-        self.assertEqual(session.calls[0][1]["x-rapidapi-host"], "host.test")
+        request.assert_called_once_with("POST", "verify/mailgenius/audits")
 
-    def test_wait_for_result_returns_first_completed_response(self):
+    @patch("mailgenius._server_request")
+    def test_wait_for_result_polls_the_server_owned_audit(self, request):
         from mailgenius import MailGeniusClient
 
-        session = FakeSession(
-            [
-                FakeResponse({"slug": "audit-1", "status": "pending"}),
-                FakeResponse(
-                    {"slug": "audit-1", "status": "complete", "spam_score": 8}
-                ),
-            ]
-        )
-        client = MailGeniusClient(
-            {"rapidapi_key": "key", "rapidapi_host": "host.test"},
-            session=session,
-        )
+        request.side_effect = [
+            Mock(status_code=200, json=lambda: {"status": "pending"}),
+            Mock(status_code=200, json=lambda: {"status": "complete", "spam_score": 8}),
+        ]
+        client = MailGeniusClient()
 
         result = client.wait_for_result(
-            "audit-1", attempts=2, interval_seconds=0, sleep=lambda _: None
+            "0c6e4f05-2f9b-4ad3-9a30-6a8f6ef8a68f",
+            attempts=2,
+            interval_seconds=0,
+            sleep=lambda _: None,
         )
 
         self.assertFalse(result.pending)
         self.assertEqual(result.data["spam_score"], 8)
+        self.assertEqual(
+            request.call_args_list[0].args,
+            ("GET", "verify/mailgenius/audits/0c6e4f05-2f9b-4ad3-9a30-6a8f6ef8a68f"),
+        )
 
     def test_detail_html_keeps_safe_links_and_removes_scripts(self):
         from mailgenius import sanitize_mailgenius_html

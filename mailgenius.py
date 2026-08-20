@@ -1,15 +1,22 @@
-"""MailGenius audit requests through the RapidAPI gateway."""
+"""MailGenius audit requests through the authenticated GMonster server."""
 
 from dataclasses import dataclass, field
 from html import escape
 from html.parser import HTMLParser
 import logging
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 import requests
 
 
 logger = logging.getLogger("gmonster.mailgenius")
+
+
+def _server_request(method, path):
+    """Import the authenticated desktop request helper only when it is used."""
+    from gmonster_api import authenticated_request
+
+    return authenticated_request(method, path)
 
 
 class _MailGeniusHTMLSanitizer(HTMLParser):
@@ -82,13 +89,17 @@ def sanitize_mailgenius_html(value):
     return sanitizer.rendered_html()
 
 
-class MailGeniusError(Exception):
+class MailGeniusError(RuntimeError):
     """Raised when MailGenius cannot start or return an audit."""
+
+    def __init__(self, message, code="MAILGENIUS_FAILED"):
+        super().__init__(message)
+        self.code = code
 
 
 @dataclass(frozen=True)
 class MailGeniusAudit:
-    slug: str
+    audit_id: str
     test_email: str
 
 
@@ -100,47 +111,28 @@ class MailGeniusResult:
 
 
 class MailGeniusClient:
-    def __init__(self, config, session=requests, timeout=(5, 20)):
-        self.key = str(config.get("rapidapi_key", "")).strip()
-        self.host = str(config.get("rapidapi_host", "")).strip()
-        self.session = session
-        self.timeout = timeout
-        if not self.key or not self.host:
-            raise MailGeniusError("MailGenius is not configured.")
-
     def start_audit(self):
-        logger.info("MailGenius: requesting audit address from %s", self.host)
-        data = self._get("/external/api/email-audit")
-        slug = data.get("slug")
+        """Create a server-owned audit and return its visible test address."""
+        data = self._request("POST", "verify/mailgenius/audits", 201)
+        audit_id = data.get("audit_id")
         test_email = data.get("test_email")
-        if isinstance(test_email, str) and "@" in test_email and not slug:
-            slug = test_email.split("@", 1)[0]
-            if slug.startswith("test-"):
-                slug = slug[len("test-"):]
-        if not isinstance(slug, str) or not isinstance(test_email, str):
-            logger.error("MailGenius: audit response omitted test_email")
-            raise MailGeniusError("MailGenius did not return an audit address.")
-        logger.info("MailGenius: audit address created (slug=%s)", slug)
-        return MailGeniusAudit(slug=slug, test_email=test_email)
 
-    def _get(self, path):
+        if not isinstance(audit_id, str) or not audit_id.strip():
+            raise MailGeniusError("MailGenius returned an invalid audit.")
+        if not isinstance(test_email, str) or "@" not in test_email:
+            raise MailGeniusError("MailGenius returned an invalid audit address.")
+        logger.info("MailGenius: server audit created")
+        return MailGeniusAudit(audit_id=audit_id.strip(), test_email=test_email)
+
+    def _request(self, method, path, expected_status):
         try:
-            response = self.session.get(
-                "https://{}{}".format(self.host, path),
-                headers={
-                    "x-rapidapi-key": self.key,
-                    "x-rapidapi-host": self.host,
-                },
-                timeout=self.timeout,
-            )
+            response = _server_request(method, path)
         except requests.RequestException as exc:
-            logger.error("MailGenius: request failed for %s: %s", path, exc)
-            raise MailGeniusError("MailGenius connection failed. Please try again.") from exc
-        if response.status_code >= 400:
-            logger.error("MailGenius: request for %s returned HTTP %s", path, response.status_code)
+            logger.error("MailGenius server request failed: %s", exc)
             raise MailGeniusError(
-                "MailGenius request failed ({}).".format(response.status_code)
-            )
+                "Could not reach the MailGenius service. Please try again.",
+                "MAILGENIUS_CONNECTION",
+            ) from exc
         try:
             data = response.json()
         except ValueError as exc:
@@ -148,25 +140,53 @@ class MailGeniusClient:
 
         if not isinstance(data, dict):
             raise MailGeniusError("MailGenius returned an invalid response.")
+        if response.status_code != expected_status:
+            raise MailGeniusError(
+                self._error_message(data, response.status_code),
+                str(data.get("error") or "MAILGENIUS_FAILED").upper(),
+            )
         return data
 
-    def get_result(self, slug):
-        data = self._get("/external/api/email-result/{}".format(slug))
+    @staticmethod
+    def _error_message(data, status_code):
+        error = str(data.get("error") or "")
+        messages = {
+            "daily_audit_limit_reached": "Daily MailGenius audit limit reached. Please try again tomorrow.",
+            "mailgenius_unconfigured": "MailGenius is not configured on the server.",
+            "mailgenius_timeout": "MailGenius analysis timed out. Please try again shortly.",
+            "mailgenius_connection_error": "Could not reach the MailGenius service. Please try again.",
+            "audit_not_found": "MailGenius audit was not found.",
+            "audit_not_ready": "MailGenius audit is still being created. Please try again shortly.",
+        }
+        if error in messages:
+            return messages[error]
+        if status_code == 401:
+            return "Please sign in again before running a MailGenius audit."
+        if status_code in {402, 403}:
+            return "An active subscription is required for MailGenius audits."
+        return "MailGenius could not complete the check. Please try again."
+
+    def get_result(self, audit_id):
+        data = self._request(
+            "GET",
+            "verify/mailgenius/audits/{}".format(quote(str(audit_id), safe="")),
+            200,
+        )
         status = str(data.get("status", "unknown")).lower()
         result = MailGeniusResult(
             status=status,
             pending=status in {"pending", "processing", "queued", "not_ready"},
             data=data,
         )
-        logger.info("MailGenius: audit %s status=%s", slug, result.status)
+        logger.info("MailGenius: server audit status=%s", result.status)
         return result
 
-    def wait_for_result(self, slug, attempts=20, interval_seconds=3, sleep=None):
+    def wait_for_result(self, audit_id, attempts=20, interval_seconds=3, sleep=None):
         if sleep is None:
             import time
             sleep = time.sleep
         for _ in range(attempts):
-            result = self.get_result(slug)
+            result = self.get_result(audit_id)
             if not result.pending:
                 return result
             sleep(interval_seconds)

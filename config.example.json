@@ -187,9 +187,7 @@
             }
         },
         "mailgenius": {
-            "enabled": false,
-            "rapidapi_key": "",
-            "rapidapi_host": "mailgenius-email-deliverability-api1.p.rapidapi.com"
+            "enabled": false
         },
         "api": "https://dev-enzim.pythonanywhere.com/",
         "date": "3/29/2025",
