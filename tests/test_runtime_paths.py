@@ -2,7 +2,11 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from runtime_paths import initialize_runtime_data, resolve_runtime_paths
+from runtime_paths import (
+    initialize_runtime_data,
+    open_sheets_folder,
+    resolve_runtime_paths,
+)
 
 
 class RuntimePathsTest(unittest.TestCase):
@@ -125,6 +129,17 @@ class RuntimePathsTest(unittest.TestCase):
             self.assertEqual(
                 (destination / "sheets" / "targets.xlsx").read_bytes(), b"current"
             )
+
+    def test_open_sheets_folder_creates_and_opens_the_runtime_sheets_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            data_dir = Path(directory).resolve() / "data"
+            opened_paths = []
+
+            sheets_dir = open_sheets_folder(data_dir, opened_paths.append)
+
+            self.assertEqual(sheets_dir, data_dir / "sheets")
+            self.assertTrue(sheets_dir.is_dir())
+            self.assertEqual(opened_paths, [sheets_dir])
 
 
 if __name__ == "__main__":

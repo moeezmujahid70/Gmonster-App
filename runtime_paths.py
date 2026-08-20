@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import shutil
 import traceback
+from typing import Callable
 
 
 @dataclass(frozen=True)
@@ -115,6 +116,16 @@ def wum_executable_path(app_dir: str | Path) -> Path:
 def update_staging_dir(data_dir: str | Path) -> Path:
     """Return a writable location for downloaded installer updates."""
     return Path(data_dir) / "updates"
+
+
+def open_sheets_folder(
+    data_dir: str | Path, open_directory: Callable[[Path], None]
+) -> Path:
+    """Ensure the writable sheets directory exists and open it."""
+    sheets_dir = Path(data_dir) / "sheets"
+    sheets_dir.mkdir(parents=True, exist_ok=True)
+    open_directory(sheets_dir)
+    return sheets_dir
 
 
 def run_smoke_test(

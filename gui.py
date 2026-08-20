@@ -2062,6 +2062,29 @@ class Ui_MainWindow(object):
 "    }")
         self.pushButton_load_db.setObjectName("pushButton_load_db")
         self.verticalLayout_13.addWidget(self.pushButton_load_db)
+        self.pushButton_open_sheets_folder = QtWidgets.QPushButton(self.groupBox_7)
+        self.pushButton_open_sheets_folder.setMinimumSize(QtCore.QSize(0, 50))
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(15)
+        font.setBold(False)
+        font.setWeight(50)
+        self.pushButton_open_sheets_folder.setFont(font)
+        self.pushButton_open_sheets_folder.setStyleSheet("QPushButton {\n"
+"    border: 1px solid #028fc3;\n"
+"    border-radius: 3px;\n"
+"    background: #ffffff;\n"
+"    padding: 5px 28px;\n"
+"    color: #028fc3;\n"
+"    }\n"
+"QPushButton:hover {\n"
+"    background: #e6f5fa;\n"
+"    }\n"
+"QPushButton:pressed {\n"
+"    background: #d2ecf5;\n"
+"    }")
+        self.pushButton_open_sheets_folder.setObjectName("pushButton_open_sheets_folder")
+        self.verticalLayout_13.addWidget(self.pushButton_open_sheets_folder)
         self.pushButton_export_targets = QtWidgets.QPushButton(self.groupBox_7)
         self.pushButton_export_targets.setMinimumSize(QtCore.QSize(0, 50))
         font = QtGui.QFont()
@@ -4587,6 +4610,7 @@ class Ui_MainWindow(object):
         self.radioButton_db_groupb.setText(_translate("MainWindow", "Group B"))
         self.radioButton_db_target.setText(_translate("MainWindow", "Target"))
         self.pushButton_load_db.setText(_translate("MainWindow", "Import"))
+        self.pushButton_open_sheets_folder.setText(_translate("MainWindow", "Open Sheets Folder"))
         self.pushButton_export_targets.setText(_translate("MainWindow", "Export targets"))
         self.label_target_count.setText(_translate("MainWindow", "Targets: 0"))
         self.pushButton_email_verify.setText(_translate("MainWindow", "Email verifier"))

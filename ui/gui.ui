@@ -3860,6 +3860,42 @@ QPushButton:pressed {
                         </widget>
                       </item>
                       <item>
+                        <widget class="QPushButton" name="pushButton_open_sheets_folder">
+                          <property name="minimumSize">
+                            <size>
+                              <width>0</width>
+                              <height>50</height>
+                            </size>
+                          </property>
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>15</pointsize>
+                              <bold>false</bold>
+                              <weight>50</weight>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">QPushButton {
+    border: 1px solid #028fc3;
+    border-radius: 3px;
+    background: #ffffff;
+    padding: 5px 28px;
+    color: #028fc3;
+    }
+QPushButton:hover {
+    background: #e6f5fa;
+    }
+QPushButton:pressed {
+    background: #d2ecf5;
+    }</string>
+                          </property>
+                          <property name="text">
+                            <string>Open Sheets Folder</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item>
                         <widget class="QPushButton" name="pushButton_export_targets">
                           <property name="minimumSize">
                             <size>

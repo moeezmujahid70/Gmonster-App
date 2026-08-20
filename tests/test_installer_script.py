@@ -26,6 +26,14 @@ class InstallerScriptTest(unittest.TestCase):
             'console=os.environ.get("GMONSTER_CONSOLE_BUILD") == "1"', spec
         )
 
+    def test_installer_workflow_exposes_an_opt_in_console_build(self):
+        workflow = Path(
+            ".github/workflows/release-windows-installer.yml"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("console_build:", workflow)
+        self.assertIn("GMONSTER_CONSOLE_BUILD:", workflow)
+
     def test_spec_packages_clean_starter_sheet_templates(self):
         spec = Path("GMonster.spec").read_text(encoding="utf-8")
 
@@ -33,6 +41,23 @@ class InstallerScriptTest(unittest.TestCase):
         self.assertIn("Tree(starter_data_path, prefix='starter-data')", spec)
         for filename in ("group_a.xlsx", "group_b.xlsx", "target.xlsx"):
             self.assertTrue((Path("starter-data") / "sheets" / filename).is_file())
+
+    def test_spec_packages_the_windows_google_maps_scraper(self):
+        spec = Path("GMonster.spec").read_text(encoding="utf-8")
+
+        self.assertIn("gmaps_scraper_assets_path", spec)
+        self.assertIn("prefix='data/tools/google_maps_scraper'", spec)
+        self.assertTrue(
+            Path(
+                "data/tools/google_maps_scraper/windows/google_maps_scraper.exe"
+            ).is_file()
+        )
+
+    def test_database_page_has_an_open_sheets_folder_button(self):
+        ui = Path("ui/gui.ui").read_text(encoding="utf-8")
+
+        self.assertIn('name="pushButton_open_sheets_folder"', ui)
+        self.assertIn("Open Sheets Folder", ui)
 
     def test_installer_packages_both_executables_and_launches_gmonster(self):
         script = Path("installer/GMonster.iss").read_text(encoding="utf-8")
