@@ -16,7 +16,7 @@ on:
         required: true
         default: 227101e8aedddf8dad2dcff51d8df4fd01d3f48b
       console_build:
-        description: Build a console executable to expose PyInstaller startup diagnostics
+        description: Package a console executable for manual diagnostics (normal customer installer is false)
         required: false
         type: boolean
         default: false
@@ -57,13 +57,25 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-      - name: Install GMonster dependencies and build
+      - name: Install dependencies and smoke-test GMonster diagnostics build
         env:
-          GMONSTER_CONSOLE_BUILD: ${{ inputs.console_build && '1' || '0' }}
+          GMONSTER_CONSOLE_BUILD: '1'
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-updated.txt
           pip install pyinstaller
+          pyinstaller --clean GMonster.spec
+          $smokeTestLog = Join-Path $env:RUNNER_TEMP "gmonster-smoke-test.log"
+          $env:GMONSTER_SMOKE_TEST_LOG = $smokeTestLog
+          & .\dist\GMonster.exe --smoke-test
+          if ($LASTEXITCODE -ne 0) {
+            if (Test-Path $smokeTestLog) { Get-Content $smokeTestLog }
+            throw "GMonster diagnostics smoke test failed"
+          }
+      - name: Build GMonster release executable
+        env:
+          GMONSTER_CONSOLE_BUILD: ${{ inputs.console_build && '1' || '0' }}
+        run: |
           pyinstaller --clean GMonster.spec
       - uses: actions/upload-artifact@v4
         with:
@@ -87,15 +99,27 @@ jobs:
         with:
           name: wum-exe
           path: release-input/wum
-      - name: Smoke-test both Windows executables
+      - name: Smoke-test Windows executables
         shell: pwsh
         run: |
-          $smokeTestLog = Join-Path $env:RUNNER_TEMP "gmonster-smoke-test.log"
-          $env:GMONSTER_SMOKE_TEST_LOG = $smokeTestLog
-          & .\release-input\gmonster\GMonster.exe --smoke-test
-          if ($LASTEXITCODE -ne 0) {
-            if (Test-Path $smokeTestLog) { Get-Content $smokeTestLog }
-            throw "GMonster smoke test failed"
+          if ('${{ inputs.console_build }}' -eq 'true') {
+            & .\release-input\gmonster\GMonster.exe --smoke-test
+            if ($LASTEXITCODE -ne 0) { throw "GMonster console smoke test failed" }
+          } else {
+            $gmonster = Start-Process `
+              -FilePath .\release-input\gmonster\GMonster.exe `
+              -WorkingDirectory .\release-input\gmonster `
+              -PassThru
+            try {
+              Start-Sleep -Seconds 5
+              if ($gmonster.HasExited) {
+                throw "GMonster windowed startup smoke test failed"
+              }
+            } finally {
+              if (-not $gmonster.HasExited) {
+                Stop-Process -Id $gmonster.Id -Force
+              }
+            }
           }
           & .\release-input\wum\WUM.exe --smoke-test
           if ($LASTEXITCODE -ne 0) { throw "WUM smoke test failed" }
