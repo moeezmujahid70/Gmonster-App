@@ -22,6 +22,8 @@ from unsubscribe_management import default_export_path, export_records
 from unsubscribe_page import UnsubscribePage
 from unsubscribe_setting import UnsubscribeSettingController
 from campaign_progress import campaign_progress_state
+from runtime_paths import open_sheets_folder as open_runtime_sheets_folder
+from runtime_paths import wum_executable_path
 import subprocess
 import signal
 from datetime import datetime
@@ -800,6 +802,8 @@ class MyMainClass:
         GUI.pushButton_attachments_campaign.clicked.connect(
             self.openFileNamesDialog)
         GUI.pushButton_load_db.clicked.connect(self.load_db)
+        GUI.pushButton_open_sheets_folder.clicked.connect(
+            self.open_sheets_folder)
         GUI.pushButton_delete.clicked.connect(self.batch_delete)
         GUI.pushButton_forward.clicked.connect(self.forward)
         GUI.pushButton_test.clicked.connect(self.test_send)
@@ -1626,7 +1630,7 @@ class MyMainClass:
             GUI.checkbox_delete_all.show()
 
     def launch_wum(self):
-        wum_path = os.path.join(os.getcwd(), var.wum_exe_path)
+        wum_path = str(wum_executable_path(var.APP_DIR))
         if os.path.exists(wum_path):
             subprocess.Popen([wum_path])
             return
@@ -3881,6 +3885,22 @@ class MyMainClass:
                 a_slots, b_slots), daemon=True).start()
         else:
             print("cancelled")
+
+    def open_sheets_folder(self):
+        try:
+            open_runtime_sheets_folder(
+                var.DATA_DIR,
+                lambda sheets_dir: QtGui.QDesktopServices.openUrl(
+                    QtCore.QUrl.fromLocalFile(str(sheets_dir))
+                ),
+            )
+        except OSError as error:
+            self.logger.error("Could not open sheets folder: %s", error)
+            alert(
+                text="Could not open the sheets folder.",
+                title="Sheets folder",
+                button="OK",
+            )
 
     def change_subject(self):
         try:

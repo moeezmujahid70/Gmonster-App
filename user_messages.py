@@ -65,7 +65,7 @@ def mailgenius_message(error) -> UserMessage:
         return UserMessage(
             "MAILGENIUS_CONFIG",
             "MailGenius is not configured",
-            "Add the MailGenius RapidAPI key and host in configuration, then try again.",
+            "MailGenius is not configured on the server. Contact support if this continues.",
         )
     if "timed out" in detail:
         return UserMessage(
@@ -77,7 +77,7 @@ def mailgenius_message(error) -> UserMessage:
         return UserMessage(
             "MAILGENIUS_CONNECTION",
             "Could not reach MailGenius",
-            "Check your connection and RapidAPI configuration, then try again.",
+            "Check your connection and GMonster server configuration, then try again.",
         )
     return UserMessage(
         "MAILGENIUS_FAILED",

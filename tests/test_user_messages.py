@@ -20,3 +20,12 @@ class UserMessagesTest(unittest.TestCase):
         message = mailgenius_message(RuntimeError("MailGenius analysis timed out. Please try again."))
         self.assertEqual(message.code, "MAILGENIUS_TIMEOUT")
         self.assertIn("sent", message.body.lower())
+
+    def test_mailgenius_server_configuration_message_never_requests_a_rapidapi_key(self):
+        message = mailgenius_message(
+            RuntimeError("MailGenius is not configured on the server.")
+        )
+
+        self.assertEqual(message.code, "MAILGENIUS_CONFIG")
+        self.assertIn("server", message.body.lower())
+        self.assertNotIn("rapidapi", message.body.lower())

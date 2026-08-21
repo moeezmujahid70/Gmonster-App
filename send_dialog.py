@@ -150,10 +150,7 @@ class Send(Ui_Dialog):
                 self._toggle_mailgenius_details
             )
 
-        configured = bool(
-            getattr(var, "mailgenius", {}).get("rapidapi_key")
-            and getattr(var, "mailgenius", {}).get("rapidapi_host")
-        )
+        configured = bool(str(getattr(var, "api", "")).strip())
         is_test = self.type == "test"
         self.checkBox_mailgenius.setVisible(is_test)
         self.checkBox_mailgenius.setFont(QtGui.QFont("Arial", 13))
@@ -164,7 +161,7 @@ class Send(Ui_Dialog):
             "QCheckBox::indicator:checked { background: #3b82a0; border-color: #3b82a0; }"
         )
         self.checkBox_mailgenius.setToolTip(
-            "" if configured else "MailGenius is not configured; GMonster will explain how to configure it when you send."
+            "" if configured else "MailGenius requires the configured GMonster server."
         )
         self.frame_mailgenius_results.setVisible(False)
         self.progressBar_mailgenius.setVisible(False)
@@ -332,7 +329,7 @@ class Send(Ui_Dialog):
                 try:
                     var.logger.info("MailGenius: enabled for campaign test send")
                     self.signal.mailgenius.emit("Creating MailGenius audit...", {})
-                    audit = MailGeniusClient(var.mailgenius).start_audit()
+                    audit = MailGeniusClient().start_audit()
                 except MailGeniusError as error:
                     message = mailgenius_message(error)
                     var.logger.error("MailGenius audit could not start [%s]: %s", message.code, error)
@@ -347,14 +344,14 @@ class Send(Ui_Dialog):
             if test.send():
                 if audit:
                     try:
-                        var.logger.info("MailGenius: test email sent; waiting for audit %s", audit.slug)
+                        var.logger.info("MailGenius: test email sent; waiting for server audit")
                         self.signal.s.emit("Email sent — analyzing deliverability...", 100, True)
-                        result = MailGeniusClient(var.mailgenius).wait_for_result(audit.slug)
+                        result = MailGeniusClient().wait_for_result(audit.audit_id)
                         self.signal.mailgenius.emit("Spam score ready", result.data)
-                        var.logger.info("MailGenius: audit %s completed", audit.slug)
+                        var.logger.info("MailGenius: server audit completed")
                     except MailGeniusError as error:
                         message = mailgenius_message(error)
-                        var.logger.error("MailGenius audit %s failed [%s]: %s", audit.slug, message.code, error)
+                        var.logger.error("MailGenius audit failed [%s]: %s", message.code, error)
                         self.signal.mailgenius.emit(message.body, {})
                         self.signal.s.emit("Test email sent. " + message.body + " Error reference: " + message.code, 100, False)
                         return
@@ -363,7 +360,7 @@ class Send(Ui_Dialog):
                     self.signal.s.emit("Sent", 100, False)
             else:
                 if audit:
-                    var.logger.error("MailGenius: SMTP test send failed before audit %s could be analyzed", audit.slug)
+                    var.logger.error("MailGenius: SMTP test send failed before the audit could be analyzed")
                     if test.mailgenius_delivery_error:
                         self.signal.mailgenius.emit("MailGenius could not receive the test email. Check the sender account and try again.", {})
                         self.signal.s.emit("Test email was sent, but MailGenius could not receive its copy. Error reference: SMTP_RECIPIENT_REJECTED", 100, False)
