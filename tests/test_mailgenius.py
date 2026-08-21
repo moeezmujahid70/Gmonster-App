@@ -67,6 +67,31 @@ class MailGeniusClientTest(unittest.TestCase):
             ("GET", "verify/mailgenius/audits/0c6e4f05-2f9b-4ad3-9a30-6a8f6ef8a68f"),
         )
 
+    @patch("mailgenius._server_request")
+    def test_default_wait_window_allows_two_minutes_thirty_seconds_for_analysis(
+        self, request
+    ):
+        from mailgenius import MailGeniusClient, MailGeniusError
+
+        pending = Mock(status_code=200, json=lambda: {"status": "pending"})
+        complete = Mock(status_code=200, json=lambda: {"status": "complete"})
+        request.side_effect = [pending] * 49 + [complete]
+        client = MailGeniusClient()
+
+        result = None
+        try:
+            result = client.wait_for_result(
+                "0c6e4f05-2f9b-4ad3-9a30-6a8f6ef8a68f",
+                interval_seconds=0,
+                sleep=lambda _: None,
+            )
+        except MailGeniusError:
+            pass
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result.status, "complete")
+        self.assertEqual(request.call_count, 50)
+
     def test_detail_html_keeps_safe_links_and_removes_scripts(self):
         from mailgenius import sanitize_mailgenius_html
 

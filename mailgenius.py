@@ -181,7 +181,7 @@ class MailGeniusClient:
         logger.info("MailGenius: server audit status=%s", result.status)
         return result
 
-    def wait_for_result(self, audit_id, attempts=20, interval_seconds=3, sleep=None):
+    def wait_for_result(self, audit_id, attempts=50, interval_seconds=3, sleep=None):
         if sleep is None:
             import time
             sleep = time.sleep
