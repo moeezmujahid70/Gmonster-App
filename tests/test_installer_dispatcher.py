@@ -26,10 +26,8 @@ class InstallerDispatcherWorkflowTest(unittest.TestCase):
         self.assertIn("WUM-diagnostics.spec", workflow)
         self.assertIn("WUM diagnostics smoke test failed", workflow)
         self.assertIn("Get-Content $smokeTestLog", workflow)
-        self.assertLess(
-            workflow.index("& .\\release-input\\wum\\WUM.exe --smoke-test"),
-            workflow.index("$gmonster = Start-Process"),
-        )
+        self.assertIn("$wum = Start-Process", workflow)
+        self.assertNotIn("& .\\release-input\\wum\\WUM.exe --smoke-test", workflow)
         self.assertNotIn("softprops/action-gh-release", workflow)
 
 

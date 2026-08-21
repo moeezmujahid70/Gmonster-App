@@ -111,8 +111,20 @@ jobs:
       - name: Smoke-test Windows executables
         shell: pwsh
         run: |
-          & .\release-input\wum\WUM.exe --smoke-test
-          if ($LASTEXITCODE -ne 0) { throw "WUM smoke test failed" }
+          $wum = Start-Process `
+            -FilePath .\release-input\wum\WUM.exe `
+            -WorkingDirectory .\release-input\wum `
+            -PassThru
+          try {
+            Start-Sleep -Seconds 5
+            if ($wum.HasExited) {
+              throw "WUM windowed startup smoke test failed"
+            }
+          } finally {
+            if (-not $wum.HasExited) {
+              Stop-Process -Id $wum.Id -Force
+            }
+          }
           if ('${{ inputs.console_build }}' -eq 'true') {
             & .\release-input\gmonster\GMonster.exe --smoke-test
             if ($LASTEXITCODE -ne 0) { throw "GMonster console smoke test failed" }
