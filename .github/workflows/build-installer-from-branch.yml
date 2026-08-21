@@ -102,6 +102,8 @@ jobs:
       - name: Smoke-test Windows executables
         shell: pwsh
         run: |
+          & .\release-input\wum\WUM.exe --smoke-test
+          if ($LASTEXITCODE -ne 0) { throw "WUM smoke test failed" }
           if ('${{ inputs.console_build }}' -eq 'true') {
             & .\release-input\gmonster\GMonster.exe --smoke-test
             if ($LASTEXITCODE -ne 0) { throw "GMonster console smoke test failed" }
@@ -121,8 +123,6 @@ jobs:
               }
             }
           }
-          & .\release-input\wum\WUM.exe --smoke-test
-          if ($LASTEXITCODE -ne 0) { throw "WUM smoke test failed" }
       - name: Stage installer files
         shell: pwsh
         run: |
