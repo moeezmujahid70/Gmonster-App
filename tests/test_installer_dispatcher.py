@@ -23,6 +23,8 @@ class InstallerDispatcherWorkflowTest(unittest.TestCase):
         self.assertIn("GMonster-${{ inputs.release_version }}-Setup", workflow)
         self.assertIn("GMONSTER_SMOKE_TEST_LOG", workflow)
         self.assertIn("GMONSTER_CONSOLE_BUILD", workflow)
+        self.assertIn("WUM-diagnostics.spec", workflow)
+        self.assertIn("WUM diagnostics smoke test failed", workflow)
         self.assertIn("Get-Content $smokeTestLog", workflow)
         self.assertLess(
             workflow.index("& .\\release-input\\wum\\WUM.exe --smoke-test"),

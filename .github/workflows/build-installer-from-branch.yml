@@ -37,9 +37,18 @@ jobs:
         with:
           python-version: "3.10"
       - name: Install WUM dependencies and build
+        shell: pwsh
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt pyinstaller
+          $diagnosticSpec = (Get-Content WUM.spec -Raw).Replace('console=False', 'console=True')
+          if ($diagnosticSpec -eq (Get-Content WUM.spec -Raw)) {
+            throw "Could not create the WUM console diagnostics spec"
+          }
+          Set-Content WUM-diagnostics.spec -Value $diagnosticSpec -NoNewline
+          pyinstaller --clean WUM-diagnostics.spec
+          & .\dist\WUM.exe --smoke-test
+          if ($LASTEXITCODE -ne 0) { throw "WUM diagnostics smoke test failed" }
           pyinstaller --clean WUM.spec
       - uses: actions/upload-artifact@v4
         with:
