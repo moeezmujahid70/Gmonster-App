@@ -10,6 +10,11 @@ from runtime_paths import (
 
 
 class RuntimePathsTest(unittest.TestCase):
+    def test_runtime_paths_postpones_annotation_evaluation_for_python_3_8(self):
+        source = Path("runtime_paths.py").read_text(encoding="utf-8")
+
+        self.assertIn("from __future__ import annotations", source.splitlines()[:3])
+
     def test_frozen_windows_uses_local_app_data_for_writable_data(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
