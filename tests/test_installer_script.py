@@ -66,6 +66,23 @@ class InstallerScriptTest(unittest.TestCase):
         self.assertIn('Source: "..\\release\\stage\\WUM.exe"; DestDir: "{app}"', script)
         self.assertIn('Filename: "{app}\\GMonster.exe"; Description: "Launch GMonster"', script)
 
+    def test_start_menu_exposes_both_apps_and_a_neutral_uninstaller(self):
+        script = Path("installer/GMonster.iss").read_text(encoding="utf-8")
+
+        self.assertIn(
+            'Name: "{group}\\GMonster"; Filename: "{app}\\GMonster.exe"',
+            script,
+        )
+        self.assertIn(
+            'Name: "{group}\\WUM"; Filename: "{app}\\WUM.exe"',
+            script,
+        )
+        self.assertIn(
+            'Name: "{group}\\Uninstall GMonster"; Filename: "{uninstallexe}"',
+            script,
+        )
+        self.assertIn('UninstallDisplayIcon={sys}\\shell32.dll,31', script)
+
     def test_uninstaller_only_removes_user_data_after_explicit_confirmation(self):
         script = Path("installer/GMonster.iss").read_text(encoding="utf-8")
 

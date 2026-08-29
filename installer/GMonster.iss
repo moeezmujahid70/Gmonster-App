@@ -15,7 +15,7 @@ Compression=lzma2
 SolidCompression=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-UninstallDisplayIcon={app}\GMonster.exe
+UninstallDisplayIcon={sys}\shell32.dll,31
 SetupIconFile=..\icons\icon.ico
 
 [Tasks]
@@ -26,7 +26,9 @@ Source: "..\release\stage\GMonster.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\release\stage\WUM.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{autoprograms}\GMonster"; Filename: "{app}\GMonster.exe"
+Name: "{group}\GMonster"; Filename: "{app}\GMonster.exe"
+Name: "{group}\WUM"; Filename: "{app}\WUM.exe"
+Name: "{group}\Uninstall GMonster"; Filename: "{uninstallexe}"; IconFilename: "{sys}\shell32.dll"; IconIndex: 31
 Name: "{autodesktop}\GMonster"; Filename: "{app}\GMonster.exe"; Tasks: desktopicon
 
 [Run]
