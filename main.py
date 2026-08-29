@@ -68,6 +68,23 @@ try:
     qta = importlib.import_module("qtawesome")
 except Exception:
     qta = None
+
+TOOL_NAVIGATION_ITEMS = (
+    "Follow-up",
+    "Auto-reply",
+    "Statistics",
+    "Leads",
+    "Warm up",
+)
+
+TOOL_MENU_ICON_NAMES = {
+    "Follow-up": "fa5s.reply",
+    "Auto-reply": "fa5s.robot",
+    "Statistics": "fa5s.chart-bar",
+    "Leads": "fa5s.user-friends",
+    "Warm up": "fa5s.fire",
+}
+
 global app
 global mainWindow
 global myMC
@@ -537,6 +554,7 @@ class MyMainClass:
         self.unsubscribe_page.refreshRequested.connect(self.load_unsubscribe_records)
         self.unsubscribe_page.manualAddRequested.connect(self.add_manual_unsubscribe)
         self.unsubscribe_page.exportRequested.connect(self.export_unsubscribe_records)
+        self.setup_sidebar_tools_menu()
         self.setup_sidebar_icons()
         GUI.listWidget.currentRowChanged.connect(self.list_clicked)
         GUI.lineEdit_email_tracking_analytics_account.setText(
@@ -779,7 +797,8 @@ class MyMainClass:
             self.toggle_checkbox_section)
         # Initialize dropdown visibility
         GUI.frame_verifier_dropdown.setVisible(True)
-        GUI.frame_checkboxes.setVisible(True)
+        GUI.pushButton_select_toggle.setChecked(False)
+        GUI.frame_checkboxes.setVisible(False)
         GUI.radioButton_html.clicked.connect(self.compose_change)
         GUI.radioButton_plain_text.clicked.connect(self.compose_change)
         if var.body_type == "Html":
@@ -925,6 +944,23 @@ class MyMainClass:
             target=self.reset_schedule_campaign_job_list, daemon=True, args=[]
         ).start()
         threading.Thread(target=update_checker, daemon=True, args=[]).start()
+        self._apply_button_typography()
+
+    @staticmethod
+    def _apply_button_typography():
+        """Keep all built-in controls on the same button typeface and weight."""
+        for button in GUI.centralwidget.findChildren(QtWidgets.QAbstractButton):
+            font = button.font()
+            font.setFamily("Arial")
+            font.setWeight(QtGui.QFont.Normal)
+            font.setBold(False)
+            button.setFont(font)
+            button.setStyleSheet(
+                button.styleSheet()
+                .replace("font-weight: bold", "font-weight: 400")
+                .replace("font-weight: 600", "font-weight: 400")
+                .replace("font-weight: 700", "font-weight: 400")
+            )
 
     def setup_inbox_date_header(self):
         if hasattr(GUI, "lineEdit_original_date"):
@@ -1068,6 +1104,14 @@ class MyMainClass:
     def list_clicked(self, index):
         item = GUI.listWidget.item(index)
         item_text = item.text() if item else ""
+        if item_text == "Tools":
+            self.show_tools_menu()
+            GUI.listWidget.setCurrentRow(-1)
+            return
+
+        self.navigate_to_item(item_text, index)
+
+    def navigate_to_item(self, item_text, index=-1):
         nav_map = {
             "Inbox": 0,
             "Campaign": 1,
@@ -1102,6 +1146,59 @@ class MyMainClass:
                 webbrowser.open(url_mappings[item_text])
             elif item_text:
                 print(f"Invalid Index: {index} ({item_text})")
+
+    def setup_sidebar_tools_menu(self):
+        """Group secondary navigation into a popup without growing the sidebar."""
+        tools_item = None
+        database_index = -1
+        for index in range(GUI.listWidget.count()):
+            item = GUI.listWidget.item(index)
+            if item is None:
+                continue
+            if item.text() in TOOL_NAVIGATION_ITEMS:
+                item.setHidden(True)
+            elif item.text() == "Tools":
+                tools_item = item
+            elif item.text() == "Database":
+                database_index = index
+
+        if tools_item is None:
+            tools_item = QtWidgets.QListWidgetItem("Tools")
+            GUI.listWidget.insertItem(database_index + 1, tools_item)
+
+        tools_item.setHidden(False)
+        GUI.listWidget.setVerticalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOff
+        )
+        GUI.listWidget.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOff
+        )
+
+    def show_tools_menu(self):
+        menu = QtWidgets.QMenu(GUI.listWidget)
+        menu.setMinimumWidth(210)
+        menu.setFont(QtGui.QFont("Arial", 12))
+        menu.setStyleSheet(
+            "QMenu { background: #ffffff; color: #374151; border: 1px solid #d8e3ee; "
+            "border-radius: 8px; font-family: Arial; font-size: 14px; "
+            "font-weight: 400; padding: 6px; } "
+            "QMenu::item { padding: 10px 30px 10px 12px; border-radius: 5px; } "
+            "QMenu::item:selected { background: #e6f5fa; color: #0f4c67; }"
+        )
+        for item_text in TOOL_NAVIGATION_ITEMS:
+            action = menu.addAction(item_text)
+            icon_name = TOOL_MENU_ICON_NAMES[item_text]
+            if qta is not None:
+                action.setIcon(qta.icon(icon_name, color="#64748b"))
+            action.triggered.connect(
+                lambda checked=False, text=item_text: self.navigate_to_item(text)
+            )
+
+        current_item = GUI.listWidget.currentItem()
+        if current_item is None:
+            return
+        item_rect = GUI.listWidget.visualItemRect(current_item)
+        menu.exec_(GUI.listWidget.viewport().mapToGlobal(item_rect.bottomLeft()))
 
     def email_verify(self):
         emails = var.target["EMAIL"].tolist() if not var.target.empty else []
@@ -2772,7 +2869,7 @@ class MyMainClass:
         return (
             "QPushButton { border: 1px solid #028fc3; border-radius: 8px; "
             "background-color: #028fc3; color: #ffffff; padding: 8px 18px; "
-            "font-family: Arial; font-size: 12px; font-weight: bold; } "
+            "font-family: Arial; font-size: 12px; font-weight: 400; } "
             "QPushButton:hover { background-color: #027faf; }"
         )
 
@@ -2780,7 +2877,7 @@ class MyMainClass:
         return (
             "QPushButton { border: 1px solid #cbd5e1; border-radius: 8px; "
             "background-color: #ffffff; color: #344054; padding: 6px 12px; "
-            "font-family: Arial; font-size: 12px; font-weight: bold; } "
+            "font-family: Arial; font-size: 12px; font-weight: 400; } "
             "QPushButton:hover { background-color: #f8fafc; }"
         )
 
@@ -3161,6 +3258,7 @@ class MyMainClass:
             "Inbox": "fa5s.inbox",
             "Campaign": "fa5s.paper-plane",
             "Database": "fa5s.database",
+            "Tools": "fa5s.tools",
             "Follow-up": "fa5s.reply",
             "Auto-reply": "fa5s.robot",
             "Statistics": "fa5s.chart-bar",
@@ -4849,7 +4947,7 @@ class FileWidget(QtWidgets.QWidget):
         else:
             self.close_button.setFixedSize(50, 20)
         self.close_button.setStyleSheet(
-            "border: none; color: #7a7a7a; font-weight: bold;"
+            "border: none; color: #7a7a7a;"
         )
         self.close_button.clicked.connect(self.remove_widget)
         layout.addWidget(self.icon_label)
@@ -4872,6 +4970,9 @@ if __name__ == "__main__":
     print("ran from here")
 else:
     app = QtWidgets.QApplication(sys.argv)
+    app.setStyleSheet(
+        "QPushButton, QToolButton { font-family: Arial; font-weight: 400; }"
+    )
     if sys.platform == "darwin":
         app.setStyle("Fusion")
         palette = QtGui.QPalette()

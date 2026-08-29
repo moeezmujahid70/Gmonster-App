@@ -3,6 +3,15 @@ import unittest
 from unittest.mock import Mock, patch
 
 
+class MailGeniusCheckWidgetTests(unittest.TestCase):
+    def test_check_widget_provides_an_independent_collapsible_detail_section(self):
+        source = pathlib.Path("send_dialog.py").read_text(encoding="utf-8")
+
+        self.assertIn("class MailGeniusCheckWidget", source)
+        self.assertIn("self.header.setCheckable(True)", source)
+        self.assertIn("self.details.setVisible(expanded)", source)
+
+
 class MailGeniusClientTest(unittest.TestCase):
     def test_config_export_keeps_only_the_mailgenius_enabled_setting(self):
         source = pathlib.Path("var.py").read_text(encoding="utf-8")

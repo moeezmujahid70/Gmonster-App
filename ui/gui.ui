@@ -647,10 +647,17 @@ font-size: 12px;</string>
             /* Base styling for QDateEdit */
             QDateEdit {
                 border: none;
-                padding: 5px;
+                padding: 5px 22px 5px 5px;
                 background-color: #eff2f8;
                 color: #888;
                 font-size: 16px;
+            }
+            QDateEdit::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 16px;
+                border: none;
+                background: transparent;
             }
             /* Calendar popup styling */
             QCalendarWidget QToolButton {
@@ -4073,8 +4080,8 @@ QPushButton:pressed {
                                         <font>
                                           <family>Arial</family>
                                           <pointsize>12</pointsize>
-                                          <weight>75</weight>
-                                          <bold>true</bold>
+                                          <weight>50</weight>
+                                          <bold>false</bold>
                                         </font>
                                       </property>
                                       <property name="styleSheet">
@@ -4090,13 +4097,13 @@ QPushButton:pressed {
             }</string>
                                       </property>
                                       <property name="text">
-                                        <string>▼ Select</string>
+                                        <string>► Select</string>
                                       </property>
                                       <property name="checkable">
                                         <bool>true</bool>
                                       </property>
                                       <property name="checked">
-                                        <bool>true</bool>
+                                        <bool>false</bool>
                                       </property>
                                     </widget>
                                   </item>

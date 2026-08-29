@@ -358,10 +358,17 @@ class Ui_MainWindow(object):
 "            /* Base styling for QDateEdit */\n"
 "            QDateEdit {\n"
 "                border: none;\n"
-"                padding: 5px;\n"
+"                padding: 5px 22px 5px 5px;\n"
 "                background-color: #eff2f8;\n"
 "                color: #888;\n"
 "                font-size: 16px;\n"
+"            }\n"
+"            QDateEdit::drop-down {\n"
+"                subcontrol-origin: padding;\n"
+"                subcontrol-position: top right;\n"
+"                width: 16px;\n"
+"                border: none;\n"
+"                background: transparent;\n"
 "            }\n"
 "            /* Calendar popup styling */\n"
 "            QCalendarWidget QToolButton {\n"
@@ -2177,8 +2184,8 @@ class Ui_MainWindow(object):
         font = QtGui.QFont()
         font.setFamily("Arial")
         font.setPointSize(12)
-        font.setBold(True)
-        font.setWeight(75)
+        font.setBold(False)
+        font.setWeight(50)
         self.pushButton_select_toggle.setFont(font)
         self.pushButton_select_toggle.setStyleSheet("QPushButton {\n"
 "                background-color: transparent;\n"
@@ -2191,7 +2198,7 @@ class Ui_MainWindow(object):
 "                background-color: rgba(0, 138, 191, 0.1);\n"
 "            }")
         self.pushButton_select_toggle.setCheckable(True)
-        self.pushButton_select_toggle.setChecked(True)
+        self.pushButton_select_toggle.setChecked(False)
         self.pushButton_select_toggle.setObjectName("pushButton_select_toggle")
         self.verticalLayout_dropdown.addWidget(self.pushButton_select_toggle)
         self.frame_checkboxes = QtWidgets.QFrame(self.frame_verifier_dropdown)
@@ -4614,7 +4621,7 @@ class Ui_MainWindow(object):
         self.pushButton_export_targets.setText(_translate("MainWindow", "Export targets"))
         self.label_target_count.setText(_translate("MainWindow", "Targets: 0"))
         self.pushButton_email_verify.setText(_translate("MainWindow", "Email verifier"))
-        self.pushButton_select_toggle.setText(_translate("MainWindow", "▼ Select"))
+        self.pushButton_select_toggle.setText(_translate("MainWindow", "► Select"))
         self.checkBox_safe.setText(_translate("MainWindow", "Safe"))
         self.checkBox_risky.setText(_translate("MainWindow", "Risky"))
         self.checkBox_unknown.setText(_translate("MainWindow", "Unknown"))
