@@ -350,7 +350,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_18.setSpacing(0)
         self.verticalLayout_18.setObjectName("verticalLayout_18")
         self.dateEdit_imap_since = QtWidgets.QDateEdit(self.frame)
-        self.dateEdit_imap_since.setMinimumSize(QtCore.QSize(115, 25))
+        self.dateEdit_imap_since.setMinimumSize(QtCore.QSize(150, 30))
         font = QtGui.QFont()
         font.setPointSize(-1)
         self.dateEdit_imap_since.setFont(font)
@@ -358,17 +358,29 @@ class Ui_MainWindow(object):
 "            /* Base styling for QDateEdit */\n"
 "            QDateEdit {\n"
 "                border: none;\n"
-"                padding: 5px 22px 5px 5px;\n"
+"                border-radius: 6px;\n"
+"                padding: 5px 28px 5px 10px;\n"
 "                background-color: #eff2f8;\n"
-"                color: #888;\n"
-"                font-size: 16px;\n"
+"                color: #444;\n"
+"                font-size: 14px;\n"
+"                font-weight: 600;\n"
 "            }\n"
 "            QDateEdit::drop-down {\n"
 "                subcontrol-origin: padding;\n"
 "                subcontrol-position: top right;\n"
-"                width: 16px;\n"
+"                width: 24px;\n"
 "                border: none;\n"
+"                border-top-right-radius: 6px;\n"
+"                border-bottom-right-radius: 6px;\n"
 "                background: transparent;\n"
+"            }\n"
+"            QDateEdit::drop-down:hover {\n"
+"                background-color: rgba(0, 0, 0, 0.08);\n"
+"            }\n"
+"            QDateEdit::down-arrow {\n"
+"                image: url(:/icons/icons/chevron_down.svg);\n"
+"                width: 11px;\n"
+"                height: 11px;\n"
 "            }\n"
 "            /* Calendar popup styling */\n"
 "            QCalendarWidget QToolButton {\n"

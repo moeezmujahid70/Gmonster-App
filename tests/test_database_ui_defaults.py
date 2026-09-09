@@ -30,7 +30,8 @@ class DatabaseUiDefaultsTest(unittest.TestCase):
         self.assertIn("QDateEdit::drop-down", date_picker_style)
         self.assertIn("background: transparent", date_picker_style)
         self.assertIn("border: none", date_picker_style)
-        self.assertNotIn("QDateEdit::down-arrow", date_picker_style)
+        self.assertIn("QDateEdit::down-arrow", date_picker_style)
+        self.assertIn("chevron_down.svg", date_picker_style)
 
         source = pathlib.Path("main.py").read_text(encoding="utf-8")
         self.assertIn("QPushButton, QToolButton", source)
