@@ -191,7 +191,7 @@ data/gmonster_config/jobs.sqlite.*
 .DocumentRevisions-V100/
 .AppleDouble
 .LSOverride
-Icon?
+Icon[[:cntrl:]]
 .agent
 
 # windows metadata and local sensitive docs

@@ -15,7 +15,7 @@ Compression=lzma2
 SolidCompression=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-UninstallDisplayIcon={app}\GMonster.exe
+UninstallDisplayIcon={app}\uninstall.ico
 SetupIconFile=..\icons\icon.ico
 
 [Tasks]
@@ -24,9 +24,12 @@ Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription
 [Files]
 Source: "..\release\stage\GMonster.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\release\stage\WUM.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\icons\uninstall.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\GMonster"; Filename: "{app}\GMonster.exe"
+Name: "{autoprograms}\WUM"; Filename: "{app}\WUM.exe"
+Name: "{autoprograms}\Uninstaller"; Filename: "{uninstallexe}"; IconFilename: "{app}\uninstall.ico"
 Name: "{autodesktop}\GMonster"; Filename: "{app}\GMonster.exe"; Tasks: desktopicon
 
 [Run]
