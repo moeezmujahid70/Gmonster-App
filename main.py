@@ -21,6 +21,7 @@ from unsubscribe_client import add_manual, get_records, get_setting, update_sett
 from unsubscribe_management import default_export_path, export_records
 from unsubscribe_page import UnsubscribePage
 from unsubscribe_setting import UnsubscribeSettingController
+from user_messages import display_text, operation_message
 from campaign_progress import campaign_progress_state
 from runtime_paths import open_sheets_folder as open_runtime_sheets_folder
 from runtime_paths import wum_executable_path
@@ -4289,8 +4290,9 @@ class MyMainClass:
             self.logger.error(
                 "Error at send_campaign - {}".format(traceback.format_exc())
             )
+            message = operation_message("campaign", e)
             alert(
-                text="Error at send_campaign : {}".format(e), title="Error", button="OK"
+                text=display_text(message), title=message.title, button="OK"
             )
             var.send_campaign_run_status = False
 

@@ -289,11 +289,14 @@ inbox_group = 0
 limit_of_thread = 100
 login_email = ''
 login_password = ''
+remember_login_credentials = False
 login_machine_uuid = ''
 login_processor_id = ''
 # Short-lived server access token.  It deliberately remains memory-only.
 api_access_token = ''
 campaign_user_messages = []
+followup_user_messages = []
+inbox_user_messages = []
 tracking = {}
 statistics = {
     "product_price": 0,
@@ -370,6 +373,8 @@ try:
         config['open_ai_model'] = open_ai_model
     if 'api' not in config:
         config['api'] = api
+    if 'remember_login_credentials' not in config:
+        config['remember_login_credentials'] = remember_login_credentials
     if 'cc_emails' not in config:
         config['cc_emails'] = cc_emails
     if 'cc_emails_enabled' not in config:
@@ -400,6 +405,8 @@ try:
     delay_between_emails = config['delay_between_emails']
     limit_of_thread = config['limit_of_thread']
     login_email = config['login_email']
+    remember_login_credentials = bool(config.get('remember_login_credentials', False))
+    login_password = config.get('login_password', '') if remember_login_credentials else ''
     api = config.get('api', api)
     tracking = config['tracking']
     statistics = config.get('statistics', statistics)

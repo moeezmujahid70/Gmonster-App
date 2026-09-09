@@ -8,7 +8,7 @@ from email_input_gui import Ui_Dialog
 import os, sys
 from smtp import ForwardMail, TestMail
 from mailgenius import MailGeniusClient, MailGeniusError, sanitize_mailgenius_html
-from user_messages import mailgenius_message, smtp_message
+from user_messages import display_text, mailgenius_message, smtp_message
 import re
 
 regex = '[^@]+@[^@]+\.[^@]+'
@@ -391,7 +391,8 @@ class Send(Ui_Dialog):
             if forward.send():
                 self.signal.s.emit("Sent", 100, False)
             else:
-                self.signal.s.emit("Forward could not be sent. Check the sender account and connection, then try again.", 0, False)
+                message = forward.failure_message or smtp_message()
+                self.signal.s.emit(display_text(message), 0, False)
         else:
             self.signal.s.emit("Enter a valid recipient email address.", 0, False)
 
@@ -409,7 +410,7 @@ class Send(Ui_Dialog):
                     message = mailgenius_message(error)
                     var.logger.error("MailGenius audit could not start [%s]: %s", message.code, error)
                     self.signal.mailgenius.emit(message.body, {})
-                    self.signal.s.emit(message.body + " Error reference: " + message.code, 0, False)
+                    self.signal.s.emit(display_text(message), 0, False)
                     return
             self.signal.s.emit("Sending...", 0, True)
             test = TestMail(
@@ -428,7 +429,9 @@ class Send(Ui_Dialog):
                         message = mailgenius_message(error)
                         var.logger.error("MailGenius audit failed [%s]: %s", message.code, error)
                         self.signal.mailgenius.emit(message.body, {})
-                        self.signal.s.emit("Test email sent. " + message.body + " Error reference: " + message.code, 100, False)
+                        self.signal.s.emit(
+                            "Test email sent.\n" + display_text(message), 100, False
+                        )
                         return
                     self.signal.s.emit("Sent", 100, False)
                 else:
@@ -441,6 +444,6 @@ class Send(Ui_Dialog):
                         self.signal.s.emit("Test email was sent, but MailGenius could not receive its copy. Error reference: SMTP_RECIPIENT_REJECTED", 100, False)
                         return
                 message = test.failure_message or smtp_message()
-                self.signal.s.emit(message.body + " Error reference: " + message.code, 0, False)
+                self.signal.s.emit(display_text(message), 0, False)
         else:
             self.signal.s.emit("Enter a valid test email address.", 0, False)

@@ -17,6 +17,7 @@ from proxy_smtplib import SMTP
 from smtp_base import SmtpBase
 from var import logger
 import var
+from user_messages import operation_message
 from unsubscribe_email import compose_alternatives
 
 
@@ -151,8 +152,14 @@ class FollowUpSend(SmtpBase, threading.Thread):
             logger.info(f"Exiting {self.__class__.__name__}: {self.user}")
 
         except Exception as e:
+            message = operation_message("followup", e)
+            var.followup_user_messages.append(message)
             logger.error(
-                f"Error at {self.__class__.__name__} {self.user}: {e}\n{traceback.format_exc()}"
+                "Error at %s [%s] %s: %s",
+                self.__class__.__name__,
+                message.code,
+                self.user,
+                traceback.format_exc(),
             )
         finally:
             FollowUpSend.thread_open -= 1
