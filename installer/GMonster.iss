@@ -25,6 +25,9 @@ Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription
 Source: "..\release\stage\GMonster.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\release\stage\WUM.exe"; DestDir: "{app}"; Flags: ignoreversion
 
+[InstallDelete]
+Type: files; Name: "{app}\uninstall.ico"
+
 [Icons]
 Name: "{autoprograms}\GMonster"; Filename: "{app}\GMonster.exe"
 Name: "{autoprograms}\WUM"; Filename: "{app}\WUM.exe"

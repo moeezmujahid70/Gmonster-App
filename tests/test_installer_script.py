@@ -76,7 +76,7 @@ class InstallerScriptTest(unittest.TestCase):
         script = Path("installer/GMonster.iss").read_text(encoding="utf-8")
 
         self.assertIn(r"UninstallDisplayIcon={sys}\shell32.dll,31", script)
-        self.assertNotIn("uninstall.ico", script)
+        self.assertNotIn('Source: "..\\icons\\uninstall.ico";', script)
         self.assertIn(
             'Name: "{autoprograms}\\Uninstall GMonster"; '
             'Filename: "{uninstallexe}"; '
@@ -85,6 +85,8 @@ class InstallerScriptTest(unittest.TestCase):
         )
         self.assertIn("attrib.exe", script)
         self.assertIn("ChangeFileExt(UninstallerExe, 'dat')", script)
+        self.assertIn("[InstallDelete]", script)
+        self.assertIn('Type: files; Name: "{app}\\uninstall.ico"', script)
 
 
 if __name__ == "__main__":
