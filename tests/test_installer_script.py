@@ -72,6 +72,20 @@ class InstallerScriptTest(unittest.TestCase):
         self.assertIn("Remove user data", script)
         self.assertIn("DelTree", script)
 
+    def test_uninstaller_uses_windows_icon_without_shipping_custom_icon_files(self):
+        script = Path("installer/GMonster.iss").read_text(encoding="utf-8")
+
+        self.assertIn(r"UninstallDisplayIcon={sys}\shell32.dll,31", script)
+        self.assertNotIn("uninstall.ico", script)
+        self.assertIn(
+            'Name: "{autoprograms}\\Uninstall GMonster"; '
+            'Filename: "{uninstallexe}"; '
+            'IconFilename: "{sys}\\shell32.dll"; IconIndex: 31',
+            script,
+        )
+        self.assertIn("attrib.exe", script)
+        self.assertIn("ChangeFileExt(UninstallerExe, 'dat')", script)
+
 
 if __name__ == "__main__":
     unittest.main()

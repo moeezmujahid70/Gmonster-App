@@ -15,7 +15,7 @@ Compression=lzma2
 SolidCompression=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-UninstallDisplayIcon={app}\uninstall.ico
+UninstallDisplayIcon={sys}\shell32.dll,31
 SetupIconFile=..\icons\icon.ico
 
 [Tasks]
@@ -24,12 +24,11 @@ Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription
 [Files]
 Source: "..\release\stage\GMonster.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\release\stage\WUM.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\icons\uninstall.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\GMonster"; Filename: "{app}\GMonster.exe"
 Name: "{autoprograms}\WUM"; Filename: "{app}\WUM.exe"
-Name: "{autoprograms}\Uninstaller"; Filename: "{uninstallexe}"; IconFilename: "{app}\uninstall.ico"
+Name: "{autoprograms}\Uninstall GMonster"; Filename: "{uninstallexe}"; IconFilename: "{sys}\shell32.dll"; IconIndex: 31
 Name: "{autodesktop}\GMonster"; Filename: "{app}\GMonster.exe"; Tasks: desktopicon
 
 [Run]
@@ -38,6 +37,28 @@ Filename: "{app}\GMonster.exe"; Description: "Launch GMonster"; Flags: postinsta
 [Code]
 var
   RemoveUserData: Boolean;
+
+procedure HideUninstallerFiles;
+var
+  ResultCode: Integer;
+  UninstallerExe: String;
+begin
+  UninstallerExe := ExpandConstant('{uninstallexe}');
+  Exec(
+    ExpandConstant('{sys}\attrib.exe'),
+    '+h "' + UninstallerExe + '" "' + ChangeFileExt(UninstallerExe, 'dat') + '"',
+    '',
+    SW_HIDE,
+    ewWaitUntilTerminated,
+    ResultCode
+  );
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+    HideUninstallerFiles;
+end;
 
 function InitializeUninstall(): Boolean;
 begin
