@@ -27,6 +27,7 @@
 
 QWidget{
     background: #eff2f8;
+    color: #333333;
 }</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
@@ -41,6 +42,7 @@ QWidget{
      <property name="styleSheet">
       <string notr="true">QWidget{
     background: #eff2f8;
+    color: #333333;
 }</string>
      </property>
      <property name="text">

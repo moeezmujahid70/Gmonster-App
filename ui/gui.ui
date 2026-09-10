@@ -633,8 +633,8 @@ font-size: 12px;</string>
                                       <widget class="QDateEdit" name="dateEdit_imap_since">
                                         <property name="minimumSize">
                                           <size>
-                                            <width>115</width>
-                                            <height>25</height>
+                                            <width>150</width>
+                                            <height>30</height>
                                           </size>
                                         </property>
                                         <property name="font">
@@ -647,10 +647,29 @@ font-size: 12px;</string>
             /* Base styling for QDateEdit */
             QDateEdit {
                 border: none;
-                padding: 5px;
+                border-radius: 6px;
+                padding: 5px 28px 5px 10px;
                 background-color: #eff2f8;
-                color: #888;
-                font-size: 16px;
+                color: #444;
+                font-size: 14px;
+                font-weight: 600;
+            }
+            QDateEdit::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 24px;
+                border: none;
+                border-top-right-radius: 6px;
+                border-bottom-right-radius: 6px;
+                background: transparent;
+            }
+            QDateEdit::drop-down:hover {
+                background-color: rgba(0, 0, 0, 0.08);
+            }
+            QDateEdit::down-arrow {
+                image: url(:/icons/icons/chevron_down.svg);
+                width: 11px;
+                height: 11px;
             }
             /* Calendar popup styling */
             QCalendarWidget QToolButton {
@@ -3860,6 +3879,42 @@ QPushButton:pressed {
                         </widget>
                       </item>
                       <item>
+                        <widget class="QPushButton" name="pushButton_open_sheets_folder">
+                          <property name="minimumSize">
+                            <size>
+                              <width>0</width>
+                              <height>50</height>
+                            </size>
+                          </property>
+                          <property name="font">
+                            <font>
+                              <family>Arial</family>
+                              <pointsize>15</pointsize>
+                              <bold>false</bold>
+                              <weight>50</weight>
+                            </font>
+                          </property>
+                          <property name="styleSheet">
+                            <string notr="true">QPushButton {
+    border: 1px solid #028fc3;
+    border-radius: 3px;
+    background: #ffffff;
+    padding: 5px 28px;
+    color: #028fc3;
+    }
+QPushButton:hover {
+    background: #e6f5fa;
+    }
+QPushButton:pressed {
+    background: #d2ecf5;
+    }</string>
+                          </property>
+                          <property name="text">
+                            <string>Open Sheets Folder</string>
+                          </property>
+                        </widget>
+                      </item>
+                      <item>
                         <widget class="QPushButton" name="pushButton_export_targets">
                           <property name="minimumSize">
                             <size>
@@ -4037,8 +4092,8 @@ QPushButton:pressed {
                                         <font>
                                           <family>Arial</family>
                                           <pointsize>12</pointsize>
-                                          <weight>75</weight>
-                                          <bold>true</bold>
+                                          <weight>50</weight>
+                                          <bold>false</bold>
                                         </font>
                                       </property>
                                       <property name="styleSheet">
@@ -4054,13 +4109,13 @@ QPushButton:pressed {
             }</string>
                                       </property>
                                       <property name="text">
-                                        <string>▼ Select</string>
+                                        <string>► Select</string>
                                       </property>
                                       <property name="checkable">
                                         <bool>true</bool>
                                       </property>
                                       <property name="checked">
-                                        <bool>true</bool>
+                                        <bool>false</bool>
                                       </property>
                                     </widget>
                                   </item>

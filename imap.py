@@ -18,6 +18,7 @@ import webhook
 from imap_base import ImapBase
 from database import Database as DB
 from var import logger
+from user_messages import operation_message, summary_text
 
 
 def utc_to_local(utc_dt):
@@ -214,10 +215,13 @@ class ImapDeleteEmail(ImapBase, threading.Thread):
             imap.close()
             imap.logout()
         except Exception as e:
+            message = operation_message("imap_delete", e)
+            var.inbox_user_messages.append(message)
             logger.error(
-                "Error at deleting email - {} - {}".format(
-                    self.imap_user, traceback.format_exc()
-                )
+                "Error at deleting email [%s] - %s - %s",
+                message.code,
+                self.imap_user,
+                traceback.format_exc(),
             )
         finally:
             var.thread_open -= 1
@@ -548,10 +552,13 @@ class ImapDownload(ImapBase, threading.Thread):
             imap.logout()
         except Exception as e:
             var.email_failed += 1
+            message = operation_message("imap_download", e)
+            var.inbox_user_messages.append(message)
             self.logger.error(
-                "Error at downloading email - {} - {}".format(
-                    self.imap_user, traceback.format_exc()
-                )
+                "Error at downloading email [%s] - %s - %s",
+                message.code,
+                self.imap_user,
+                traceback.format_exc(),
             )
         finally:
             var.acc_finished += 1
@@ -566,13 +573,14 @@ class ImapDownload(ImapBase, threading.Thread):
             webhook.inbox_q.put(t_dict.copy())
 
 
-def main(group, folders=None, date=None):
+def main(group, folders=None, date=None, notify=True):
     if date is None:
         date = var.date
     if folders is None:
         folders = ["INBOX"]
     var.email_failed = 0
     var.total_email_downloaded = 0
+    var.inbox_user_messages = []
     responses_webhook_enabled = var.responses_webhook_enabled
     # folder = ""
     # sub_category = ""
@@ -615,11 +623,14 @@ def main(group, folders=None, date=None):
                 time.sleep(1)
             imap = ImapDownload(**kwargs)
             imap.start()
-        except:
+        except Exception as e:
+            message = operation_message("imap_download", e)
+            var.inbox_user_messages.append(message)
             logger.error(
-                "Error at Imap thread open - {} - {}".format(
-                    name, traceback.format_exc()
-                )
+                "Error at Imap thread open [%s] - %s - %s",
+                message.code,
+                name,
+                traceback.format_exc(),
             )
     while var.thread_open != 0 and (not var.stop_download):
         time.sleep(1)
@@ -629,6 +640,14 @@ def main(group, folders=None, date=None):
         time.sleep(5)
         responses_webhook.quit()
     var.download_email_status = False
-    # alert(text='Total Emails Downloaded : {}\nAccounts Failed : {}\ncheck app.log'.\
-    #             format(var.total_email_downloaded, var.email_failed), title='Alert', button='OK')
+    if notify and var.inbox_user_messages:
+        var.command_q.put(
+            "alert(text={!r}, title='Inbox download needs attention', button='OK')".format(
+                "Inbox download completed with issues.\nDownloaded: {}\nAccounts failed: {}\n\n{}".format(
+                    var.total_email_downloaded,
+                    var.email_failed,
+                    summary_text(var.inbox_user_messages),
+                )
+            )
+        )
     logger.info("Downloading finished")

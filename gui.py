@@ -350,7 +350,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_18.setSpacing(0)
         self.verticalLayout_18.setObjectName("verticalLayout_18")
         self.dateEdit_imap_since = QtWidgets.QDateEdit(self.frame)
-        self.dateEdit_imap_since.setMinimumSize(QtCore.QSize(115, 25))
+        self.dateEdit_imap_since.setMinimumSize(QtCore.QSize(150, 30))
         font = QtGui.QFont()
         font.setPointSize(-1)
         self.dateEdit_imap_since.setFont(font)
@@ -358,10 +358,29 @@ class Ui_MainWindow(object):
 "            /* Base styling for QDateEdit */\n"
 "            QDateEdit {\n"
 "                border: none;\n"
-"                padding: 5px;\n"
+"                border-radius: 6px;\n"
+"                padding: 5px 28px 5px 10px;\n"
 "                background-color: #eff2f8;\n"
-"                color: #888;\n"
-"                font-size: 16px;\n"
+"                color: #444;\n"
+"                font-size: 14px;\n"
+"                font-weight: 600;\n"
+"            }\n"
+"            QDateEdit::drop-down {\n"
+"                subcontrol-origin: padding;\n"
+"                subcontrol-position: top right;\n"
+"                width: 24px;\n"
+"                border: none;\n"
+"                border-top-right-radius: 6px;\n"
+"                border-bottom-right-radius: 6px;\n"
+"                background: transparent;\n"
+"            }\n"
+"            QDateEdit::drop-down:hover {\n"
+"                background-color: rgba(0, 0, 0, 0.08);\n"
+"            }\n"
+"            QDateEdit::down-arrow {\n"
+"                image: url(:/icons/icons/chevron_down.svg);\n"
+"                width: 11px;\n"
+"                height: 11px;\n"
 "            }\n"
 "            /* Calendar popup styling */\n"
 "            QCalendarWidget QToolButton {\n"
@@ -2062,6 +2081,29 @@ class Ui_MainWindow(object):
 "    }")
         self.pushButton_load_db.setObjectName("pushButton_load_db")
         self.verticalLayout_13.addWidget(self.pushButton_load_db)
+        self.pushButton_open_sheets_folder = QtWidgets.QPushButton(self.groupBox_7)
+        self.pushButton_open_sheets_folder.setMinimumSize(QtCore.QSize(0, 50))
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(15)
+        font.setBold(False)
+        font.setWeight(50)
+        self.pushButton_open_sheets_folder.setFont(font)
+        self.pushButton_open_sheets_folder.setStyleSheet("QPushButton {\n"
+"    border: 1px solid #028fc3;\n"
+"    border-radius: 3px;\n"
+"    background: #ffffff;\n"
+"    padding: 5px 28px;\n"
+"    color: #028fc3;\n"
+"    }\n"
+"QPushButton:hover {\n"
+"    background: #e6f5fa;\n"
+"    }\n"
+"QPushButton:pressed {\n"
+"    background: #d2ecf5;\n"
+"    }")
+        self.pushButton_open_sheets_folder.setObjectName("pushButton_open_sheets_folder")
+        self.verticalLayout_13.addWidget(self.pushButton_open_sheets_folder)
         self.pushButton_export_targets = QtWidgets.QPushButton(self.groupBox_7)
         self.pushButton_export_targets.setMinimumSize(QtCore.QSize(0, 50))
         font = QtGui.QFont()
@@ -2154,8 +2196,8 @@ class Ui_MainWindow(object):
         font = QtGui.QFont()
         font.setFamily("Arial")
         font.setPointSize(12)
-        font.setBold(True)
-        font.setWeight(75)
+        font.setBold(False)
+        font.setWeight(50)
         self.pushButton_select_toggle.setFont(font)
         self.pushButton_select_toggle.setStyleSheet("QPushButton {\n"
 "                background-color: transparent;\n"
@@ -2168,7 +2210,7 @@ class Ui_MainWindow(object):
 "                background-color: rgba(0, 138, 191, 0.1);\n"
 "            }")
         self.pushButton_select_toggle.setCheckable(True)
-        self.pushButton_select_toggle.setChecked(True)
+        self.pushButton_select_toggle.setChecked(False)
         self.pushButton_select_toggle.setObjectName("pushButton_select_toggle")
         self.verticalLayout_dropdown.addWidget(self.pushButton_select_toggle)
         self.frame_checkboxes = QtWidgets.QFrame(self.frame_verifier_dropdown)
@@ -4587,10 +4629,11 @@ class Ui_MainWindow(object):
         self.radioButton_db_groupb.setText(_translate("MainWindow", "Group B"))
         self.radioButton_db_target.setText(_translate("MainWindow", "Target"))
         self.pushButton_load_db.setText(_translate("MainWindow", "Import"))
+        self.pushButton_open_sheets_folder.setText(_translate("MainWindow", "Open Sheets Folder"))
         self.pushButton_export_targets.setText(_translate("MainWindow", "Export targets"))
         self.label_target_count.setText(_translate("MainWindow", "Targets: 0"))
         self.pushButton_email_verify.setText(_translate("MainWindow", "Email verifier"))
-        self.pushButton_select_toggle.setText(_translate("MainWindow", "▼ Select"))
+        self.pushButton_select_toggle.setText(_translate("MainWindow", "► Select"))
         self.checkBox_safe.setText(_translate("MainWindow", "Safe"))
         self.checkBox_risky.setText(_translate("MainWindow", "Risky"))
         self.checkBox_unknown.setText(_translate("MainWindow", "Unknown"))

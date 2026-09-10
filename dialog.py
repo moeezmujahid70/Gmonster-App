@@ -17,6 +17,7 @@ import utils
 from compat_ui import alert, password, confirm
 import requests
 from gmonster_api import capture_access_token
+from user_messages import display_text, login_response_message, operation_message
 
 
 def get_request_timeout():
@@ -164,7 +165,6 @@ class Sign_up(su.Ui_Dialog):
         password = self.lineEdit_password.text()
         confirm_password = self.lineEdit_confirm_password.text()
         if check(email):
-            print(password, confirm_password)
             if (password != "" and password == confirm_password and len(password) >= 8):
                 Thread(target=make_sign_up_requests, daemon=True,
                        args=[email, password, "register"]).start()
@@ -172,7 +172,7 @@ class Sign_up(su.Ui_Dialog):
                 # make_sign_up_requests(email, password, "register")
             else:
                 if password != confirm_password:
-                    self.label_status.setText("Password don't match")
+                    self.label_status.setText("Passwords do not match. Check both fields and try again.")
                 else:
                     self.label_status.setText(
                         "Password must be equal to or more than 8 characters")
@@ -189,7 +189,11 @@ class Sign_in(si.Ui_Dialog):
         set_icon(self.dialog)
         self.pushButton_sign_in.clicked.connect(self.validate)
         self.lineEdit_email.setText(var.login_email)
-        self.lineEdit_password.setText("22334455")
+        self.checkBox_remember_credentials.setChecked(
+            var.remember_login_credentials
+        )
+        if var.remember_login_credentials:
+            self.lineEdit_password.setText(var.login_password)
 
         self.timer = QtCore.QTimer()
         self.timer.setInterval(10)
@@ -197,7 +201,16 @@ class Sign_in(si.Ui_Dialog):
 
     def validate(self):
         email = var.login_email = self.lineEdit_email.text().strip()
-        password = var.login_password = self.lineEdit_password.text()
+        password = self.lineEdit_password.text()
+        if not check(email) or not password:
+            self.label_status.setText(
+                display_text(operation_message("login", ValueError()))
+            )
+            return
+        var.remember_login_credentials = (
+            self.checkBox_remember_credentials.isChecked()
+        )
+        var.login_password = password if var.remember_login_credentials else ""
         Thread(target=utils.update_config_json, daemon=True).start()
         self.label_status.setText("connecting main server...")
         Thread(
@@ -243,11 +256,9 @@ def make_sign_up_requests(email, password, endpoint):
             headers=headers,
             timeout=get_request_timeout(),
         )
-        if len(x.text) > 100:
-            status = "Error at main server"
-        else:
-            status = x.text
-        print(status)
+        status = "Success" if x.text == "Success" else display_text(
+            login_response_message(x.text, endpoint)
+        )
         if endpoint == "register":
             var.sign_up_label = status
         else:
@@ -256,11 +267,10 @@ def make_sign_up_requests(email, password, endpoint):
                 capture_access_token(x)
             else:
                 var.api_access_token = ""
-    except requests.exceptions.Timeout:
+    except requests.exceptions.Timeout as error:
         if endpoint == "login":
             var.api_access_token = ""
-        status = "Server timeout. Please try again in a few moments."
-        print(status)
+        status = display_text(operation_message(endpoint, error))
         if endpoint == "register":
             var.sign_up_label = status
         else:
@@ -268,9 +278,8 @@ def make_sign_up_requests(email, password, endpoint):
     except Exception as e:
         if endpoint == "login":
             var.api_access_token = ""
-        print("Error at reading system info : {}".format(e))
-        status = "Couldn't connect - {}".format(e)
-        print(status)
+        logger.error("Authentication request failed: %s", e, exc_info=True)
+        status = display_text(operation_message(endpoint, e))
         if endpoint == "register":
             var.sign_up_label = status
         else:
