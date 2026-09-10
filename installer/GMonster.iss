@@ -41,20 +41,31 @@ Filename: "{app}\GMonster.exe"; Description: "Launch GMonster"; Flags: postinsta
 var
   RemoveUserData: Boolean;
 
-procedure HideUninstallerFiles;
+procedure HideFile(const FileName: String);
 var
   ResultCode: Integer;
-  UninstallerExe: String;
 begin
-  UninstallerExe := ExpandConstant('{uninstallexe}');
-  Exec(
+  ResultCode := -1;
+  if not Exec(
     ExpandConstant('{sys}\attrib.exe'),
-    '+h "' + UninstallerExe + '" "' + ChangeFileExt(UninstallerExe, 'dat') + '"',
+    '+h ' + AddQuotes(FileName),
     '',
     SW_HIDE,
     ewWaitUntilTerminated,
     ResultCode
-  );
+  ) then
+    Log('Could not hide installer support file: ' + FileName)
+  else if ResultCode <> 0 then
+    Log('Could not hide installer support file: ' + FileName);
+end;
+
+procedure HideUninstallerFiles;
+var
+  UninstallerExe: String;
+begin
+  UninstallerExe := ExpandConstant('{uninstallexe}');
+  HideFile(UninstallerExe);
+  HideFile(ChangeFileExt(UninstallerExe, '.dat'));
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

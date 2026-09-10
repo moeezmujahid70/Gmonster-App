@@ -83,10 +83,17 @@ class InstallerScriptTest(unittest.TestCase):
             'IconFilename: "{sys}\\shell32.dll"; IconIndex: 31',
             script,
         )
-        self.assertIn("attrib.exe", script)
-        self.assertIn("ChangeFileExt(UninstallerExe, 'dat')", script)
         self.assertIn("[InstallDelete]", script)
         self.assertIn('Type: files; Name: "{app}\\uninstall.ico"', script)
+
+    def test_uninstaller_files_are_hidden_with_one_valid_attrib_call_per_file(self):
+        script = Path("installer/GMonster.iss").read_text(encoding="utf-8")
+
+        self.assertIn("procedure HideFile(const FileName: String);", script)
+        self.assertIn("'+h ' + AddQuotes(FileName)", script)
+        self.assertIn("HideFile(UninstallerExe);", script)
+        self.assertIn("HideFile(ChangeFileExt(UninstallerExe, '.dat'));", script)
+        self.assertNotIn("ChangeFileExt(UninstallerExe, 'dat')", script)
 
 
 if __name__ == "__main__":
