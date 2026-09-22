@@ -30,6 +30,15 @@ class InstallerScriptTest(unittest.TestCase):
         self.assertIn("default: 227101e8aedddf8dad2dcff51d8df4fd01d3f48b", workflow)
         self.assertIn("|| '227101e8aedddf8dad2dcff51d8df4fd01d3f48b'", workflow)
 
+    def test_installer_branch_push_uses_the_application_version(self):
+        workflow = Path(
+            ".github/workflows/release-windows-installer.yml"
+        ).read_text(encoding="utf-8")
+
+        self.assertRegex(workflow, r"push:\s+branches:\s+- installer")
+        self.assertIn("Select-String -Path var.py", workflow)
+        self.assertIn('"RELEASE_VERSION=$appVersion" >> $env:GITHUB_ENV', workflow)
+
     def test_spec_supports_an_opt_in_console_build_for_ci_diagnostics(self):
         spec = Path("GMonster.spec").read_text(encoding="utf-8")
 

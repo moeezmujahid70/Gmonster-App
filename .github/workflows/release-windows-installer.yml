@@ -16,6 +16,8 @@ on:
         type: boolean
         default: false
   push:
+    branches:
+      - installer
     tags:
       - "v*"
 
@@ -91,10 +93,20 @@ jobs:
           .\scripts\stage_windows_release.ps1 `
             -GMonsterExePath .\release-input\gmonster\GMonster.exe `
             -WumExePath .\release-input\wum\WUM.exe
-      - name: Install Inno Setup and create installer
+      - name: Resolve installer version
         shell: pwsh
         env:
-          RELEASE_VERSION: ${{ inputs.release_version || github.ref_name }}
+          REQUESTED_VERSION: ${{ inputs.release_version }}
+        run: |
+          $match = Select-String -Path var.py -Pattern "^version = '([0-9]+\.[0-9]+\.[0-9]+)'$" | Select-Object -First 1
+          if (-not $match) { throw "Application version not found in var.py" }
+          $appVersion = $match.Matches[0].Groups[1].Value
+          if ($env:REQUESTED_VERSION -and $env:REQUESTED_VERSION -ne $appVersion) {
+            throw "Requested installer version $env:REQUESTED_VERSION does not match application version $appVersion"
+          }
+          "RELEASE_VERSION=$appVersion" >> $env:GITHUB_ENV
+      - name: Install Inno Setup and create installer
+        shell: pwsh
         run: |
           choco install innosetup --no-progress --yes
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$env:RELEASE_VERSION" installer\GMonster.iss

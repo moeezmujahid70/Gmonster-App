@@ -18,11 +18,11 @@ WUM.exe
 ## Current setup
 
 - The application source to package is on the `installer` branch.
-- The GitHub Actions workflow used to build installers lives on `main` so GitHub can run it manually.
-- Running the workflow does **not** merge `installer` into `main`.
-- The workflow checks out the branch specified by `source_ref`, builds it on a Windows GitHub runner, smoke-tests both EXEs, and uploads the setup file as an artifact.
+- Pushing the `installer` branch automatically starts **Release Windows Installer**. It builds GMonster and WUM on Windows, smoke-tests both EXEs, and uploads the combined setup as an artifact. This branch build does not publish a GitHub release.
+- **Build Installer From Branch** lives on `main` as an alternative manual workflow. It checks out the specified `source_ref` and uploads a version-named artifact.
+- Neither workflow merges `installer` into `main`.
 
-The workflow is named **Build Installer From Branch** in the GitHub Actions tab.
+The application version in `var.py` determines the setup version for automatic `installer` branch builds. The manual workflow requires the same version in its `release_version` input.
 
 ## Build a new installer
 
@@ -45,13 +45,19 @@ Before creating a new public version, update the internal GMonster version in `v
 version = '3.0.0'
 ```
 
-Commit and push that change to `installer`.
+Commit and push that change to `installer`. This push starts the automatic combined installer build.
 
 Use the same numeric version in the workflow input. For version 3, use `3.0.0` in both places. This keeps the in-app version and installer filename consistent. The fallback `MyAppVersion` in `installer/GMonster.iss` must match too.
 
-For the next patch release, increment all three to `3.0.1`; subsequent patch releases use `3.0.2`, `3.0.3`, and so on. Update the workflow input explicitly for each build.
+For the next patch release, increment `var.py` and `installer/GMonster.iss` to `3.0.1`; subsequent patch releases use `3.0.2`, `3.0.3`, and so on. If using the manual workflow, also set its input to the same version.
 
-### 3. Open the installer workflow
+### 3. Check the automatic workflow
+
+In GitHub, open `moeezmujahid70/Gmonster-App → Actions → Release Windows Installer` and select the run started by the `installer` branch push. Its `GMonster-windows-installer` artifact contains `GMonster-3.0.0-Setup.exe` (or the version in `var.py`). A branch build only uploads an artifact; the workflow publishes a GitHub release only for a `v*` tag.
+
+Alternatively, run the manual workflow below when you need to select a different GMonster or WUM revision.
+
+### 4. Run the manual workflow (optional)
 
 In GitHub, open:
 
@@ -70,7 +76,7 @@ Click **Run workflow** and use these inputs:
 
 Click **Run workflow**.
 
-### 4. Wait for all three jobs
+### 5. Wait for all three jobs
 
 A successful build has these jobs:
 
@@ -80,12 +86,13 @@ A successful build has these jobs:
 
 The final job is important. It confirms that both EXEs can start from the command line before the installer is created.
 
-### 5. Download the installer
+### 6. Download the installer
 
 After the run succeeds, open its **Artifacts** section and download:
 
 ```text
-GMonster-3.0.0-Setup
+GMonster-windows-installer (automatic workflow)
+GMonster-3.0.0-Setup (manual workflow)
 ```
 
 GitHub downloads artifacts as a ZIP file. Extract it, then distribute the contained file:
@@ -96,7 +103,7 @@ GMonster-3.0.0-Setup.exe
 
 Do not distribute the separate `gmonster-exe` or `wum-exe` artifacts. They are intermediate build outputs; customers should receive the combined setup EXE.
 
-### 6. Validate and publish version 3
+### 7. Validate and publish version 3
 
 Install `GMonster-3.0.0-Setup.exe` on a Windows test machine and confirm that GMonster and WUM both launch and an upgrade preserves `%LOCALAPPDATA%\GMonster\data`. The combined setup version is GMonster's version; WUM retains its own independent application version.
 
