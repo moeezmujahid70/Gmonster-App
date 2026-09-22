@@ -82,9 +82,16 @@ jobs:
           path: release-input/wum
       - name: Smoke-test both Windows executables
         shell: pwsh
+        env:
+          GMONSTER_SMOKE_TEST_LOG: ${{ runner.temp }}\gmonster-smoke-test-error.log
         run: |
           & .\release-input\gmonster\GMonster.exe --smoke-test
-          if ($LASTEXITCODE -ne 0) { throw "GMonster smoke test failed" }
+          if ($LASTEXITCODE -ne 0) {
+            if (Test-Path $env:GMONSTER_SMOKE_TEST_LOG) {
+              Get-Content $env:GMONSTER_SMOKE_TEST_LOG
+            }
+            throw "GMonster smoke test failed"
+          }
           & .\release-input\wum\WUM.exe --smoke-test
           if ($LASTEXITCODE -ne 0) { throw "WUM smoke test failed" }
       - name: Stage installer files

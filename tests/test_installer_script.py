@@ -39,6 +39,14 @@ class InstallerScriptTest(unittest.TestCase):
         self.assertIn("Select-String -Path var.py", workflow)
         self.assertIn('"RELEASE_VERSION=$appVersion" >> $env:GITHUB_ENV', workflow)
 
+    def test_installer_smoke_test_reports_windowed_startup_failure(self):
+        workflow = Path(
+            ".github/workflows/release-windows-installer.yml"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("GMONSTER_SMOKE_TEST_LOG:", workflow)
+        self.assertIn("Get-Content $env:GMONSTER_SMOKE_TEST_LOG", workflow)
+
     def test_spec_supports_an_opt_in_console_build_for_ci_diagnostics(self):
         spec = Path("GMonster.spec").read_text(encoding="utf-8")
 
