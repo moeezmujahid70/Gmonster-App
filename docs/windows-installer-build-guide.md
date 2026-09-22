@@ -5,7 +5,7 @@ This guide explains how to create and distribute a normal Windows installer for 
 The produced installer is named like this:
 
 ```text
-GMonster-2.2.1-Setup.exe
+GMonster-3.0.0-Setup.exe
 ```
 
 It installs both applications:
@@ -42,12 +42,14 @@ Make sure the branch contains the exact code you want customers to receive.
 Before creating a new public version, update the internal GMonster version in `var.py` if needed:
 
 ```python
-version = '2.2.1'
+version = '3.0.0'
 ```
 
 Commit and push that change to `installer`.
 
-Use the same numeric version in the workflow input. For example, use `2.2.1` in both places. This keeps the in-app version and installer filename consistent.
+Use the same numeric version in the workflow input. For version 3, use `3.0.0` in both places. This keeps the in-app version and installer filename consistent. The fallback `MyAppVersion` in `installer/GMonster.iss` must match too.
+
+For the next patch release, increment all three to `3.0.1`; subsequent patch releases use `3.0.2`, `3.0.3`, and so on. Update the workflow input explicitly for each build.
 
 ### 3. Open the installer workflow
 
@@ -62,7 +64,7 @@ Click **Run workflow** and use these inputs:
 | Input | Normal value | Purpose |
 | --- | --- | --- |
 | `source_ref` | `installer` | GMonster branch, tag, or full commit SHA to package. |
-| `release_version` | `2.2.1` | Version in the installer filename and Windows installer metadata. |
+| `release_version` | `3.0.0` | Version in the installer filename and Windows installer metadata. |
 | `wum_ref` | Leave default unless WUM changed | WUM source revision to compile and include. |
 | `console_build` | `false` | Keeps GMonster as a normal windowed desktop app. Set to `true` only for build diagnostics. |
 
@@ -83,16 +85,22 @@ The final job is important. It confirms that both EXEs can start from the comman
 After the run succeeds, open its **Artifacts** section and download:
 
 ```text
-GMonster-2.2.1-Setup
+GMonster-3.0.0-Setup
 ```
 
 GitHub downloads artifacts as a ZIP file. Extract it, then distribute the contained file:
 
 ```text
-GMonster-2.2.1-Setup.exe
+GMonster-3.0.0-Setup.exe
 ```
 
 Do not distribute the separate `gmonster-exe` or `wum-exe` artifacts. They are intermediate build outputs; customers should receive the combined setup EXE.
+
+### 6. Validate and publish version 3
+
+Install `GMonster-3.0.0-Setup.exe` on a Windows test machine and confirm that GMonster and WUM both launch and an upgrade preserves `%LOCALAPPDATA%\GMonster\data`. The combined setup version is GMonster's version; WUM retains its own independent application version.
+
+The login server checks the GMonster version for an exact match with its latest `Version` record. After the tested installer is available at a stable download URL, publish the server's `3.0.0` version record with that URL and the installer size, then verify sign-in on the test machine. Until that record is updated, GMonster 3 cannot sign in. Publishing it also causes older GMonster versions to require an update, so coordinate the server change with distribution of the tested setup file.
 
 ## Updating WUM
 
@@ -169,7 +177,7 @@ console_build: true
 
 This creates a one-off console build so Python/PyInstaller startup diagnostics appear in the Actions log. Do not use that diagnostic build as the customer release; rerun with `console_build: false` after fixing the error.
 
-## First successful installer
+## Historical first successful installer
 
 The first combined installer was built from:
 

@@ -132,7 +132,7 @@ try:
     mail_read_icon = resource_path('icons/mail.ico')
 except Exception as e:
     print(e)
-version = '2.2r'
+version = '3.0.0'
 DATA_DIR = str(RUNTIME_PATHS.data_dir)
 DATA_SHEETS_DIR = os.path.join(DATA_DIR, 'sheets')
 DATA_EMAIL_DIR = os.path.join(DATA_DIR, 'email')

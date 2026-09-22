@@ -4,6 +4,17 @@ import unittest
 
 
 class InstallerScriptTest(unittest.TestCase):
+    def test_gmonster_and_installer_use_the_same_version_three_number(self):
+        app_source = Path("var.py").read_text(encoding="utf-8")
+        installer = Path("installer/GMonster.iss").read_text(encoding="utf-8")
+        app_version = re.search(r"^version = '([0-9]+\.[0-9]+\.[0-9]+)'$", app_source, re.M)
+        installer_version = re.search(r'^\s*#define MyAppVersion "([0-9]+\.[0-9]+\.[0-9]+)"$', installer, re.M)
+
+        self.assertIsNotNone(app_version)
+        self.assertIsNotNone(installer_version)
+        self.assertEqual(app_version.group(1), installer_version.group(1))
+        self.assertGreaterEqual(int(app_version.group(1).split(".")[0]), 3)
+
     def test_spec_uses_analysis_data_pairs_not_internal_toc_entries(self):
         spec = Path("GMonster.spec").read_text(encoding="utf-8")
 
@@ -16,8 +27,8 @@ class InstallerScriptTest(unittest.TestCase):
             ".github/workflows/release-windows-installer.yml"
         ).read_text(encoding="utf-8")
 
-        self.assertIn("default: 227101e", workflow)
-        self.assertIn("|| '227101e'", workflow)
+        self.assertIn("default: 227101e8aedddf8dad2dcff51d8df4fd01d3f48b", workflow)
+        self.assertIn("|| '227101e8aedddf8dad2dcff51d8df4fd01d3f48b'", workflow)
 
     def test_spec_supports_an_opt_in_console_build_for_ci_diagnostics(self):
         spec = Path("GMonster.spec").read_text(encoding="utf-8")
