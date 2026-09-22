@@ -55,7 +55,7 @@ jobs:
           python-version: "3.10"
       - name: Install GMonster dependencies and build
         env:
-          GMONSTER_CONSOLE_BUILD: ${{ github.ref == 'refs/heads/installer' && '1' || inputs.console_build && '1' || '0' }}
+          GMONSTER_CONSOLE_BUILD: ${{ inputs.console_build && '1' || '0' }}
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-updated.txt
@@ -85,9 +85,9 @@ jobs:
         env:
           GMONSTER_SMOKE_TEST_LOG: ${{ runner.temp }}\gmonster-smoke-test-error.log
         run: |
-          & .\release-input\gmonster\GMonster.exe --smoke-test
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "GMonster smoke-test exit code: $LASTEXITCODE"
+          $gmonsterSmokeTest = Start-Process -FilePath .\release-input\gmonster\GMonster.exe -ArgumentList "--smoke-test" -Wait -PassThru
+          if ($gmonsterSmokeTest.ExitCode -ne 0) {
+            Write-Host "GMonster smoke-test exit code: $($gmonsterSmokeTest.ExitCode)"
             if (Test-Path $env:GMONSTER_SMOKE_TEST_LOG) {
               Get-Content $env:GMONSTER_SMOKE_TEST_LOG
             }

@@ -46,6 +46,8 @@ class InstallerScriptTest(unittest.TestCase):
 
         self.assertIn("GMONSTER_SMOKE_TEST_LOG:", workflow)
         self.assertIn("Get-Content $env:GMONSTER_SMOKE_TEST_LOG", workflow)
+        self.assertIn('Start-Process -FilePath .\\release-input\\gmonster\\GMonster.exe', workflow)
+        self.assertIn('if ($gmonsterSmokeTest.ExitCode -ne 0)', workflow)
 
     def test_spec_supports_an_opt_in_console_build_for_ci_diagnostics(self):
         spec = Path("GMonster.spec").read_text(encoding="utf-8")
