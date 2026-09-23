@@ -93,8 +93,10 @@ jobs:
             }
             throw "GMonster smoke test failed"
           }
-          & .\release-input\wum\WUM.exe --smoke-test
-          if ($LASTEXITCODE -ne 0) { throw "WUM smoke test failed" }
+          $wumSmokeTest = Start-Process -FilePath .\release-input\wum\WUM.exe -ArgumentList "--smoke-test" -Wait -PassThru
+          if ($wumSmokeTest.ExitCode -ne 0) {
+            throw "WUM smoke test failed with exit code $($wumSmokeTest.ExitCode)"
+          }
       - name: Stage installer files
         shell: pwsh
         run: |
