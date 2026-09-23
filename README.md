@@ -89,7 +89,7 @@ CI workflow for Windows build:
 
 - .github/workflows/build-windows-exe.yml
 
-For the combined GMonster 3.0.0 and WUM setup, follow [the Windows installer build guide](docs/windows-installer-build-guide.md).
+For the combined GMonster and WUM setup, follow [the Windows installer build guide](docs/windows-installer-build-guide.md).
 
 ## Project Structure
 

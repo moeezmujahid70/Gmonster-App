@@ -5,7 +5,7 @@ This guide explains how to create and distribute a normal Windows installer for 
 The produced installer is named like this:
 
 ```text
-GMonster-3.0.0-Setup.exe
+GMonster-3.0.1-Setup.exe
 ```
 
 It installs both applications:
@@ -42,18 +42,18 @@ Make sure the branch contains the exact code you want customers to receive.
 Before creating a new public version, update the internal GMonster version in `var.py` if needed:
 
 ```python
-version = '3.0.0'
+version = '3.0.1'
 ```
 
 Commit and push that change to `installer`. This push starts the automatic combined installer build.
 
-Use the same numeric version in the workflow input. For version 3, use `3.0.0` in both places. This keeps the in-app version and installer filename consistent. The fallback `MyAppVersion` in `installer/GMonster.iss` must match too.
+Use the same numeric version in the workflow input. For this release, use `3.0.1` in both places. This keeps the in-app version and installer filename consistent. The fallback `MyAppVersion` in `installer/GMonster.iss` must match too. The old `2.2r` suffix was part of that version name; `r` does not increment releases automatically.
 
-For the next patch release, increment `var.py` and `installer/GMonster.iss` to `3.0.1`; subsequent patch releases use `3.0.2`, `3.0.3`, and so on. If using the manual workflow, also set its input to the same version.
+For the next patch release, increment `var.py` and `installer/GMonster.iss` to `3.0.2`; subsequent patch releases use `3.0.3`, `3.0.4`, and so on. If using the manual workflow, also set its input to the same version.
 
 ### 3. Check the automatic workflow
 
-In GitHub, open `moeezmujahid70/Gmonster-App → Actions → Release Windows Installer` and select the run started by the `installer` branch push. Its `GMonster-windows-installer` artifact contains `GMonster-3.0.0-Setup.exe` (or the version in `var.py`). A branch build only uploads an artifact; the workflow publishes a GitHub release only for a `v*` tag.
+In GitHub, open `moeezmujahid70/Gmonster-App → Actions → Release Windows Installer` and select the run started by the `installer` branch push. Its `GMonster-windows-installer` artifact contains `GMonster-3.0.1-Setup.exe` (or the version in `var.py`). A branch build only uploads an artifact; the workflow publishes a GitHub release only for a `v*` tag.
 
 Alternatively, run the manual workflow below when you need to select a different GMonster or WUM revision.
 
@@ -70,7 +70,7 @@ Click **Run workflow** and use these inputs:
 | Input | Normal value | Purpose |
 | --- | --- | --- |
 | `source_ref` | `installer` | GMonster branch, tag, or full commit SHA to package. |
-| `release_version` | `3.0.0` | Version in the installer filename and Windows installer metadata. |
+| `release_version` | `3.0.1` | Version in the installer filename and Windows installer metadata. |
 | `wum_ref` | Leave default unless WUM changed | WUM source revision to compile and include. |
 | `console_build` | `false` | Keeps GMonster as a normal windowed desktop app. Set to `true` only for build diagnostics. |
 
@@ -92,22 +92,32 @@ After the run succeeds, open its **Artifacts** section and download:
 
 ```text
 GMonster-windows-installer (automatic workflow)
-GMonster-3.0.0-Setup (manual workflow)
+GMonster-3.0.1-Setup (manual workflow)
 ```
 
 GitHub downloads artifacts as a ZIP file. Extract it, then distribute the contained file:
 
 ```text
-GMonster-3.0.0-Setup.exe
+GMonster-3.0.1-Setup.exe
 ```
 
 Do not distribute the separate `gmonster-exe` or `wum-exe` artifacts. They are intermediate build outputs; customers should receive the combined setup EXE.
 
 ### 7. Validate and publish version 3
 
-Install `GMonster-3.0.0-Setup.exe` on a Windows test machine and confirm that GMonster and WUM both launch and an upgrade preserves `%LOCALAPPDATA%\GMonster\data`. The combined setup version is GMonster's version; WUM retains its own independent application version.
+Install `GMonster-3.0.1-Setup.exe` on a Windows test machine and confirm that GMonster and WUM both launch and an upgrade preserves `%LOCALAPPDATA%\GMonster\data`. The combined setup version is GMonster's version; WUM retains its own independent application version.
 
-The login server checks the GMonster version for an exact match with its latest `Version` record. After the tested installer is available at a stable download URL, publish the server's `3.0.0` version record with that URL and the installer size, then verify sign-in on the test machine. Until that record is updated, GMonster 3 cannot sign in. Publishing it also causes older GMonster versions to require an update, so coordinate the server change with distribution of the tested setup file.
+The login server checks the GMonster version for an exact match with its latest `Version` record. After the tested installer is available at a stable download URL, publish the server's `3.0.1` version record with that URL and the **setup EXE's** size in bytes, then verify sign-in on the test machine. Until that record is updated, GMonster 3.0.1 cannot sign in. Publishing it also causes older GMonster versions to require an update, so coordinate the server change with distribution of the tested setup file. Do not pair a new version number with the old `GMonster.zip` link or its size.
+
+To publish a GitHub Release after validating the branch artifact, tag the tested `installer` commit and push the tag:
+
+```bash
+git switch installer
+git tag v3.0.1
+git push origin v3.0.1
+```
+
+The tag triggers **Release Windows Installer** again and publishes the versioned setup EXE as a GitHub Release asset. Verify that tagged run succeeds and the release asset is present before using its stable download URL in the login server. A branch push alone does not publish a release.
 
 ## Updating WUM
 
@@ -183,6 +193,10 @@ console_build: true
 ```
 
 This creates a one-off console build so Python/PyInstaller startup diagnostics appear in the Actions log. Do not use that diagnostic build as the customer release; rerun with `console_build: false` after fixing the error.
+
+Both production EXEs are windowed Windows processes. In September 2026, using `& .\GMonster.exe --smoke-test` and checking `$LASTEXITCODE` in PowerShell falsely stopped the package job; the same happened next for WUM. The release workflow now uses `Start-Process -Wait -PassThru` and checks each process's `ExitCode`. Keep that pattern for future windowed smoke tests. [Run 35800495343](https://github.com/moeezmujahid70/Gmonster-App/actions/runs/35800495343) passed both smoke tests and packaged the normal (non-console) 3.0.0 setup. A temporary console build also passed, but its artifact was diagnostic only, not the shareable release.
+
+If the application shows `SERVICE_UNAVAILABLE` at login right after a version bump, check the public `/verify/version` endpoint before changing credentials or mail settings. The server currently rejects versions that do not exactly match its latest record, and the desktop's generic response mapper can hide that version mismatch behind `SERVICE_UNAVAILABLE`.
 
 ## Historical first successful installer
 

@@ -8,7 +8,7 @@ on:
         required: false
         default: 227101e8aedddf8dad2dcff51d8df4fd01d3f48b
       release_version:
-        description: Installer version, for example 3.0.0
+        description: Installer version, for example 3.0.1
         required: true
       console_build:
         description: Build GMonster with a diagnostic console window
