@@ -87,6 +87,7 @@ def update_config_json(alternative_name=None):
                 "compose_email_body_html": var.compose_email_body_html,
                 "compose_prompt": var.compose_prompt,
                 "login_email": var.login_email,
+                "remember_login_credentials": var.remember_login_credentials,
                 "api": var.api,
                 "tracking": var.tracking,
                 "statistics": var.statistics,
@@ -134,6 +135,8 @@ def update_config_json(alternative_name=None):
                 "proxy_on": var.proxy_on,
             }
         }
+        if var.remember_login_credentials:
+            data["config"]["login_password"] = var.login_password
         if alternative_name:
             with open(
                 os.path.join(var.campaign_scheduler_cache_path,
@@ -167,6 +170,7 @@ def get_config_json():
             "compose_email_body_html": var.compose_email_body_html,
             "compose_prompt": var.compose_prompt,
             "login_email": var.login_email,
+            "remember_login_credentials": var.remember_login_credentials,
             "api": var.api,
             "tracking": var.tracking,
             "statistics": var.statistics,
@@ -214,6 +218,8 @@ def get_config_json():
             "proxy_on": var.proxy_on,
         }
     }
+    if var.remember_login_credentials:
+        data["config"]["login_password"] = var.login_password
     return data
 
 

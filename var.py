@@ -1,5 +1,52 @@
 import os
 import sys
+from runtime_paths import (
+    initialize_runtime_data,
+    resolve_runtime_paths,
+    run_smoke_test_with_diagnostics,
+    update_staging_dir,
+)
+
+
+RUNTIME_PATHS = resolve_runtime_paths(
+    frozen=bool(getattr(sys, "frozen", False)),
+    platform_name=sys.platform,
+    executable=sys.executable,
+    resource_dir=getattr(sys, "_MEIPASS", os.getcwd()),
+    working_dir=os.getcwd(),
+    local_app_data=os.environ.get(
+        "LOCALAPPDATA", os.path.join(os.path.expanduser("~"), "AppData", "Local")
+    ),
+)
+APP_DIR = str(RUNTIME_PATHS.app_dir)
+RESOURCE_DIR = str(RUNTIME_PATHS.resource_dir)
+DEFAULT_DATA_DIR = os.path.join(
+    RESOURCE_DIR, "default-data"
+) if getattr(sys, "frozen", False) else APP_DIR
+STARTER_DATA_DIR = os.path.join(RESOURCE_DIR, "starter-data") if getattr(
+    sys, "frozen", False
+) else os.path.join(APP_DIR, "starter-data")
+LEGACY_DATA_DIR = (
+    os.path.join(APP_DIR, "data") if RUNTIME_PATHS.is_frozen_windows else None
+)
+if "--smoke-test" in sys.argv:
+    raise SystemExit(
+        run_smoke_test_with_diagnostics(
+            RUNTIME_PATHS.data_dir,
+            os.environ.get("GMONSTER_SMOKE_TEST_LOG"),
+            DEFAULT_DATA_DIR,
+            STARTER_DATA_DIR,
+        )
+    )
+
+initialize_runtime_data(
+    RUNTIME_PATHS.data_dir,
+    DEFAULT_DATA_DIR,
+    LEGACY_DATA_DIR,
+    STARTER_DATA_DIR,
+)
+
+
 from logger import logger
 import var
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
@@ -21,7 +68,7 @@ global scheduler
 
 def override_where():
     """ overrides certifi.core.where to return actual location of cacert.pem"""
-    return os.path.abspath(os.path.join(os.getcwd(), 'data', 'gmonster_config', 'cacert.pem'))
+    return str(RUNTIME_PATHS.data_dir / 'gmonster_config' / 'cacert.pem')
 
 
 if hasattr(sys, 'frozen'):
@@ -80,15 +127,13 @@ class SingleInstance:
 try:
 
     def resource_path(relative_path):
-        if hasattr(sys, '_MEIPASS'):
-            return os.path.join(sys._MEIPASS, relative_path)
-        return os.path.join(os.path.abspath('.'), relative_path)
+        return os.path.join(RESOURCE_DIR, relative_path)
     mail_unread_icon = resource_path('icons/email.ico')
     mail_read_icon = resource_path('icons/mail.ico')
 except Exception as e:
     print(e)
-version = '2.2r'
-DATA_DIR = os.path.join(os.getcwd(), 'data')
+version = '3.0.1'
+DATA_DIR = str(RUNTIME_PATHS.data_dir)
 DATA_SHEETS_DIR = os.path.join(DATA_DIR, 'sheets')
 DATA_EMAIL_DIR = os.path.join(DATA_DIR, 'email')
 DATA_EMAIL_VERIFICATION_DIR = os.path.join(
@@ -102,7 +147,9 @@ DATA_LOGS_APP_DIR = os.path.join(DATA_LOGS_DIR, 'app')
 DATA_GMONSTER_CONFIG_DIR = os.path.join(DATA_DIR, 'gmonster_config')
 DATA_WUM_CONFIG_DIR = os.path.join(DATA_DIR, 'wum_config')
 DATA_BACKUPS_DIR = os.path.join(DATA_DIR, 'backups')
-SCRIPTS_DIR = os.path.join(os.getcwd(), 'scripts')
+SCRIPTS_DIR = os.path.join(
+    DATA_DIR if RUNTIME_PATHS.is_frozen_windows else APP_DIR, 'scripts'
+)
 
 for _path in [
     DATA_DIR,
@@ -136,7 +183,7 @@ group_db_path = os.path.join(DATA_GMONSTER_CONFIG_DIR, 'group.DB')
 jobs_db_path = os.path.join(DATA_GMONSTER_CONFIG_DIR, 'jobs.sqlite')
 config_file_path = os.path.join(DATA_GMONSTER_CONFIG_DIR, 'config.json')
 cacert_file_path = os.path.join(DATA_GMONSTER_CONFIG_DIR, 'cacert.pem')
-update_temp_path = 'temp'
+update_temp_path = str(update_staging_dir(DATA_DIR))
 update_bat_file_path = os.path.join(SCRIPTS_DIR, 'updater.bat')
 if os.name == 'nt':
     try:
@@ -242,11 +289,14 @@ inbox_group = 0
 limit_of_thread = 100
 login_email = ''
 login_password = ''
+remember_login_credentials = False
 login_machine_uuid = ''
 login_processor_id = ''
 # Short-lived server access token.  It deliberately remains memory-only.
 api_access_token = ''
 campaign_user_messages = []
+followup_user_messages = []
+inbox_user_messages = []
 tracking = {}
 statistics = {
     "product_price": 0,
@@ -256,8 +306,6 @@ statistics = {
 }
 mailgenius = {
     "enabled": False,
-    "rapidapi_key": "",
-    "rapidapi_host": "",
 }
 webhook_link = ''
 api = 'https://enzim.pythonanywhere.com/'
@@ -325,6 +373,8 @@ try:
         config['open_ai_model'] = open_ai_model
     if 'api' not in config:
         config['api'] = api
+    if 'remember_login_credentials' not in config:
+        config['remember_login_credentials'] = remember_login_credentials
     if 'cc_emails' not in config:
         config['cc_emails'] = cc_emails
     if 'cc_emails_enabled' not in config:
@@ -339,7 +389,9 @@ try:
     if not isinstance(config.get('mailgenius'), dict):
         config['mailgenius'] = mailgenius.copy()
     else:
-        mailgenius.update(config['mailgenius'])
+        mailgenius = {
+            'enabled': bool(config['mailgenius'].get('enabled', False)),
+        }
         config['mailgenius'] = mailgenius
     date = config['date']
     if config['compose_email_subject']:
@@ -353,6 +405,8 @@ try:
     delay_between_emails = config['delay_between_emails']
     limit_of_thread = config['limit_of_thread']
     login_email = config['login_email']
+    remember_login_credentials = bool(config.get('remember_login_credentials', False))
+    login_password = config.get('login_password', '') if remember_login_credentials else ''
     api = config.get('api', api)
     tracking = config['tracking']
     statistics = config.get('statistics', statistics)

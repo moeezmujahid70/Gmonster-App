@@ -187,10 +187,9 @@
             }
         },
         "mailgenius": {
-            "enabled": false,
-            "rapidapi_key": "",
-            "rapidapi_host": "mailgenius-email-deliverability-api1.p.rapidapi.com"
+            "enabled": false
         },
+        "api": "https://dev-enzim.pythonanywhere.com/",
         "date": "3/29/2025",
         "num_emails_per_address": "1 - 2",
         "delay_between_emails": "5 - 6",
@@ -200,6 +199,7 @@
         "compose_email_body_html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Email Template</title>\n    <style>\n        body {\n            font-family: Arial, sans-serif;\n            line-height: 1.6;\n            color: #333;\n            margin: 0;\n            padding: 0;\n            background-color: #f4f4f9;\n        }\n        .email-container {\n            max-width: 600px;\n            margin: 100px auto;\n            background: #ffffff;\n            border-radius: 8px;\n            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);\n            overflow: hidden;\n        }\n        .header {\n            background-color: #4CAF50;\n            color: #ffffff;\n            padding: 20px;\n            text-align: center;\n            font-size: 1.5em;\n            font-weight: bold;\n        }\n        .content {\n            padding: 20px;\n        }\n        .content p {\n            margin: 15px 0;\n        }\n        .cta-button {\n            display: inline-block;\n            background-color: #4CAF50;\n            color: #ffffff;\n            text-decoration: none;\n            padding: 10px 20px;\n            border-radius: 5px;\n            font-weight: bold;\n            text-align: center;\n            margin-top: 20px;\n            display: block;\n            width: fit-content;\n            margin-left: auto;\n            margin-right: auto;\n        }\n        .footer {\n            background-color: #f4f4f9;\n            text-align: center;\n            padding: 10px;\n            font-size: 0.9em;\n            color: #666;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"email-container\">\n        <div class=\"header\">\n  \t    This is new test.\n        </div>\n        <div class=\"content\">\n            <a href=\"[3]\" class=\"cta-button\">Check Here</a>\n        </div>\n    </div>\n</body>\n</html>",
         "compose_prompt": "shoot me some AI humour",
         "login_email": "",
+        "remember_login_credentials": false,
         "tracking": {
             "analytics_account": "",
             "campaign_name": "email_campaign_A",

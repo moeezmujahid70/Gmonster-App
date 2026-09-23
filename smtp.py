@@ -36,7 +36,14 @@ import var
 from var import logger
 from unsubscribe_client import PreparationError, prepare_batches
 from unsubscribe_email import compose_alternatives
-from user_messages import followup_message, preparation_message, smtp_message
+from user_messages import (
+    display_text,
+    followup_message,
+    operation_message,
+    preparation_message,
+    summary_text,
+    smtp_message,
+)
 
 logger = logger
 email_failed = 0
@@ -313,6 +320,7 @@ class ForwardMail(SmtpBase):
         }
         super().__init__(**kwargs)
         self.forward_to = forward_to
+        self.failure_message = None
         self.from_mail = var.email_in_view["from"]
         self.to_mail = var.email_in_view["to_mail"]
         self.original_subject = var.email_in_view["original_subject"]
@@ -346,6 +354,7 @@ class ForwardMail(SmtpBase):
                                                                  ["checkbox_status"] == 1]
             if checked_emails.empty:
                 logger.warning("No emails selected for forwarding.")
+                self.failure_message = operation_message("forward", ValueError())
                 return False
             forwarded_messages = []
             for _, row in checked_emails.iterrows():
@@ -370,6 +379,7 @@ class ForwardMail(SmtpBase):
                 f"Forwarded {len(checked_emails)} emails to {self.forward_to}")
             return True
         except Exception as e:
+            self.failure_message = operation_message("forward", e)
             logger.error(
                 "Error at forward - {} - {}".format(
                     self.user, traceback.format_exc())
@@ -396,6 +406,7 @@ class ReplyMail(SmtpBase):
         self.from_mail = var.email_in_view["from_mail"]
         self.mail_body = var.email_in_view["body"]
         self.msg_id = var.email_in_view["message-id"]
+        self.failure_message = None
 
     def send(self):
         try:
@@ -480,6 +491,7 @@ class ReplyMail(SmtpBase):
             logger.info(f"Replied to {self.from_mail}")
             return True
         except Exception as e:
+            self.failure_message = operation_message("reply", e)
             logger.error(
                 "Error at replying - {} - {}".format(
                     self.user, traceback.format_exc())
@@ -782,7 +794,7 @@ class Smtp(SmtpBase, threading.Thread):
                 server.quit()
         except Exception as e:
             email_failed += 1
-            user_message = smtp_message(e)
+            user_message = operation_message("campaign", e)
             var.campaign_user_messages.append(user_message)
             self.logger.error(
                 "Error at Sending [%s] - %s - %s",
@@ -1236,13 +1248,7 @@ def main(group, d_start, d_end, group_selected, num_emails_per_address_range):
             )
             alert_title = "Campaign Stopped"
         elif var.campaign_user_messages:
-            messages = {message.code: message for message in var.campaign_user_messages}
-            explanation = "\n\n".join(
-                "{}\n{}\nError reference: {}".format(
-                    message.title, message.body, message.code
-                )
-                for message in messages.values()
-            )
+            explanation = summary_text(var.campaign_user_messages)
             alert_message = "Campaign completed with issues.\nTotal emails sent: {}\nAccounts failed: {}\n\n{}".format(
                 var.send_campaign_email_count, email_failed, explanation
             )
@@ -1277,6 +1283,7 @@ def save_report():
 
 def follow_up(campaign_id: str):
     try:
+        var.followup_user_messages = []
         logger.info(f"Starting Followup process, Campaign ID - {campaign_id}")
         while var.send_campaign_run_status:
             time.sleep(var.waiting_period_for_followup)
@@ -1388,8 +1395,19 @@ def follow_up(campaign_id: str):
         else:
             logger.info(
                 f"No Followups entry found. Campaign Id - {campaign_id}")
-        var.command_q.put(
-            "GUI.label_compose_status.setText('Follow Up: 2/2 Done')")
+        if var.followup_user_messages:
+            var.command_q.put(
+                "GUI.label_compose_status.setText('Follow-up completed with issues')"
+            )
+            var.command_q.put(
+                "alert(text={!r}, title='Follow-up needs attention', button='OK')".format(
+                    summary_text(var.followup_user_messages)
+                )
+            )
+        else:
+            var.command_q.put(
+                "GUI.label_compose_status.setText('Follow Up: 2/2 Done')"
+            )
     except Exception as e:
         message = followup_message(e)
         logger.error(
