@@ -145,27 +145,59 @@ class Sign_up(su.Ui_Dialog):
     def __init__(self, dialog):
         su.Ui_Dialog.__init__(self)
         self.setupUi(dialog)
+        self.dialog = dialog
         set_icon(dialog)
         self.pushButton_sign_up.clicked.connect(self.validate)
+        self.pushButton_sign_in.clicked.connect(self.open_sign_in)
+        sign_in_policy = self.pushButton_sign_in.sizePolicy()
+        sign_in_policy.setRetainSizeWhenHidden(True)
+        self.pushButton_sign_in.setSizePolicy(sign_in_policy)
+        self.pushButton_sign_in.hide()
         self.label_status.setText(
             "Password must be equal to or more than 8 characters")
         # self.lineEdit_email.setText("")
         # self.lineEdit_password.setText("123456789")
         # self.lineEdit_confirm_password.setText("123456789")
 
-        self.timer = QtCore.QTimer()
-        self.timer.setInterval(10)
+        self.timer = QtCore.QTimer(dialog)
+        self.timer.setInterval(100)
         self.timer.timeout.connect(self.setText)
+        if var.sign_up_in_progress:
+            self.pushButton_sign_up.setEnabled(False)
+            self.pushButton_sign_in.setEnabled(False)
+            self.timer.start()
 
     def setText(self):
         self.label_status.setText(var.sign_up_label)
+        self.pushButton_sign_in.setVisible(
+            var.sign_up_can_sign_in and not var.sign_up_in_progress
+        )
+        if not var.sign_up_in_progress:
+            self.timer.stop()
+            self.pushButton_sign_up.setEnabled(True)
+            self.pushButton_sign_in.setEnabled(True)
+
+    def open_sign_in(self):
+        if var.sign_up_in_progress or not var.sign_up_can_sign_in:
+            return
+        var.login_email = self.lineEdit_email.text().strip()
+        self.dialog.accept()
 
     def validate(self):
+        if var.sign_up_in_progress:
+            return
+        var.sign_up_can_sign_in = False
+        self.pushButton_sign_in.hide()
         email = self.lineEdit_email.text().strip()
         password = self.lineEdit_password.text()
         confirm_password = self.lineEdit_confirm_password.text()
         if check(email):
             if (password != "" and password == confirm_password and len(password) >= 8):
+                var.sign_up_in_progress = True
+                var.sign_up_label = "Creating your account…"
+                self.pushButton_sign_up.setEnabled(False)
+                self.pushButton_sign_in.setEnabled(False)
+                self.setText()
                 Thread(target=make_sign_up_requests, daemon=True,
                        args=[email, password, "register"]).start()
                 self.timer.start()
@@ -229,6 +261,8 @@ class Sign_in(si.Ui_Dialog):
 
 
 def make_sign_up_requests(email, password, endpoint):
+    if endpoint == "register":
+        var.sign_up_can_sign_in = False
     try:
         status = "Internal error"
         machine_uuid, processor_id = get_system_identifiers()
@@ -256,17 +290,33 @@ def make_sign_up_requests(email, password, endpoint):
             headers=headers,
             timeout=get_request_timeout(),
         )
-        status = "Success" if x.text == "Success" else display_text(
-            login_response_message(x.text, endpoint)
-        )
         if endpoint == "register":
+            if x.status_code != 200:
+                raise requests.exceptions.HTTPError(response=x)
+            message = login_response_message(x.text, endpoint)
+            status = message.body
             var.sign_up_label = status
+            var.sign_up_can_sign_in = message.code in {
+                "REGISTRATION_SUCCESS", "ACCOUNT_PENDING_ACTIVATION", "ACCOUNT_EXISTS"
+            }
         else:
+            status = "Success" if x.text == "Success" else display_text(
+                login_response_message(x.text, endpoint)
+            )
             var.sign_in_label = status
             if status == "Success":
                 capture_access_token(x)
             else:
                 var.api_access_token = ""
+    except requests.exceptions.HTTPError as error:
+        if endpoint == "register":
+            var.sign_up_label = (
+                "Signup could not be completed (HTTP {}). Try again later. "
+                "If this continues, contact the admin."
+            ).format(error.response.status_code)
+        else:
+            var.api_access_token = ""
+            var.sign_in_label = display_text(operation_message(endpoint, error))
     except requests.exceptions.Timeout as error:
         if endpoint == "login":
             var.api_access_token = ""
@@ -284,6 +334,9 @@ def make_sign_up_requests(email, password, endpoint):
             var.sign_up_label = status
         else:
             var.sign_in_label = status
+    finally:
+        if endpoint == "register":
+            var.sign_up_in_progress = False
 
 
 class MyGui(Ui_MainWindow, QtWidgets.QWidget):
@@ -319,7 +372,8 @@ class myMainClass:
         if self.update_needed:
             dialog = QtWidgets.QDialog()
             dialog.ui = Sign_up(dialog)
-            dialog.exec_()
+            if dialog.exec_():
+                self.sign_in()
 
     def check_update(self):
         try:

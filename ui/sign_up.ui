@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>470</width>
-    <height>209</height>
+    <width>560</width>
+    <height>400</height>
    </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>560</width>
+    <height>400</height>
+   </size>
   </property>
   <property name="font">
    <font>
@@ -230,31 +236,37 @@
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="5,2">
-     <property name="topMargin">
-      <number>30</number>
+    <widget class="QLabel" name="label_status">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>130</height>
+      </size>
      </property>
-     <item>
-      <widget class="QLabel" name="label_status">
-       <property name="font">
-        <font>
-         <family>Arial</family>
-         <pointsize>10</pointsize>
-         <weight>75</weight>
-         <bold>true</bold>
-        </font>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-       </property>
-       <property name="wordWrap">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
+     <property name="font">
+      <font>
+       <family>Arial</family>
+       <pointsize>10</pointsize>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_4">
+     <property name="topMargin">
+      <number>10</number>
+     </property>
      <item>
       <widget class="QPushButton" name="pushButton_sign_up">
        <property name="minimumSize">
@@ -294,6 +306,44 @@ QPushButton:pressed {
       </widget>
      </item>
     </layout>
+   </item>
+   <item>
+    <widget class="QPushButton" name="pushButton_sign_in">
+     <property name="minimumSize">
+      <size>
+       <width>150</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="font">
+      <font>
+       <family>Arial</family>
+       <pointsize>11</pointsize>
+      </font>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QPushButton {
+  border: 1px solid #555;
+  border-radius: 5px;
+  border-style: Solid;
+  background:  rgb(255, 255, 255);
+  padding: 5px 28px;
+  color: #555;
+  }
+
+QPushButton:hover {
+  background:#acacac;
+  }
+
+QPushButton:pressed {
+  border-style: inset;
+  background: #acacac;
+  }</string>
+     </property>
+     <property name="text">
+      <string>Sign In</string>
+     </property>
+    </widget>
    </item>
   </layout>
  </widget>

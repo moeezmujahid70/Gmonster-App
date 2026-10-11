@@ -6,6 +6,7 @@ from typing import Optional
 import imaplib
 import smtplib
 import socket
+import json
 
 import requests
 
@@ -122,6 +123,8 @@ def operation_message(
 
 def login_response_message(response_text: str, endpoint: str = "login") -> UserMessage:
     """Translate an untrusted authentication response into safe UI copy."""
+    if endpoint == "register":
+        return signup_response_message(response_text)
     detail = str(response_text or "").strip().lower()
     if any(token in detail for token in ("password", "credential", "invalid login", "not found")):
         return UserMessage(
@@ -129,16 +132,46 @@ def login_response_message(response_text: str, endpoint: str = "login") -> UserM
             "Account could not sign in",
             "Check the email and password, then try again.",
         )
-    if endpoint == "register" and any(token in detail for token in ("exists", "already", "registered")):
-        return UserMessage(
-            "ACCOUNT_EXISTS",
-            "Account already exists",
-            "Try signing in instead, or use a different email address.",
-        )
     return UserMessage(
         "SERVICE_UNAVAILABLE",
         "Gmonster service is unavailable",
         "Retry shortly. If this continues, contact support with the error reference.",
+    )
+
+
+def signup_response_message(response_text: str) -> UserMessage:
+    """Recognize explicit legacy registration results and future JSON codes."""
+    text = str(response_text or "").strip()
+    success = UserMessage(
+        "REGISTRATION_SUCCESS",
+        "Account created — activation required",
+        "Account created. Contact the admin to activate your account before signing in.",
+    )
+    if text == "Successfully Registered":
+        return success
+    try:
+        payload = json.loads(text)
+    except ValueError:
+        payload = None
+    code = payload.get("code") if isinstance(payload, dict) else None
+    if code == "REGISTRATION_SUCCESS":
+        return success
+    if text == "Account exists—activation required" or code == "ACCOUNT_PENDING_ACTIVATION":
+        return UserMessage(
+            "ACCOUNT_PENDING_ACTIVATION",
+            "Account awaiting activation",
+            "This account already exists and is awaiting activation. Contact the admin to activate it.",
+        )
+    if text == "Already exists" or code == "ACCOUNT_EXISTS":
+        return UserMessage(
+            "ACCOUNT_EXISTS",
+            "Account already exists",
+            "This account already exists. Try signing in.",
+        )
+    return UserMessage(
+        "REGISTRATION_UNKNOWN_RESPONSE",
+        "Could not confirm signup",
+        "The server returned an unexpected response. Contact the admin to check whether your account was created before trying again.",
     )
 
 
