@@ -19,6 +19,7 @@ from imap_base import ImapBase
 from database import Database as DB
 from var import logger
 from user_messages import operation_message, summary_text
+from inbox_flags import downloaded_message_metadata
 
 
 def utc_to_local(utc_dt):
@@ -420,11 +421,8 @@ class ImapDownload(ImapBase, threading.Thread):
                         
                         for j in range(0, len(bulk_data), 2):
                             raw_data, raw_flags = bulk_data[j], bulk_data[j + 1]
-                            flags = raw_flags.decode("utf-8")
-                            flag_status = '\Seen' in flags or "UNSEEN"
-                            
                             uid_raw, message_raw = raw_data[0], raw_data[1]
-                            uid = uid_raw.decode("utf-8").split()[2]
+                            uid, flag_status = downloaded_message_metadata(uid_raw, raw_flags)
                             email_message = email.message_from_string(
                                 message_raw.decode("utf-8", "slashescape")
                             )
@@ -642,7 +640,7 @@ def main(group, folders=None, date=None, notify=True):
     var.download_email_status = False
     if notify and var.inbox_user_messages:
         var.command_q.put(
-            "alert(text={!r}, title='Inbox download needs attention', button='OK')".format(
+            "alert(text={!r}, title='Inbox download needs attention', button='OK', show_log_folder=True)".format(
                 "Inbox download completed with issues.\nDownloaded: {}\nAccounts failed: {}\n\n{}".format(
                     var.total_email_downloaded,
                     var.email_failed,

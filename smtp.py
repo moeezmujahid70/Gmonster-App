@@ -1032,7 +1032,7 @@ def main(group, d_start, d_end, group_selected, num_emails_per_address_range):
                 exc.__class__.__name__,
             )
             var.command_q.put(
-                "alert(text={!r}, title={!r}, button='OK')".format(
+                "alert(text={!r}, title={!r}, button='OK', show_log_folder=True)".format(
                     message.body + "\n\nError reference: " + message.code,
                     message.title,
                 )
@@ -1259,10 +1259,12 @@ def main(group, d_start, d_end, group_selected, num_emails_per_address_range):
             )
             alert_title = "Campaign Completed"
 
-        alert(
-            text=alert_message,
-            title=alert_title,
-            button="OK",
+        var.command_q.put(
+            "alert(text={!r}, title={!r}, button='OK', show_log_folder={!r})".format(
+                alert_message,
+                alert_title,
+                bool(var.campaign_user_messages or email_failed),
+            )
         )
 
 
@@ -1342,7 +1344,7 @@ def follow_up(campaign_id: str):
                         "GUI.label_compose_status.setText('Follow-up cancelled: unsubscribe status could not be verified')"
                     )
                     var.command_q.put(
-                        "alert(text={!r}, title={!r}, button='OK')".format(
+                        "alert(text={!r}, title={!r}, button='OK', show_log_folder=True)".format(
                             message.body + "\n\nError reference: " + message.code,
                             message.title,
                         )
@@ -1400,7 +1402,7 @@ def follow_up(campaign_id: str):
                 "GUI.label_compose_status.setText('Follow-up completed with issues')"
             )
             var.command_q.put(
-                "alert(text={!r}, title='Follow-up needs attention', button='OK')".format(
+                "alert(text={!r}, title='Follow-up needs attention', button='OK', show_log_folder=True)".format(
                     summary_text(var.followup_user_messages)
                 )
             )
@@ -1417,7 +1419,7 @@ def follow_up(campaign_id: str):
             "GUI.label_compose_status.setText({!r})".format(message.title)
         )
         var.command_q.put(
-            "alert(text={!r}, title={!r}, button='OK')".format(
+            "alert(text={!r}, title={!r}, button='OK', show_log_folder=True)".format(
                 message.body + "\n\nError reference: " + message.code,
                 message.title,
             )

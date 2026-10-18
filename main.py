@@ -1,4 +1,5 @@
 from email_validator import validate_email
+from ai_generation import email_reasoning_options
 from textblob import TextBlob
 from gui import Ui_MainWindow
 from database import update_target_verified
@@ -354,6 +355,7 @@ class AIPromptDialog(QDialog):
                 self.client = OpenAI(api_key=effective_key)
                 response = self.client.chat.completions.create(
                     model=get_effective_openai_model(),
+                    **email_reasoning_options(get_effective_openai_model()),
                     messages=[
                         {"role": "system",
                             "content": "You are an expert email copywriter."},
@@ -429,7 +431,9 @@ class ImportSlotsDialog(QDialog):
 
         btn_row = QHBoxLayout()
         self._ok_btn = QPushButton("Import")
+        self._ok_btn.setDefault(True)
         cancel_btn = QPushButton("Cancel")
+        cancel_btn.setAutoDefault(False)
         btn_row.addStretch()
         btn_row.addWidget(cancel_btn)
         btn_row.addWidget(self._ok_btn)
@@ -2322,6 +2326,7 @@ class MyMainClass:
                             if client:
                                 response = client.chat.completions.create(
                                     model=get_effective_openai_model(),
+                                    **email_reasoning_options(get_effective_openai_model()),
                                     messages=[
                                         {"role": "system",
                                             "content": "You are an expert email copywriter."},
@@ -4292,7 +4297,8 @@ class MyMainClass:
             )
             message = operation_message("campaign", e)
             alert(
-                text=display_text(message), title=message.title, button="OK"
+                text=display_text(message), title=message.title, button="OK",
+                show_log_folder=True,
             )
             var.send_campaign_run_status = False
 
@@ -4363,6 +4369,11 @@ class MyMainClass:
         except Exception as e:
             var.download_email_status = False
             self.logger.error("Error at downloading_email - {}".format(e))
+            message = operation_message("imap_download", e)
+            alert(
+                text=display_text(message), title=message.title, button="OK",
+                show_log_folder=True,
+            )
 
     def email_cancel(self):
         result = confirm(

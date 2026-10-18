@@ -554,7 +554,8 @@ font-size: 12px;</string>
               <enum>Qt::LeftToRight</enum>
             </property>
             <property name="styleSheet">
-              <string notr="true">QToolButton {
+              <string notr="true">/* Hide only direct stack controls; preserve calendar navigation buttons. */
+QStackedWidget > QToolButton {
     background: none;
     border: none;
     min-width: 0px; 
@@ -679,13 +680,13 @@ font-size: 12px;</string>
             }
             /* Calendar popup styling */
             QCalendarWidget QToolButton {
-                color: #ffffff;
+                color: #444;
                 background-color: #eff2f8;
                 border: none;
                 font-size: 14px;
             }
             QCalendarWidget QToolButton:hover {
-                background-color: #eff2f8;
+                background-color: #dde5ef;
             }
             QCalendarWidget QSpinBox {
                 width: 100px;
@@ -3223,6 +3224,8 @@ QScrollBar:vertical {
                 border: none;
                 background: #f5f5f5;
                 width: 10px;
+                /* The surrounding panel's padding must not shrink the handle. */
+                padding: 0px;
                 margin: 0px 0px 0px 0px;
             }
             QScrollBar::handle:vertical {
