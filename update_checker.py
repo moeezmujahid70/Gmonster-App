@@ -18,6 +18,11 @@ class UpdateHandler:
 
     def download(self):
         try:
+            if var.RUNTIME_PATHS.is_frozen_windows:
+                logger.info(
+                    "A new installer release is available; automatic ZIP replacement is disabled."
+                )
+                return False
             logger.info(
                 "Internal Process: Update downloading process starting.")
             headers = {"user-agent": "Wget/1.16 (linux-gnu)"}
@@ -58,6 +63,7 @@ class UpdateHandler:
                 "Error at UpdateHandler.download: {}".format(
                     traceback.format_exc())
             )
+            return False
 
 
 def update_checker():

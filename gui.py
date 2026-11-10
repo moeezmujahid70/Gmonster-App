@@ -20,7 +20,7 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
         MainWindow.setSizePolicy(sizePolicy)
-        MainWindow.setMinimumSize(QtCore.QSize(1300, 800))
+        MainWindow.setMinimumSize(QtCore.QSize(1300, 700))
         font = QtGui.QFont()
         font.setFamily("Calibri")
         font.setPointSize(11)
@@ -299,7 +299,8 @@ class Ui_MainWindow(object):
         font.setPointSize(9)
         self.stackedWidget.setFont(font)
         self.stackedWidget.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.stackedWidget.setStyleSheet("QToolButton {\n"
+        self.stackedWidget.setStyleSheet("/* Hide only direct stack controls; preserve calendar navigation buttons. */\n"
+"QStackedWidget > QToolButton {\n"
 "    background: none;\n"
 "    border: none;\n"
 "    min-width: 0px; \n"
@@ -344,13 +345,14 @@ class Ui_MainWindow(object):
         self.verticalLayout_17 = QtWidgets.QVBoxLayout(self.frame)
         self.verticalLayout_17.setObjectName("verticalLayout_17")
         self.horizontalLayout_22 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_22.setSpacing(20)
+        self.horizontalLayout_22.setSpacing(8)
         self.horizontalLayout_22.setObjectName("horizontalLayout_22")
         self.verticalLayout_18 = QtWidgets.QVBoxLayout()
         self.verticalLayout_18.setSpacing(0)
         self.verticalLayout_18.setObjectName("verticalLayout_18")
         self.dateEdit_imap_since = QtWidgets.QDateEdit(self.frame)
-        self.dateEdit_imap_since.setMinimumSize(QtCore.QSize(115, 25))
+        self.dateEdit_imap_since.setMinimumSize(QtCore.QSize(150, 30))
+        self.dateEdit_imap_since.setMaximumSize(QtCore.QSize(150, 16777215))
         font = QtGui.QFont()
         font.setPointSize(-1)
         self.dateEdit_imap_since.setFont(font)
@@ -358,20 +360,39 @@ class Ui_MainWindow(object):
 "            /* Base styling for QDateEdit */\n"
 "            QDateEdit {\n"
 "                border: none;\n"
-"                padding: 5px;\n"
+"                border-radius: 6px;\n"
+"                padding: 5px 28px 5px 10px;\n"
 "                background-color: #eff2f8;\n"
-"                color: #888;\n"
-"                font-size: 16px;\n"
+"                color: #444;\n"
+"                font-size: 14px;\n"
+"                font-weight: 600;\n"
+"            }\n"
+"            QDateEdit::drop-down {\n"
+"                subcontrol-origin: padding;\n"
+"                subcontrol-position: top right;\n"
+"                width: 24px;\n"
+"                border: none;\n"
+"                border-top-right-radius: 6px;\n"
+"                border-bottom-right-radius: 6px;\n"
+"                background: transparent;\n"
+"            }\n"
+"            QDateEdit::drop-down:hover {\n"
+"                background-color: rgba(0, 0, 0, 0.08);\n"
+"            }\n"
+"            QDateEdit::down-arrow {\n"
+"                image: url(:/icons/icons/chevron_down.svg);\n"
+"                width: 11px;\n"
+"                height: 11px;\n"
 "            }\n"
 "            /* Calendar popup styling */\n"
 "            QCalendarWidget QToolButton {\n"
-"                color: #ffffff;\n"
+"                color: #444;\n"
 "                background-color: #eff2f8;\n"
 "                border: none;\n"
 "                font-size: 14px;\n"
 "            }\n"
 "            QCalendarWidget QToolButton:hover {\n"
-"                background-color: #eff2f8;\n"
+"                background-color: #dde5ef;\n"
 "            }\n"
 "            QCalendarWidget QSpinBox {\n"
 "                width: 100px;\n"
@@ -396,28 +417,28 @@ class Ui_MainWindow(object):
         self.dateEdit_imap_since.setObjectName("dateEdit_imap_since")
         self.verticalLayout_18.addWidget(self.dateEdit_imap_since)
         self.frame_3 = QtWidgets.QFrame(self.frame)
-        self.frame_3.setMinimumSize(QtCore.QSize(0, 50))
-        self.frame_3.setMaximumSize(QtCore.QSize(16777215, 50))
+        self.frame_3.setMinimumSize(QtCore.QSize(150, 36))
+        self.frame_3.setMaximumSize(QtCore.QSize(150, 36))
         self.frame_3.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.frame_3.setFrameShadow(QtWidgets.QFrame.Raised)
         self.frame_3.setObjectName("frame_3")
         self.horizontalLayout_21 = QtWidgets.QHBoxLayout(self.frame_3)
-        self.horizontalLayout_21.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayout_21.setContentsMargins(31, 0, 31, 0)
         self.horizontalLayout_21.setSpacing(0)
         self.horizontalLayout_21.setObjectName("horizontalLayout_21")
         self.radioButton_group_a = QtWidgets.QRadioButton(self.frame_3)
-        self.radioButton_group_a.setMaximumSize(QtCore.QSize(16777215, 50))
+        self.radioButton_group_a.setMaximumSize(QtCore.QSize(36, 36))
         self.radioButton_group_a.setStyleSheet("QRadioButton::indicator {\n"
 "                width: 0px; /* Hide the circle indicator */\n"
 "                height: 0px;\n"
 "            }\n"
 "QRadioButton {\n"
-"                font-size: 40px;\n"
+"                font-size: 28px;\n"
 "                color: #888;\n"
 "                background-color: transparent;\n"
 "                text-align:left;\n"
 "                border: none;\n"
-"padding-left:5px;\n"
+"padding-left:2px;\n"
 "            }\n"
 "            QRadioButton:checked {\n"
 "                font-weight: bold;\n"
@@ -426,11 +447,10 @@ class Ui_MainWindow(object):
         self.radioButton_group_a.setObjectName("radioButton_group_a")
         self.horizontalLayout_21.addWidget(self.radioButton_group_a)
         self.label = QtWidgets.QLabel(self.frame_3)
-        self.label.setMinimumSize(QtCore.QSize(35, 0))
-        self.label.setMaximumSize(QtCore.QSize(35, 50))
+        self.label.setMinimumSize(QtCore.QSize(14, 0))
+        self.label.setMaximumSize(QtCore.QSize(14, 36))
         self.label.setStyleSheet("color: #555;\n"
-"font-size: 35px;\n"
-"padding-left:10px;")
+"font-size: 26px;")
         self.label.setObjectName("label")
         self.horizontalLayout_21.addWidget(self.label)
         self.radioButton_group_b = QtWidgets.QRadioButton(self.frame_3)
@@ -439,17 +459,17 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.radioButton_group_b.sizePolicy().hasHeightForWidth())
         self.radioButton_group_b.setSizePolicy(sizePolicy)
-        self.radioButton_group_b.setMaximumSize(QtCore.QSize(16777215, 50))
+        self.radioButton_group_b.setMaximumSize(QtCore.QSize(36, 36))
         self.radioButton_group_b.setStyleSheet("QRadioButton::indicator {\n"
 "                width: 0px; /* Hide the circle indicator */\n"
 "                height: 0px;\n"
 "            }\n"
 "QRadioButton {\n"
-"                font-size: 40px;\n"
+"                font-size: 28px;\n"
 "                color: #888;\n"
 "                background-color: transparent;\n"
 "                border: none;\n"
-"padding-left:10px;\n"
+"padding-left:2px;\n"
 "            }\n"
 "            QRadioButton:checked {\n"
 "                font-weight: bold;\n"
@@ -474,11 +494,11 @@ class Ui_MainWindow(object):
 "                height: 0px;\n"
 "            }\n"
 "QRadioButton {\n"
-"                font-size: 22px;\n"
+"                font-size: 20px;\n"
 "                color: #888;\n"
 "                background-color: transparent;\n"
 "                border: none;\n"
-"                padding: 5px 10px;\n"
+"                padding: 5px 6px;\n"
 "            }\n"
 "            QRadioButton:checked {\n"
 "                font-weight: bold;\n"
@@ -495,12 +515,12 @@ class Ui_MainWindow(object):
 "                height: 0px;\n"
 "            }\n"
 "QRadioButton {\n"
-"                font-size: 22px;\n"
+"                font-size: 20px;\n"
 "                color: #888;\n"
 "                background-color: transparent;\n"
 "                text-align:left;\n"
 "                border: none;\n"
-"                padding: 5px 10px;\n"
+"                padding: 5px 6px;\n"
 "            }\n"
 "            QRadioButton:checked {\n"
 "                font-weight: bold;\n"
@@ -518,11 +538,11 @@ class Ui_MainWindow(object):
 "                height: 0px;\n"
 "            }\n"
 "QRadioButton {\n"
-"                font-size: 22px;\n"
+"                font-size: 20px;\n"
 "                color: #888;\n"
 "                background-color: transparent;\n"
 "                border: none;\n"
-"                padding: 5px 10px;\n"
+"                padding: 5px 6px;\n"
 "            }\n"
 "            QRadioButton:checked {\n"
 "                font-weight: bold;\n"
@@ -539,12 +559,12 @@ class Ui_MainWindow(object):
 "                height: 0px;\n"
 "            }\n"
 "QRadioButton {\n"
-"                font-size: 22px;\n"
+"                font-size: 20px;\n"
 "                color: #888;\n"
 "                background-color: transparent;\n"
 "                text-align:left;\n"
 "                border: none;\n"
-"                padding: 5px 10px;\n"
+"                padding: 5px 6px;\n"
 "            }\n"
 "            QRadioButton:checked {\n"
 "                font-weight: bold;\n"
@@ -554,8 +574,7 @@ class Ui_MainWindow(object):
         self.radioButton_email_all.setObjectName("radioButton_email_all")
         self.gridLayout_5.addWidget(self.radioButton_email_all, 0, 0, 1, 1)
         self.horizontalLayout_22.addWidget(self.widget_3)
-        self.horizontalLayout_22.setStretch(0, 1)
-        self.horizontalLayout_22.setStretch(1, 2)
+        self.horizontalLayout_22.setStretch(1, 1)
         self.verticalLayout_17.addLayout(self.horizontalLayout_22)
         self.line_33 = QtWidgets.QFrame(self.frame)
         self.line_33.setFrameShape(QtWidgets.QFrame.HLine)
@@ -1728,6 +1747,8 @@ class Ui_MainWindow(object):
 "                border: none;\n"
 "                background: #f5f5f5;\n"
 "                width: 10px;\n"
+"                /* The surrounding panel\'s padding must not shrink the handle. */\n"
+"                padding: 0px;\n"
 "                margin: 0px 0px 0px 0px;\n"
 "            }\n"
 "            QScrollBar::handle:vertical {\n"
@@ -2062,6 +2083,29 @@ class Ui_MainWindow(object):
 "    }")
         self.pushButton_load_db.setObjectName("pushButton_load_db")
         self.verticalLayout_13.addWidget(self.pushButton_load_db)
+        self.pushButton_open_sheets_folder = QtWidgets.QPushButton(self.groupBox_7)
+        self.pushButton_open_sheets_folder.setMinimumSize(QtCore.QSize(0, 50))
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(15)
+        font.setBold(False)
+        font.setWeight(50)
+        self.pushButton_open_sheets_folder.setFont(font)
+        self.pushButton_open_sheets_folder.setStyleSheet("QPushButton {\n"
+"    border: 1px solid #028fc3;\n"
+"    border-radius: 3px;\n"
+"    background: #ffffff;\n"
+"    padding: 5px 28px;\n"
+"    color: #028fc3;\n"
+"    }\n"
+"QPushButton:hover {\n"
+"    background: #e6f5fa;\n"
+"    }\n"
+"QPushButton:pressed {\n"
+"    background: #d2ecf5;\n"
+"    }")
+        self.pushButton_open_sheets_folder.setObjectName("pushButton_open_sheets_folder")
+        self.verticalLayout_13.addWidget(self.pushButton_open_sheets_folder)
         self.pushButton_export_targets = QtWidgets.QPushButton(self.groupBox_7)
         self.pushButton_export_targets.setMinimumSize(QtCore.QSize(0, 50))
         font = QtGui.QFont()
@@ -2154,8 +2198,8 @@ class Ui_MainWindow(object):
         font = QtGui.QFont()
         font.setFamily("Arial")
         font.setPointSize(12)
-        font.setBold(True)
-        font.setWeight(75)
+        font.setBold(False)
+        font.setWeight(50)
         self.pushButton_select_toggle.setFont(font)
         self.pushButton_select_toggle.setStyleSheet("QPushButton {\n"
 "                background-color: transparent;\n"
@@ -2168,7 +2212,7 @@ class Ui_MainWindow(object):
 "                background-color: rgba(0, 138, 191, 0.1);\n"
 "            }")
         self.pushButton_select_toggle.setCheckable(True)
-        self.pushButton_select_toggle.setChecked(True)
+        self.pushButton_select_toggle.setChecked(False)
         self.pushButton_select_toggle.setObjectName("pushButton_select_toggle")
         self.verticalLayout_dropdown.addWidget(self.pushButton_select_toggle)
         self.frame_checkboxes = QtWidgets.QFrame(self.frame_verifier_dropdown)
@@ -2394,7 +2438,7 @@ class Ui_MainWindow(object):
         self.line_25.setObjectName("line_25")
         self.verticalLayout_14.addWidget(self.line_25)
         self.checkBox_configuration_followup_enabled = QtWidgets.QCheckBox(self.groupBox_11)
-        self.checkBox_configuration_followup_enabled.setMinimumSize(QtCore.QSize(0, 25))
+        self.checkBox_configuration_followup_enabled.setMinimumSize(QtCore.QSize(0, 45))
         font = QtGui.QFont()
         font.setPointSize(-1)
         self.checkBox_configuration_followup_enabled.setFont(font)
@@ -2631,7 +2675,7 @@ class Ui_MainWindow(object):
         self.line_28.setObjectName("line_28")
         self.verticalLayout_20.addWidget(self.line_28)
         self.checkBox_configuration_autoReply_enabled = QtWidgets.QCheckBox(self.groupBox_13)
-        self.checkBox_configuration_autoReply_enabled.setMinimumSize(QtCore.QSize(0, 25))
+        self.checkBox_configuration_autoReply_enabled.setMinimumSize(QtCore.QSize(0, 45))
         font = QtGui.QFont()
         font.setPointSize(-1)
         self.checkBox_configuration_autoReply_enabled.setFont(font)
@@ -3227,6 +3271,36 @@ class Ui_MainWindow(object):
         self.label_11.setStyleSheet("margin-left: 5px;")
         self.label_11.setObjectName("label_11")
         self.gridLayout_4.addWidget(self.label_11, 21, 2, 1, 1)
+        self.label_blacklist_files = QtWidgets.QLabel(self.groupBox_10)
+        self.label_blacklist_files.setMinimumSize(QtCore.QSize(0, 25))
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(12)
+        self.label_blacklist_files.setFont(font)
+        self.label_blacklist_files.setStyleSheet("margin-left: 5px;")
+        self.label_blacklist_files.setObjectName("label_blacklist_files")
+        self.gridLayout_4.addWidget(self.label_blacklist_files, 22, 2, 1, 1)
+        self.pushButton_open_blacklists_folder = QtWidgets.QPushButton(self.groupBox_10)
+        self.pushButton_open_blacklists_folder.setMinimumSize(QtCore.QSize(0, 42))
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(12)
+        self.pushButton_open_blacklists_folder.setFont(font)
+        self.pushButton_open_blacklists_folder.setStyleSheet("QPushButton {\n"
+"    border: 1px solid #028fc3;\n"
+"    border-radius: 3px;\n"
+"    background: #ffffff;\n"
+"    padding: 5px 16px;\n"
+"    color: #028fc3;\n"
+"    }\n"
+"QPushButton:hover {\n"
+"    background: #e6f5fa;\n"
+"    }\n"
+"QPushButton:pressed {\n"
+"    background: #d2ecf5;\n"
+"    }")
+        self.pushButton_open_blacklists_folder.setObjectName("pushButton_open_blacklists_folder")
+        self.gridLayout_4.addWidget(self.pushButton_open_blacklists_folder, 22, 4, 1, 2)
         spacerItem63 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.gridLayout_4.addItem(spacerItem63, 10, 0, 1, 1)
         self.label_25 = QtWidgets.QLabel(self.groupBox_10)
@@ -4587,10 +4661,11 @@ class Ui_MainWindow(object):
         self.radioButton_db_groupb.setText(_translate("MainWindow", "Group B"))
         self.radioButton_db_target.setText(_translate("MainWindow", "Target"))
         self.pushButton_load_db.setText(_translate("MainWindow", "Import"))
+        self.pushButton_open_sheets_folder.setText(_translate("MainWindow", "Open Sheets Folder"))
         self.pushButton_export_targets.setText(_translate("MainWindow", "Export targets"))
         self.label_target_count.setText(_translate("MainWindow", "Targets: 0"))
         self.pushButton_email_verify.setText(_translate("MainWindow", "Email verifier"))
-        self.pushButton_select_toggle.setText(_translate("MainWindow", "▼ Select"))
+        self.pushButton_select_toggle.setText(_translate("MainWindow", "► Select"))
         self.checkBox_safe.setText(_translate("MainWindow", "Safe"))
         self.checkBox_risky.setText(_translate("MainWindow", "Risky"))
         self.checkBox_unknown.setText(_translate("MainWindow", "Unknown"))
@@ -4633,6 +4708,9 @@ class Ui_MainWindow(object):
         self.label_17.setText(_translate("MainWindow", "Google Analytics API key"))
         self.lineEdit_email_tracking_campaign_name.setPlaceholderText(_translate("MainWindow", "Letters, numbers and \"_\" only (no spaces)"))
         self.label_11.setText(_translate("MainWindow", "Target blacklist"))
+        self.label_blacklist_files.setText(_translate("MainWindow", "Blacklist files"))
+        self.pushButton_open_blacklists_folder.setToolTip(_translate("MainWindow", "Open the folder with blacklist.txt (negative reply words) and verify_blacklist.txt (emails skipped by the verifier)"))
+        self.pushButton_open_blacklists_folder.setText(_translate("MainWindow", "Open Blacklist Folder"))
         self.label_25.setText(_translate("MainWindow", "Webhook interval"))
         self.checkBox_auto_fire_responses_webhook.setText(_translate("MainWindow", "Auto fire responses webhook"))
         self.label_12.setText(_translate("MainWindow", "Inbox blacklist"))

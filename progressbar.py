@@ -2,6 +2,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from threading import Thread
 import var
 from var import logger
+from user_messages import summary_text
 from p_gui import Ui_Dialog
 import os
 import requests
@@ -150,11 +151,20 @@ class DeleteEmail(Ui_Dialog):
             self.progressBar.setValue(value)
         elif not delete_status:
             value = int(var.delete_email_count / total_email_count * 100)
-            self.label_status.setText(
-                "Deleting Finished : {}/{}".format(
-                    var.delete_email_count, total_email_count
+            if var.inbox_user_messages:
+                self.label_status.setText(
+                    "Deleting completed with issues: {}/{}\n{}".format(
+                        var.delete_email_count,
+                        total_email_count,
+                        summary_text(var.inbox_user_messages),
+                    )
                 )
-            )
+            else:
+                self.label_status.setText(
+                    "Deleting Finished : {}/{}".format(
+                        var.delete_email_count, total_email_count
+                    )
+                )
             self.progressBar.setValue(value)
             self.pushButton_cancel.setText("Close")
         else:
@@ -169,6 +179,7 @@ def thread_starter():
     total_email_count = len(temp_df)
     temp_df = temp_df.groupby("user")
     var.delete_email_count = 0
+    var.inbox_user_messages = []
     var.stop_delete = False
     from imap import ImapDeleteEmail
 

@@ -5,6 +5,7 @@ from threading import Thread
 import var
 from var import logger
 from p_gui import Ui_Dialog
+from user_messages import display_text, operation_message
 import os
 import sys
 
@@ -43,7 +44,8 @@ class Reply(Ui_Dialog):
             self.progressBar.setValue(100)
 
         else:
-            self.label_status.setText("Replying Failed!!!")
+            message = reply_mail.failure_message or operation_message("reply")
+            self.label_status.setText(display_text(message))
 
         self.pushButton_cancel.setText("Close")
 

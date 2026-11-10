@@ -15,7 +15,8 @@ import var
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        Dialog.resize(470, 209)
+        Dialog.resize(560, 400)
+        Dialog.setMinimumSize(QtCore.QSize(560, 400))
         font = QtGui.QFont()
         font.setFamily("Calibri")
         font.setPointSize(11)
@@ -148,10 +149,8 @@ class Ui_Dialog(object):
         self.horizontalLayout_3.setStretch(0, 2)
         self.horizontalLayout_3.setStretch(1, 3)
         self.verticalLayout.addLayout(self.horizontalLayout_3)
-        self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_4.setContentsMargins(-1, 30, -1, -1)
-        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
         self.label_status = QtWidgets.QLabel(Dialog)
+        self.label_status.setMinimumSize(QtCore.QSize(0, 130))
         font = QtGui.QFont()
         font.setFamily("Arial")
         font.setPointSize(10)
@@ -163,7 +162,10 @@ class Ui_Dialog(object):
             QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
         self.label_status.setWordWrap(True)
         self.label_status.setObjectName("label_status")
-        self.horizontalLayout_4.addWidget(self.label_status)
+        self.verticalLayout.addWidget(self.label_status)
+        self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_4.setContentsMargins(-1, 10, -1, -1)
+        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
         self.pushButton_sign_up = QtWidgets.QPushButton(Dialog)
         self.pushButton_sign_up.setMinimumSize(QtCore.QSize(150, 0))
         font = QtGui.QFont()
@@ -189,9 +191,33 @@ class Ui_Dialog(object):
                                               "    }")
         self.pushButton_sign_up.setObjectName("pushButton_sign_up")
         self.horizontalLayout_4.addWidget(self.pushButton_sign_up)
-        self.horizontalLayout_4.setStretch(0, 5)
-        self.horizontalLayout_4.setStretch(1, 2)
         self.verticalLayout.addLayout(self.horizontalLayout_4)
+        self.pushButton_sign_in = QtWidgets.QPushButton(Dialog)
+        self.pushButton_sign_in.setMinimumSize(QtCore.QSize(150, 0))
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(11)
+        self.pushButton_sign_in.setFont(font)
+        self.pushButton_sign_in.setStyleSheet("QPushButton {\n"
+"  border: 1px solid #555;\n"
+"  border-radius: 5px;\n"
+"  border-style: Solid;\n"
+"  background:  rgb(255, 255, 255);\n"
+"  padding: 5px 28px;\n"
+"  color: #555;\n"
+"  }\n"
+"\n"
+"QPushButton:hover {\n"
+"  background:#acacac;\n"
+"  }\n"
+"\n"
+"QPushButton:pressed {\n"
+"  border-style: inset;\n"
+"  background: #acacac;\n"
+"  }")
+        self.pushButton_sign_in.setObjectName("pushButton_sign_in")
+        self.verticalLayout.addWidget(self.pushButton_sign_in)
+
 
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
@@ -207,3 +233,4 @@ class Ui_Dialog(object):
         self.lineEdit_confirm_password.setPlaceholderText(
             _translate("Dialog", "8 characters minimum"))
         self.pushButton_sign_up.setText(_translate("Dialog", "Sign Up"))
+        self.pushButton_sign_in.setText(_translate("Dialog", "Sign In"))

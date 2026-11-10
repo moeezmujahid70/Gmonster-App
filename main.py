@@ -1,4 +1,6 @@
 from email_validator import validate_email
+from ai_generation import AIRequestError, email_reasoning_options, request_server_ai
+from ai_prompt_dialog import AIPromptDialog, show_answer_in_editor
 from textblob import TextBlob
 from gui import Ui_MainWindow
 from database import update_target_verified
@@ -21,7 +23,11 @@ from unsubscribe_client import add_manual, get_records, get_setting, update_sett
 from unsubscribe_management import default_export_path, export_records
 from unsubscribe_page import UnsubscribePage
 from unsubscribe_setting import UnsubscribeSettingController
+from user_messages import display_text, operation_message
 from campaign_progress import campaign_progress_state
+from runtime_paths import open_blacklists_folder as open_runtime_blacklists_folder
+from runtime_paths import open_sheets_folder as open_runtime_sheets_folder
+from runtime_paths import wum_executable_path
 import subprocess
 import signal
 from datetime import datetime
@@ -66,6 +72,23 @@ try:
     qta = importlib.import_module("qtawesome")
 except Exception:
     qta = None
+
+TOOL_NAVIGATION_ITEMS = (
+    "Follow-up",
+    "Auto-reply",
+    "Statistics",
+    "Leads",
+    "Warm up",
+)
+
+TOOL_MENU_ICON_NAMES = {
+    "Follow-up": "fa5s.reply",
+    "Auto-reply": "fa5s.robot",
+    "Statistics": "fa5s.chart-bar",
+    "Leads": "fa5s.user-friends",
+    "Warm up": "fa5s.fire",
+}
+
 global app
 global mainWindow
 global myMC
@@ -86,109 +109,36 @@ def get_effective_openai_model():
     return "gpt-5-nano"
 
 
-def _call_server_ai(prompt):
-    """Call the server-side AI endpoint when no user OpenAI key is configured."""
-    import requests as _requests
-    url = var.api + 'verify/ai_response'
-    last_error = None
-    for attempt in range(2):
-        try:
-            return _call_server_ai_once(prompt, _requests, url)
-        except Exception as e:
-            last_error = e
-            if attempt == 0 and _should_retry_ai_error(e):
-                sleep(1)
-                continue
-            raise
-    raise last_error
+def generate_ai_answer(prompt):
+    """Generate with the user's own OpenAI key when set, otherwise via the server.
 
-
-def _call_server_ai_once(prompt, _requests, url):
-    resp = _requests.post(
-        url,
-        json={
-            'email': var.login_email,
-            'password': var.login_password,
-            'machine_uuid': var.login_machine_uuid,
-            'processor_id': var.login_processor_id,
-            'prompt': prompt,
-        },
-        timeout=(var.API_CONNECT_TIMEOUT, 40),
-    )
-    if not resp.ok:
-        raise ServerAIResponseError(_server_ai_error_message(resp), resp)
-    data = resp.json()
-    if data.get("status") == "ok":
-        return data.get('answer', '')
-    if data.get("error") or data.get("error_code") or data.get("message"):
-        raise ServerAIResponseError(_server_ai_error_message(resp), resp)
-    return data.get('answer', '')
-
-
-class ServerAIResponseError(Exception):
-    def __init__(self, message, response=None):
-        super().__init__(message)
-        self.response = response
-
-
-def _server_ai_error_message(response):
-    data = {}
+    The server handles provider selection and fallback; no provider keys live in
+    the GUI. Raises AIRequestError (or any exception, which the dialog reports).
+    """
+    effective_key = get_effective_openai_key()
+    if not effective_key:
+        return request_server_ai(prompt).answer
     try:
-        data = response.json()
-    except Exception:
-        data = {}
-    message = data.get("message")
-    if message:
-        return message
-    error_code = data.get("error_code") or data.get("error")
-    status_code = response.status_code
-    return _map_ai_error_message(status_code=status_code, error_code=error_code)
-
-
-def _map_ai_error_message(status_code=None, error_code=None):
-    if status_code == 504 or error_code == "ai_upstream_timeout":
-        return "The AI is taking too long to respond. Please try again."
-    if status_code == 429 or error_code == "ai_rate_limited":
-        return "The AI service is busy right now. Please wait a moment and retry."
-    if status_code == 503 or error_code == "ai_connection_error":
-        return "The server could not reach the AI service. Please try again."
-    if (
-        status_code == 502
-        or error_code in ("ai_provider_server_error", "ai_upstream_error")
-    ):
-        return "The AI service failed temporarily. Please try again later."
-    return "The AI service failed temporarily. Please try again later."
-
-
-def _should_retry_ai_error(error):
-    if isinstance(error, (requests.exceptions.Timeout, requests.exceptions.ConnectionError)):
-        return True
-    if isinstance(error, ServerAIResponseError) and error.response is not None:
-        try:
-            data = error.response.json()
-        except Exception:
-            data = {}
-        if data.get("retryable") is True:
-            return True
-        status_code = error.response.status_code
-        error_code = data.get("error_code") or data.get("error")
-        return status_code in (502, 503, 504) or error_code in (
-            "ai_upstream_timeout",
-            "ai_connection_error",
-            "ai_provider_server_error",
-            "ai_upstream_error",
+        client = OpenAI(api_key=effective_key)
+        response = client.chat.completions.create(
+            model=get_effective_openai_model(),
+            **email_reasoning_options(get_effective_openai_model()),
+            messages=[
+                {"role": "system",
+                    "content": "You are an expert email copywriter."},
+                {"role": "user", "content": prompt},
+            ],
         )
-    return False
-
-
-def _ai_exception_message(error):
-    if isinstance(error, ServerAIResponseError):
-        return str(error)
-    if isinstance(error, requests.exceptions.Timeout):
-        return "The request took too long. Please try again."
-    if isinstance(error, requests.exceptions.ConnectionError):
-        return "Network error. Please check your internet connection and try again."
-    return "The AI service failed temporarily. Please try again later."
+    except OpenAIAuthError:
+        raise AIRequestError(
+            "Your OpenAI API key is invalid or has expired.\n\n"
+            "To use the built-in AI access instead, go to "
+            "Settings -> OpenAI key and clear the key field, then save."
+        )
+    answer = response.choices[0].message.content
+    if not (answer or "").strip():
+        raise AIRequestError("The AI returned an empty response. Please try again.")
+    return answer
 
 
 STATISTICS_REPLY_CATEGORIES = {
@@ -268,111 +218,6 @@ def build_statistics_openai_reply_classifier():
     return classify
 
 
-class AIPromptDialog(QDialog):
-    promptSubmitted = pyqtSignal(str)
-    aiSucceeded = pyqtSignal(str)
-    aiFailed = pyqtSignal(str)
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.client = None
-        self._request_in_progress = False
-        self._worker_thread = None
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
-        self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setGeometry(300, 200, 400, 300)
-        layout = QVBoxLayout(self)
-        self.title_label = QLabel("AI Assistant")
-        layout.addWidget(self.title_label)
-        self.text_input = QTextEdit(var.compose_prompt)
-        layout.addWidget(self.text_input)
-        self.status_label = QLabel("")
-        self.status_label.hide()
-        layout.addWidget(self.status_label)
-        self.loader = QProgressBar()
-        self.loader.setRange(0, 0)
-        self.loader.hide()
-        layout.addWidget(self.loader)
-        button_layout = QHBoxLayout()
-        button_layout.setContentsMargins(0, 0, 10, 10)
-        self.send_button = QPushButton("Send Prompt")
-        self.send_button.clicked.connect(self.get_ai_response)
-        self.close_button = QPushButton("Close Prompt")
-        self.close_button.clicked.connect(self.reject)
-        button_layout.addStretch()
-        button_layout.addWidget(self.send_button)
-        button_layout.addWidget(self.close_button)
-        layout.addLayout(button_layout)
-        self.setStyleSheet(
-            "\n            QLabel::indicator {\n                width: 0px; /* Hide the circle indicator */\n                height: 0px;\n            }\n            QLabel {\n                font-size: 20px;\n                color: #000;\n                background-color: transparent;\n                border: none;\n                padding: 10px;\n            }\n                                    \n            QDialog {\n                background-color: #f9f9f9;\n                border-radius: 20px;\n                padding: 10px;\n            }\n\n            QTextEdit {\n                border: 2px solid black;    /* Black border */\n                border-radius: 10px;\n                padding: 5px;\n                background-color: #ffffff;\n            }\n\n            QDialogButtonBox {\n                background-color: #d4d4d4;\n                border-radius: 10px;\n                padding: 5px;\n            }\n\n            QPushButton {\n                border: 1px solid #555;\n                border-radius: 3px;\n                border-style: Solid;\n                background: rgba(0, 138, 191);\n                padding: 5px 28px;\n                color: rgb(255, 255, 255);\n                }\n            \n            QPushButton:hover {\n                background: rgba(0, 138, 191, 0.6);\n                opacity: 0.2\n                }\n            \n            QPushButton:pressed {\n                border-style: inset;\n                background: rgb(0, 138, 191);\n                }\n        "
-        )
-        self.aiSucceeded.connect(self._handle_ai_success)
-        self.aiFailed.connect(self._handle_ai_failure)
-
-    def get_ai_response(self):
-        if self._request_in_progress:
-            return
-        prompt = self.text_input.toPlainText().strip()
-        var.compose_prompt = prompt
-        Thread(target=update_config_json, daemon=True).start()
-        if not prompt:
-            alert(text="Please enter a prompt.", title="Warning", button="OK")
-            return
-        self._set_ai_loading(True, "Generating response...")
-        QtCore.QTimer.singleShot(10000, self._show_slow_ai_status)
-        self._worker_thread = Thread(
-            target=self._run_ai_request,
-            daemon=True,
-            args=(prompt,),
-        )
-        self._worker_thread.start()
-
-    def _run_ai_request(self, prompt):
-        effective_key = get_effective_openai_key()
-        try:
-            if effective_key:
-                self.client = OpenAI(api_key=effective_key)
-                response = self.client.chat.completions.create(
-                    model=get_effective_openai_model(),
-                    messages=[
-                        {"role": "system",
-                            "content": "You are an expert email copywriter."},
-                        {"role": "user", "content": prompt},
-                    ],
-                )
-                answer = response.choices[0].message.content
-            else:
-                answer = _call_server_ai(prompt)
-            self.aiSucceeded.emit(answer)
-        except OpenAIAuthError:
-            self.aiFailed.emit(
-                "Your OpenAI API key is invalid or has expired.\n\n"
-                "To use the built-in AI access instead, go to "
-                "Settings -> OpenAI key and clear the key field, then save."
-            )
-        except Exception as e:
-            self.aiFailed.emit(_ai_exception_message(e))
-
-    def _set_ai_loading(self, is_loading, status_text=""):
-        self._request_in_progress = is_loading
-        self.send_button.setEnabled(not is_loading)
-        self.loader.setVisible(is_loading)
-        self.status_label.setText(status_text)
-        self.status_label.setVisible(bool(status_text))
-
-    def _show_slow_ai_status(self):
-        if self._request_in_progress:
-            self.status_label.setText("Still working, this can take a little longer...")
-
-    def _handle_ai_success(self, answer):
-        self._set_ai_loading(False)
-        self.promptSubmitted.emit(answer)
-
-    def _handle_ai_failure(self, message):
-        self._set_ai_loading(False)
-        alert(text=message, title="Error", button="OK")
-
-
 class ImportSlotsDialog(QDialog):
     def __init__(self, plan_limit, sheet_counts, group_a_enabled, group_b_enabled, parent=None):
         super().__init__(parent)
@@ -409,7 +254,9 @@ class ImportSlotsDialog(QDialog):
 
         btn_row = QHBoxLayout()
         self._ok_btn = QPushButton("Import")
+        self._ok_btn.setDefault(True)
         cancel_btn = QPushButton("Cancel")
+        cancel_btn.setAutoDefault(False)
         btn_row.addStretch()
         btn_row.addWidget(cancel_btn)
         btn_row.addWidget(self._ok_btn)
@@ -507,6 +354,7 @@ class MyMainClass:
         self.setup_inbox_date_header()
         self.setup_inbox_search()
         self.setup_sidebar_icons()
+        self.make_database_sidebar_scrollable()
         GUI.checkBox_delete_all.stateChanged.connect(
             lambda state: self.toggle_all_checkboxes(
                 state, GUI.checkBox_delete_all)
@@ -535,6 +383,7 @@ class MyMainClass:
         self.unsubscribe_page.refreshRequested.connect(self.load_unsubscribe_records)
         self.unsubscribe_page.manualAddRequested.connect(self.add_manual_unsubscribe)
         self.unsubscribe_page.exportRequested.connect(self.export_unsubscribe_records)
+        self.setup_sidebar_tools_menu()
         self.setup_sidebar_icons()
         GUI.listWidget.currentRowChanged.connect(self.list_clicked)
         GUI.lineEdit_email_tracking_analytics_account.setText(
@@ -777,7 +626,8 @@ class MyMainClass:
             self.toggle_checkbox_section)
         # Initialize dropdown visibility
         GUI.frame_verifier_dropdown.setVisible(True)
-        GUI.frame_checkboxes.setVisible(True)
+        GUI.pushButton_select_toggle.setChecked(False)
+        GUI.frame_checkboxes.setVisible(False)
         GUI.radioButton_html.clicked.connect(self.compose_change)
         GUI.radioButton_plain_text.clicked.connect(self.compose_change)
         if var.body_type == "Html":
@@ -800,6 +650,10 @@ class MyMainClass:
         GUI.pushButton_attachments_campaign.clicked.connect(
             self.openFileNamesDialog)
         GUI.pushButton_load_db.clicked.connect(self.load_db)
+        GUI.pushButton_open_sheets_folder.clicked.connect(
+            self.open_sheets_folder)
+        GUI.pushButton_open_blacklists_folder.clicked.connect(
+            self.open_blacklists_folder)
         GUI.pushButton_delete.clicked.connect(self.batch_delete)
         GUI.pushButton_forward.clicked.connect(self.forward)
         GUI.pushButton_test.clicked.connect(self.test_send)
@@ -921,6 +775,23 @@ class MyMainClass:
             target=self.reset_schedule_campaign_job_list, daemon=True, args=[]
         ).start()
         threading.Thread(target=update_checker, daemon=True, args=[]).start()
+        self._apply_button_typography()
+
+    @staticmethod
+    def _apply_button_typography():
+        """Keep all built-in controls on the same button typeface and weight."""
+        for button in GUI.centralwidget.findChildren(QtWidgets.QAbstractButton):
+            font = button.font()
+            font.setFamily("Arial")
+            font.setWeight(QtGui.QFont.Normal)
+            font.setBold(False)
+            button.setFont(font)
+            button.setStyleSheet(
+                button.styleSheet()
+                .replace("font-weight: bold", "font-weight: 400")
+                .replace("font-weight: 600", "font-weight: 400")
+                .replace("font-weight: 700", "font-weight: 400")
+            )
 
     def setup_inbox_date_header(self):
         if hasattr(GUI, "lineEdit_original_date"):
@@ -1034,7 +905,7 @@ class MyMainClass:
         self.inbox_show_changed()
 
     def show_ai_assistant(self):
-        dialog = AIPromptDialog(GUI)
+        dialog = AIPromptDialog(GUI, generate=generate_ai_answer)
         button_position = GUI.checkBox_ai_assistant.mapToGlobal(
             GUI.checkBox_ai_assistant.rect().bottomLeft()
         )
@@ -1049,7 +920,7 @@ class MyMainClass:
         dialog.exec_()
 
     def handle_prompt_response(self, response_text):
-        GUI.textBrowser_compose.setText(response_text)
+        show_answer_in_editor(GUI.textBrowser_compose, response_text)
 
     def on_listwidget_row_changed(self, index):
         if index != 0:
@@ -1064,6 +935,14 @@ class MyMainClass:
     def list_clicked(self, index):
         item = GUI.listWidget.item(index)
         item_text = item.text() if item else ""
+        if item_text == "Tools":
+            self.show_tools_menu()
+            GUI.listWidget.setCurrentRow(-1)
+            return
+
+        self.navigate_to_item(item_text, index)
+
+    def navigate_to_item(self, item_text, index=-1):
         nav_map = {
             "Inbox": 0,
             "Campaign": 1,
@@ -1098,6 +977,59 @@ class MyMainClass:
                 webbrowser.open(url_mappings[item_text])
             elif item_text:
                 print(f"Invalid Index: {index} ({item_text})")
+
+    def setup_sidebar_tools_menu(self):
+        """Group secondary navigation into a popup without growing the sidebar."""
+        tools_item = None
+        database_index = -1
+        for index in range(GUI.listWidget.count()):
+            item = GUI.listWidget.item(index)
+            if item is None:
+                continue
+            if item.text() in TOOL_NAVIGATION_ITEMS:
+                item.setHidden(True)
+            elif item.text() == "Tools":
+                tools_item = item
+            elif item.text() == "Database":
+                database_index = index
+
+        if tools_item is None:
+            tools_item = QtWidgets.QListWidgetItem("Tools")
+            GUI.listWidget.insertItem(database_index + 1, tools_item)
+
+        tools_item.setHidden(False)
+        GUI.listWidget.setVerticalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOff
+        )
+        GUI.listWidget.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOff
+        )
+
+    def show_tools_menu(self):
+        menu = QtWidgets.QMenu(GUI.listWidget)
+        menu.setMinimumWidth(210)
+        menu.setFont(QtGui.QFont("Arial", 12))
+        menu.setStyleSheet(
+            "QMenu { background: #ffffff; color: #374151; border: 1px solid #d8e3ee; "
+            "border-radius: 8px; font-family: Arial; font-size: 14px; "
+            "font-weight: 400; padding: 6px; } "
+            "QMenu::item { padding: 10px 30px 10px 12px; border-radius: 5px; } "
+            "QMenu::item:selected { background: #e6f5fa; color: #0f4c67; }"
+        )
+        for item_text in TOOL_NAVIGATION_ITEMS:
+            action = menu.addAction(item_text)
+            icon_name = TOOL_MENU_ICON_NAMES[item_text]
+            if qta is not None:
+                action.setIcon(qta.icon(icon_name, color="#64748b"))
+            action.triggered.connect(
+                lambda checked=False, text=item_text: self.navigate_to_item(text)
+            )
+
+        current_item = GUI.listWidget.currentItem()
+        if current_item is None:
+            return
+        item_rect = GUI.listWidget.visualItemRect(current_item)
+        menu.exec_(GUI.listWidget.viewport().mapToGlobal(item_rect.bottomLeft()))
 
     def email_verify(self):
         emails = var.target["EMAIL"].tolist() if not var.target.empty else []
@@ -1626,7 +1558,7 @@ class MyMainClass:
             GUI.checkbox_delete_all.show()
 
     def launch_wum(self):
-        wum_path = os.path.join(os.getcwd(), var.wum_exe_path)
+        wum_path = str(wum_executable_path(var.APP_DIR))
         if os.path.exists(wum_path):
             subprocess.Popen([wum_path])
             return
@@ -2220,6 +2152,7 @@ class MyMainClass:
                             if client:
                                 response = client.chat.completions.create(
                                     model=get_effective_openai_model(),
+                                    **email_reasoning_options(get_effective_openai_model()),
                                     messages=[
                                         {"role": "system",
                                             "content": "You are an expert email copywriter."},
@@ -2228,7 +2161,7 @@ class MyMainClass:
                                 )
                                 answer = response.choices[0].message.content
                             else:
-                                answer = _call_server_ai(new_prompt)
+                                answer = request_server_ai(new_prompt).answer
                             var.email_in_view["body"] = answer
 
                             with open(file_path, "a", encoding="utf-8") as file:
@@ -2768,7 +2701,7 @@ class MyMainClass:
         return (
             "QPushButton { border: 1px solid #028fc3; border-radius: 8px; "
             "background-color: #028fc3; color: #ffffff; padding: 8px 18px; "
-            "font-family: Arial; font-size: 12px; font-weight: bold; } "
+            "font-family: Arial; font-size: 12px; font-weight: 400; } "
             "QPushButton:hover { background-color: #027faf; }"
         )
 
@@ -2776,7 +2709,7 @@ class MyMainClass:
         return (
             "QPushButton { border: 1px solid #cbd5e1; border-radius: 8px; "
             "background-color: #ffffff; color: #344054; padding: 6px 12px; "
-            "font-family: Arial; font-size: 12px; font-weight: bold; } "
+            "font-family: Arial; font-size: 12px; font-weight: 400; } "
             "QPushButton:hover { background-color: #f8fafc; }"
         )
 
@@ -3150,6 +3083,32 @@ class MyMainClass:
             return fallback
         return os.path.expanduser("~")
 
+    def make_database_sidebar_scrollable(self):
+        """Let the Database sidebar scroll on short screens (e.g. 1366x768).
+
+        The sidebar needs ~720-830px of height. Without a scroll area, Qt
+        squeezes the widgets, collapsing the status checkboxes to 0px height.
+        """
+        sidebar = GUI.groupBox_7
+        page_layout = GUI.stackedWidgetPage3.layout()
+        sidebar_width = sidebar.sizeHint().width()
+        scroll_area = QtWidgets.QScrollArea(GUI.stackedWidgetPage3)
+        scroll_area.setObjectName("databaseSidebarScroll")
+        scroll_area.setFrameShape(QtWidgets.QFrame.NoFrame)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet(
+            "QScrollArea#databaseSidebarScroll { background: #eff2f8; border: none; }"
+        )
+        scroll_area.setFixedWidth(
+            sidebar_width + scroll_area.verticalScrollBar().sizeHint().width()
+        )
+        index = page_layout.indexOf(sidebar)
+        page_layout.removeWidget(sidebar)
+        scroll_area.setWidget(sidebar)
+        page_layout.insertWidget(index, scroll_area)
+
     def setup_sidebar_icons(self):
         if qta is None:
             return
@@ -3157,6 +3116,7 @@ class MyMainClass:
             "Inbox": "fa5s.inbox",
             "Campaign": "fa5s.paper-plane",
             "Database": "fa5s.database",
+            "Tools": "fa5s.tools",
             "Follow-up": "fa5s.reply",
             "Auto-reply": "fa5s.robot",
             "Statistics": "fa5s.chart-bar",
@@ -3882,6 +3842,38 @@ class MyMainClass:
         else:
             print("cancelled")
 
+    def open_sheets_folder(self):
+        try:
+            open_runtime_sheets_folder(
+                var.DATA_DIR,
+                lambda sheets_dir: QtGui.QDesktopServices.openUrl(
+                    QtCore.QUrl.fromLocalFile(str(sheets_dir))
+                ),
+            )
+        except OSError as error:
+            self.logger.error("Could not open sheets folder: %s", error)
+            alert(
+                text="Could not open the sheets folder.",
+                title="Sheets folder",
+                button="OK",
+            )
+
+    def open_blacklists_folder(self):
+        try:
+            open_runtime_blacklists_folder(
+                var.DATA_DIR,
+                lambda blacklists_dir: QtGui.QDesktopServices.openUrl(
+                    QtCore.QUrl.fromLocalFile(str(blacklists_dir))
+                ),
+            )
+        except OSError as error:
+            self.logger.error("Could not open blacklists folder: %s", error)
+            alert(
+                text="Could not open the blacklist folder.",
+                title="Blacklist folder",
+                button="OK",
+            )
+
     def change_subject(self):
         try:
             subject = str(var.email_in_view.get("subject", "")).strip()
@@ -4171,8 +4163,10 @@ class MyMainClass:
             self.logger.error(
                 "Error at send_campaign - {}".format(traceback.format_exc())
             )
+            message = operation_message("campaign", e)
             alert(
-                text="Error at send_campaign : {}".format(e), title="Error", button="OK"
+                text=display_text(message), title=message.title, button="OK",
+                show_log_folder=True,
             )
             var.send_campaign_run_status = False
 
@@ -4243,6 +4237,11 @@ class MyMainClass:
         except Exception as e:
             var.download_email_status = False
             self.logger.error("Error at downloading_email - {}".format(e))
+            message = operation_message("imap_download", e)
+            alert(
+                text=display_text(message), title=message.title, button="OK",
+                show_log_folder=True,
+            )
 
     def email_cancel(self):
         result = confirm(
@@ -4829,7 +4828,7 @@ class FileWidget(QtWidgets.QWidget):
         else:
             self.close_button.setFixedSize(50, 20)
         self.close_button.setStyleSheet(
-            "border: none; color: #7a7a7a; font-weight: bold;"
+            "border: none; color: #7a7a7a;"
         )
         self.close_button.clicked.connect(self.remove_widget)
         layout.addWidget(self.icon_label)
@@ -4852,6 +4851,9 @@ if __name__ == "__main__":
     print("ran from here")
 else:
     app = QtWidgets.QApplication(sys.argv)
+    app.setStyleSheet(
+        "QPushButton, QToolButton { font-family: Arial; font-weight: 400; }"
+    )
     if sys.platform == "darwin":
         app.setStyle("Fusion")
         palette = QtGui.QPalette()

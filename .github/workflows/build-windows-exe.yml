@@ -36,6 +36,9 @@ jobs:
           }
           pip install pyinstaller
 
+      - name: Fetch the Google Maps scraper bundled with GMonster
+        run: python scripts/fetch_google_maps_scraper.py
+
       - name: Build with PyInstaller
         run: |
           pyinstaller --clean Gmonster.spec
