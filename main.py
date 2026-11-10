@@ -24,6 +24,7 @@ from unsubscribe_page import UnsubscribePage
 from unsubscribe_setting import UnsubscribeSettingController
 from user_messages import display_text, operation_message
 from campaign_progress import campaign_progress_state
+from runtime_paths import open_blacklists_folder as open_runtime_blacklists_folder
 from runtime_paths import open_sheets_folder as open_runtime_sheets_folder
 from runtime_paths import wum_executable_path
 import subprocess
@@ -531,6 +532,7 @@ class MyMainClass:
         self.setup_inbox_date_header()
         self.setup_inbox_search()
         self.setup_sidebar_icons()
+        self.make_database_sidebar_scrollable()
         GUI.checkBox_delete_all.stateChanged.connect(
             lambda state: self.toggle_all_checkboxes(
                 state, GUI.checkBox_delete_all)
@@ -828,6 +830,8 @@ class MyMainClass:
         GUI.pushButton_load_db.clicked.connect(self.load_db)
         GUI.pushButton_open_sheets_folder.clicked.connect(
             self.open_sheets_folder)
+        GUI.pushButton_open_blacklists_folder.clicked.connect(
+            self.open_blacklists_folder)
         GUI.pushButton_delete.clicked.connect(self.batch_delete)
         GUI.pushButton_forward.clicked.connect(self.forward)
         GUI.pushButton_test.clicked.connect(self.test_send)
@@ -3257,6 +3261,32 @@ class MyMainClass:
             return fallback
         return os.path.expanduser("~")
 
+    def make_database_sidebar_scrollable(self):
+        """Let the Database sidebar scroll on short screens (e.g. 1366x768).
+
+        The sidebar needs ~720-830px of height. Without a scroll area, Qt
+        squeezes the widgets, collapsing the status checkboxes to 0px height.
+        """
+        sidebar = GUI.groupBox_7
+        page_layout = GUI.stackedWidgetPage3.layout()
+        sidebar_width = sidebar.sizeHint().width()
+        scroll_area = QtWidgets.QScrollArea(GUI.stackedWidgetPage3)
+        scroll_area.setObjectName("databaseSidebarScroll")
+        scroll_area.setFrameShape(QtWidgets.QFrame.NoFrame)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet(
+            "QScrollArea#databaseSidebarScroll { background: #eff2f8; border: none; }"
+        )
+        scroll_area.setFixedWidth(
+            sidebar_width + scroll_area.verticalScrollBar().sizeHint().width()
+        )
+        index = page_layout.indexOf(sidebar)
+        page_layout.removeWidget(sidebar)
+        scroll_area.setWidget(sidebar)
+        page_layout.insertWidget(index, scroll_area)
+
     def setup_sidebar_icons(self):
         if qta is None:
             return
@@ -4003,6 +4033,22 @@ class MyMainClass:
             alert(
                 text="Could not open the sheets folder.",
                 title="Sheets folder",
+                button="OK",
+            )
+
+    def open_blacklists_folder(self):
+        try:
+            open_runtime_blacklists_folder(
+                var.DATA_DIR,
+                lambda blacklists_dir: QtGui.QDesktopServices.openUrl(
+                    QtCore.QUrl.fromLocalFile(str(blacklists_dir))
+                ),
+            )
+        except OSError as error:
+            self.logger.error("Could not open blacklists folder: %s", error)
+            alert(
+                text="Could not open the blacklist folder.",
+                title="Blacklist folder",
                 button="OK",
             )
 

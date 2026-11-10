@@ -3271,6 +3271,36 @@ class Ui_MainWindow(object):
         self.label_11.setStyleSheet("margin-left: 5px;")
         self.label_11.setObjectName("label_11")
         self.gridLayout_4.addWidget(self.label_11, 21, 2, 1, 1)
+        self.label_blacklist_files = QtWidgets.QLabel(self.groupBox_10)
+        self.label_blacklist_files.setMinimumSize(QtCore.QSize(0, 25))
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(12)
+        self.label_blacklist_files.setFont(font)
+        self.label_blacklist_files.setStyleSheet("margin-left: 5px;")
+        self.label_blacklist_files.setObjectName("label_blacklist_files")
+        self.gridLayout_4.addWidget(self.label_blacklist_files, 22, 2, 1, 1)
+        self.pushButton_open_blacklists_folder = QtWidgets.QPushButton(self.groupBox_10)
+        self.pushButton_open_blacklists_folder.setMinimumSize(QtCore.QSize(0, 42))
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(12)
+        self.pushButton_open_blacklists_folder.setFont(font)
+        self.pushButton_open_blacklists_folder.setStyleSheet("QPushButton {\n"
+"    border: 1px solid #028fc3;\n"
+"    border-radius: 3px;\n"
+"    background: #ffffff;\n"
+"    padding: 5px 16px;\n"
+"    color: #028fc3;\n"
+"    }\n"
+"QPushButton:hover {\n"
+"    background: #e6f5fa;\n"
+"    }\n"
+"QPushButton:pressed {\n"
+"    background: #d2ecf5;\n"
+"    }")
+        self.pushButton_open_blacklists_folder.setObjectName("pushButton_open_blacklists_folder")
+        self.gridLayout_4.addWidget(self.pushButton_open_blacklists_folder, 22, 4, 1, 2)
         spacerItem63 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.gridLayout_4.addItem(spacerItem63, 10, 0, 1, 1)
         self.label_25 = QtWidgets.QLabel(self.groupBox_10)
@@ -4678,6 +4708,9 @@ class Ui_MainWindow(object):
         self.label_17.setText(_translate("MainWindow", "Google Analytics API key"))
         self.lineEdit_email_tracking_campaign_name.setPlaceholderText(_translate("MainWindow", "Letters, numbers and \"_\" only (no spaces)"))
         self.label_11.setText(_translate("MainWindow", "Target blacklist"))
+        self.label_blacklist_files.setText(_translate("MainWindow", "Blacklist files"))
+        self.pushButton_open_blacklists_folder.setToolTip(_translate("MainWindow", "Open the folder with blacklist.txt (negative reply words) and verify_blacklist.txt (emails skipped by the verifier)"))
+        self.pushButton_open_blacklists_folder.setText(_translate("MainWindow", "Open Blacklist Folder"))
         self.label_25.setText(_translate("MainWindow", "Webhook interval"))
         self.checkBox_auto_fire_responses_webhook.setText(_translate("MainWindow", "Auto fire responses webhook"))
         self.label_12.setText(_translate("MainWindow", "Inbox blacklist"))

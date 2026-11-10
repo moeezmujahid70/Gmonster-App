@@ -145,6 +145,7 @@ DATA_LOGS_GMONSTER_DIR = os.path.join(DATA_LOGS_DIR, 'gmonster')
 DATA_LOGS_WUM_DIR = os.path.join(DATA_LOGS_DIR, 'wum')
 DATA_LOGS_APP_DIR = os.path.join(DATA_LOGS_DIR, 'app')
 DATA_GMONSTER_CONFIG_DIR = os.path.join(DATA_DIR, 'gmonster_config')
+DATA_BLACKLISTS_DIR = os.path.join(DATA_DIR, 'blacklists')
 DATA_WUM_CONFIG_DIR = os.path.join(DATA_DIR, 'wum_config')
 DATA_BACKUPS_DIR = os.path.join(DATA_DIR, 'backups')
 SCRIPTS_DIR = os.path.join(
@@ -163,6 +164,7 @@ for _path in [
     DATA_LOGS_WUM_DIR,
     DATA_LOGS_APP_DIR,
     DATA_GMONSTER_CONFIG_DIR,
+    DATA_BLACKLISTS_DIR,
     DATA_WUM_CONFIG_DIR,
     DATA_BACKUPS_DIR,
     SCRIPTS_DIR,
@@ -175,8 +177,8 @@ followup_report_file_path = os.path.join(
 report_file_path = os.path.join(DATA_EMAIL_RESULTS_DIR, 'report.csv')
 database_csv_file_path = os.path.join(DATA_EMAIL_RESULTS_DIR, 'database.csv')
 verify_blacklist_file_path = os.path.join(
-    DATA_GMONSTER_CONFIG_DIR, 'verify_blacklist.txt')
-blacklist_file_path = os.path.join(DATA_GMONSTER_CONFIG_DIR, 'blacklist.txt')
+    DATA_BLACKLISTS_DIR, 'verify_blacklist.txt')
+blacklist_file_path = os.path.join(DATA_BLACKLISTS_DIR, 'blacklist.txt')
 autoreply_address_file_path = os.path.join(
     DATA_GMONSTER_CONFIG_DIR, 'autoReply_address.txt')
 group_db_path = os.path.join(DATA_GMONSTER_CONFIG_DIR, 'group.DB')

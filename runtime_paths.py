@@ -28,9 +28,14 @@ RUNTIME_DATA_DIRECTORIES = (
     "logs/wum",
     "logs/app",
     "gmonster_config",
+    "blacklists",
     "wum_config",
     "backups",
 )
+
+
+BLACKLIST_FILENAMES = ("blacklist.txt", "verify_blacklist.txt")
+_BLACKLIST_MIGRATION_MARKER = ".blacklists_migrated"
 
 
 def resolve_runtime_paths(
@@ -93,8 +98,12 @@ def initialize_runtime_data(
                 shutil.copy2(source, target)
             migration_marker.touch()
 
+    _migrate_blacklists(destination)
+
     if starter_data_dir is None:
         return
+
+    _seed_blacklists(destination, Path(starter_data_dir))
 
     starter_sheets = Path(starter_data_dir) / "sheets"
     if not starter_sheets.is_dir():
@@ -108,6 +117,35 @@ def initialize_runtime_data(
             continue
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, target)
+
+
+def _migrate_blacklists(destination: Path) -> None:
+    """Move blacklists from gmonster_config into the user-facing blacklists folder.
+
+    Runs once, so a file the user later deletes is not resurrected from the old
+    location. Existing user edits always win over packaged defaults.
+    """
+    config_dir = destination / "gmonster_config"
+    blacklists_dir = destination / "blacklists"
+    marker = blacklists_dir / _BLACKLIST_MIGRATION_MARKER
+    if marker.exists():
+        return
+    for filename in BLACKLIST_FILENAMES:
+        source = config_dir / filename
+        target = blacklists_dir / filename
+        if source.is_file() and not target.exists():
+            shutil.copy2(source, target)
+    marker.touch()
+
+
+def _seed_blacklists(destination: Path, starter_data: Path) -> None:
+    """Install packaged default blacklists without replacing user-edited ones."""
+    starter_blacklists = starter_data / "blacklists"
+    for filename in BLACKLIST_FILENAMES:
+        source = starter_blacklists / filename
+        target = destination / "blacklists" / filename
+        if source.is_file() and not target.exists():
+            shutil.copy2(source, target)
 
 
 def wum_executable_path(app_dir: str | Path) -> Path:
@@ -128,6 +166,16 @@ def open_sheets_folder(
     sheets_dir.mkdir(parents=True, exist_ok=True)
     open_directory(sheets_dir)
     return sheets_dir
+
+
+def open_blacklists_folder(
+    data_dir: str | Path, open_directory: Callable[[Path], None]
+) -> Path:
+    """Ensure the writable blacklists directory exists and open it."""
+    blacklists_dir = Path(data_dir) / "blacklists"
+    blacklists_dir.mkdir(parents=True, exist_ok=True)
+    open_directory(blacklists_dir)
+    return blacklists_dir
 
 
 def run_smoke_test(

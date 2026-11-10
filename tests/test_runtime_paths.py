@@ -4,6 +4,7 @@ import unittest
 
 from runtime_paths import (
     initialize_runtime_data,
+    open_blacklists_folder,
     open_sheets_folder,
     resolve_runtime_paths,
 )
@@ -145,6 +146,92 @@ class RuntimePathsTest(unittest.TestCase):
             self.assertEqual(sheets_dir, data_dir / "sheets")
             self.assertTrue(sheets_dir.is_dir())
             self.assertEqual(opened_paths, [sheets_dir])
+
+    def _starter_with_blacklists(self, root):
+        starter_data = root / "starter-data"
+        (starter_data / "blacklists").mkdir(parents=True)
+        (starter_data / "blacklists" / "blacklist.txt").write_text(
+            "stop\nno\n", encoding="utf-8"
+        )
+        (starter_data / "blacklists" / "verify_blacklist.txt").write_text(
+            "", encoding="utf-8"
+        )
+        return starter_data
+
+    def test_initialize_runtime_data_seeds_blacklists_and_keeps_user_edits(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            starter_data = self._starter_with_blacklists(root)
+            destination = root / "runtime" / "data"
+
+            initialize_runtime_data(
+                destination, root / "defaults", None, starter_data
+            )
+
+            sentiment = destination / "blacklists" / "blacklist.txt"
+            verifier = destination / "blacklists" / "verify_blacklist.txt"
+            self.assertEqual(sentiment.read_text(encoding="utf-8"), "stop\nno\n")
+            self.assertTrue(verifier.is_file())
+
+            # An app update re-runs initialization and must not overwrite edits.
+            sentiment.write_text("customer words\n", encoding="utf-8")
+            verifier.write_text("bad@example.com\n", encoding="utf-8")
+            initialize_runtime_data(
+                destination, root / "defaults", None, starter_data
+            )
+            self.assertEqual(
+                sentiment.read_text(encoding="utf-8"), "customer words\n"
+            )
+            self.assertEqual(
+                verifier.read_text(encoding="utf-8"), "bad@example.com\n"
+            )
+
+    def test_initialize_runtime_data_migrates_existing_blacklists_once(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            starter_data = self._starter_with_blacklists(root)
+            destination = root / "runtime" / "data"
+            config_dir = destination / "gmonster_config"
+            config_dir.mkdir(parents=True)
+            (config_dir / "blacklist.txt").write_text("my words\n", encoding="utf-8")
+            (config_dir / "verify_blacklist.txt").write_text(
+                "x@example.com\n", encoding="utf-8"
+            )
+
+            initialize_runtime_data(
+                destination, root / "defaults", None, starter_data
+            )
+
+            blacklists = destination / "blacklists"
+            self.assertEqual(
+                (blacklists / "blacklist.txt").read_text(encoding="utf-8"),
+                "my words\n",
+            )
+            self.assertEqual(
+                (blacklists / "verify_blacklist.txt").read_text(encoding="utf-8"),
+                "x@example.com\n",
+            )
+
+            # A file the user deliberately removed must not come back from the old copy.
+            (blacklists / "verify_blacklist.txt").unlink()
+            initialize_runtime_data(
+                destination, root / "defaults", None, starter_data
+            )
+            self.assertEqual(
+                (blacklists / "verify_blacklist.txt").read_text(encoding="utf-8"),
+                "",
+            )
+
+    def test_open_blacklists_folder_creates_and_opens_the_blacklists_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            data_dir = Path(directory).resolve() / "data"
+            opened_paths = []
+
+            blacklists_dir = open_blacklists_folder(data_dir, opened_paths.append)
+
+            self.assertEqual(blacklists_dir, data_dir / "blacklists")
+            self.assertTrue(blacklists_dir.is_dir())
+            self.assertEqual(opened_paths, [blacklists_dir])
 
 
 if __name__ == "__main__":

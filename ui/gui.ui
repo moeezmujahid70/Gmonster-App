@@ -6456,6 +6456,65 @@ QPushButton:pressed {
                                   </property>
                                 </widget>
                               </item>
+                              <item row="22" column="2">
+                                <widget class="QLabel" name="label_blacklist_files">
+                                  <property name="minimumSize">
+                                    <size>
+                                      <width>0</width>
+                                      <height>25</height>
+                                    </size>
+                                  </property>
+                                  <property name="font">
+                                    <font>
+                                      <family>Arial</family>
+                                      <pointsize>12</pointsize>
+                                    </font>
+                                  </property>
+                                  <property name="styleSheet">
+                                    <string notr="true">margin-left: 5px;</string>
+                                  </property>
+                                  <property name="text">
+                                    <string>Blacklist files</string>
+                                  </property>
+                                </widget>
+                              </item>
+                              <item row="22" column="4" colspan="2">
+                                <widget class="QPushButton" name="pushButton_open_blacklists_folder">
+                                  <property name="minimumSize">
+                                    <size>
+                                      <width>0</width>
+                                      <height>42</height>
+                                    </size>
+                                  </property>
+                                  <property name="font">
+                                    <font>
+                                      <family>Arial</family>
+                                      <pointsize>12</pointsize>
+                                    </font>
+                                  </property>
+                                  <property name="toolTip">
+                                    <string>Open the folder with blacklist.txt (negative reply words) and verify_blacklist.txt (emails skipped by the verifier)</string>
+                                  </property>
+                                  <property name="styleSheet">
+                                    <string notr="true">QPushButton {
+    border: 1px solid #028fc3;
+    border-radius: 3px;
+    background: #ffffff;
+    padding: 5px 16px;
+    color: #028fc3;
+    }
+QPushButton:hover {
+    background: #e6f5fa;
+    }
+QPushButton:pressed {
+    background: #d2ecf5;
+    }</string>
+                                  </property>
+                                  <property name="text">
+                                    <string>Open Blacklist Folder</string>
+                                  </property>
+                                </widget>
+                              </item>
                               <item row="10" column="0">
                                 <spacer name="spacerItem63">
                                   <property name="orientation">
