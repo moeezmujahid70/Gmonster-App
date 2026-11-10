@@ -27,8 +27,8 @@ class InstallerScriptTest(unittest.TestCase):
             ".github/workflows/release-windows-installer.yml"
         ).read_text(encoding="utf-8")
 
-        self.assertIn("default: 227101e8aedddf8dad2dcff51d8df4fd01d3f48b", workflow)
-        self.assertIn("|| '227101e8aedddf8dad2dcff51d8df4fd01d3f48b'", workflow)
+        self.assertIn("default: 643ab006b105fc3ce5dced9877437f6b034f02c7", workflow)
+        self.assertIn("|| '643ab006b105fc3ce5dced9877437f6b034f02c7'", workflow)
 
     def test_installer_branch_push_uses_the_application_version(self):
         workflow = Path(
@@ -74,16 +74,36 @@ class InstallerScriptTest(unittest.TestCase):
         for filename in ("group_a.xlsx", "group_b.xlsx", "target.xlsx"):
             self.assertTrue((Path("starter-data") / "sheets" / filename).is_file())
 
+    def test_spec_packages_default_blacklist_files(self):
+        for filename in ("blacklist.txt", "verify_blacklist.txt"):
+            self.assertTrue(
+                (Path("starter-data") / "blacklists" / filename).is_file()
+            )
+
+    def test_settings_page_has_an_open_blacklists_button(self):
+        ui = Path("ui/gui.ui").read_text(encoding="utf-8")
+
+        self.assertIn('name="pushButton_open_blacklists_folder"', ui)
+
     def test_spec_packages_the_windows_google_maps_scraper(self):
         spec = Path("GMonster.spec").read_text(encoding="utf-8")
 
         self.assertIn("gmaps_scraper_assets_path", spec)
         self.assertIn("prefix='data/tools/google_maps_scraper'", spec)
-        self.assertTrue(
-            Path(
-                "data/tools/google_maps_scraper/windows/google_maps_scraper.exe"
-            ).is_file()
-        )
+        # data/ is gitignored, so a missing scraper must stop the Windows build
+        # instead of silently shipping an installer without it.
+        self.assertIn("scripts/fetch_google_maps_scraper.py", spec)
+        self.assertIn("raise SystemExit", spec)
+
+    def test_windows_workflows_fetch_the_scraper_before_building(self):
+        for workflow in (
+            ".github/workflows/release-windows-installer.yml",
+            ".github/workflows/build-windows-exe.yml",
+        ):
+            text = Path(workflow).read_text(encoding="utf-8")
+            fetch = text.index("scripts/fetch_google_maps_scraper.py")
+            build = text.lower().index("pyinstaller --clean gmonster.spec")
+            self.assertLess(fetch, build, workflow)
 
     def test_database_page_has_an_open_sheets_folder_button(self):
         ui = Path("ui/gui.ui").read_text(encoding="utf-8")

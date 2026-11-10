@@ -2,6 +2,7 @@
 from PyInstaller.utils.hooks import copy_metadata, collect_data_files
 import certifi
 import os
+import sys
 
 _spec_file = globals().get('__file__')
 spec_dir = os.path.abspath(os.path.dirname(_spec_file)) if _spec_file else os.path.abspath(os.getcwd())
@@ -56,6 +57,14 @@ a = Analysis(['var.py'],
 
 if os.path.isdir(icons_path):
     a.datas += Tree(icons_path, prefix='icons')
+_windows_scraper = os.path.join(
+    gmaps_scraper_assets_path, 'windows', 'google_maps_scraper.exe'
+)
+if sys.platform == 'win32' and not os.path.isfile(_windows_scraper):
+    raise SystemExit(
+        'Google Maps scraper missing at ' + _windows_scraper + '. '
+        'Run: python scripts/fetch_google_maps_scraper.py'
+    )
 if os.path.isdir(gmaps_scraper_assets_path):
     a.datas += Tree(
         gmaps_scraper_assets_path,

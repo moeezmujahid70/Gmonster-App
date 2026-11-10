@@ -105,7 +105,7 @@ Do not distribute the separate `gmonster-exe` or `wum-exe` artifacts. They are i
 
 ### 7. Validate and publish version 3
 
-Install `GMonster-3.0.1-Setup.exe` on a Windows test machine and confirm that GMonster and WUM both launch and an upgrade preserves `%LOCALAPPDATA%\GMonster\data`. The combined setup version is GMonster's version; WUM retains its own independent application version.
+Install `GMonster-3.0.1-Setup.exe` on a Windows test machine and confirm that GMonster and WUM both launch and an upgrade preserves `%LOCALAPPDATA%\GMonster\data`. The combined setup version is GMonster's version, and WUM's `version` in its `var.py` must be kept equal to it: the login server checks an exact match for both apps.
 
 The login server checks the GMonster version for an exact match with its latest `Version` record. After the tested installer is available at a stable download URL, publish the server's `3.0.1` version record with that URL and the **setup EXE's** size in bytes, then verify sign-in on the test machine. Until that record is updated, GMonster 3.0.1 cannot sign in. Publishing it also causes older GMonster versions to require an update, so coordinate the server change with distribution of the tested setup file. Do not pair a new version number with the old `GMonster.zip` link or its size.
 
@@ -134,7 +134,7 @@ For repeatable public builds, prefer the full commit SHA. Do not use a shortened
 The current known-good WUM source revision is:
 
 ```text
-227101e8aedddf8dad2dcff51d8df4fd01d3f48b
+643ab006b105fc3ce5dced9877437f6b034f02c7
 ```
 
 ## Where installed data is stored
@@ -205,7 +205,7 @@ The first combined installer was built from:
 ```text
 GMonster source: installer branch
 Installer version: 2.2.0
-WUM source: 227101e8aedddf8dad2dcff51d8df4fd01d3f48b
+WUM source: 643ab006b105fc3ce5dced9877437f6b034f02c7
 ```
 
 Its Actions artifact is named `GMonster-2.2.0-Setup`.
