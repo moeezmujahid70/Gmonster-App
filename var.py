@@ -317,6 +317,9 @@ API_CONNECT_TIMEOUT = 5
 API_READ_TIMEOUT = 20
 API_TIMEOUT = (API_CONNECT_TIMEOUT, API_READ_TIMEOUT)
 API_SLOW_TIMEOUT = (API_CONNECT_TIMEOUT, 30)
+# AI generation can take a while on the server; it handles provider fallback itself.
+AI_READ_TIMEOUT = 45
+API_AI_TIMEOUT = (API_CONNECT_TIMEOUT, AI_READ_TIMEOUT)
 API_EMAIL_VERIFY_TIMEOUT = (API_CONNECT_TIMEOUT, 100)
 FILE_DOWNLOAD_TIMEOUT = (10, 120)
 gmail_provider = 'https://gmonster.co/product/gmail-accounts/'

@@ -1,5 +1,6 @@
 from email_validator import validate_email
-from ai_generation import email_reasoning_options
+from ai_generation import AIRequestError, email_reasoning_options, request_server_ai
+from ai_prompt_dialog import AIPromptDialog, show_answer_in_editor
 from textblob import TextBlob
 from gui import Ui_MainWindow
 from database import update_target_verified
@@ -108,109 +109,36 @@ def get_effective_openai_model():
     return "gpt-5-nano"
 
 
-def _call_server_ai(prompt):
-    """Call the server-side AI endpoint when no user OpenAI key is configured."""
-    import requests as _requests
-    url = var.api + 'verify/ai_response'
-    last_error = None
-    for attempt in range(2):
-        try:
-            return _call_server_ai_once(prompt, _requests, url)
-        except Exception as e:
-            last_error = e
-            if attempt == 0 and _should_retry_ai_error(e):
-                sleep(1)
-                continue
-            raise
-    raise last_error
+def generate_ai_answer(prompt):
+    """Generate with the user's own OpenAI key when set, otherwise via the server.
 
-
-def _call_server_ai_once(prompt, _requests, url):
-    resp = _requests.post(
-        url,
-        json={
-            'email': var.login_email,
-            'password': var.login_password,
-            'machine_uuid': var.login_machine_uuid,
-            'processor_id': var.login_processor_id,
-            'prompt': prompt,
-        },
-        timeout=(var.API_CONNECT_TIMEOUT, 40),
-    )
-    if not resp.ok:
-        raise ServerAIResponseError(_server_ai_error_message(resp), resp)
-    data = resp.json()
-    if data.get("status") == "ok":
-        return data.get('answer', '')
-    if data.get("error") or data.get("error_code") or data.get("message"):
-        raise ServerAIResponseError(_server_ai_error_message(resp), resp)
-    return data.get('answer', '')
-
-
-class ServerAIResponseError(Exception):
-    def __init__(self, message, response=None):
-        super().__init__(message)
-        self.response = response
-
-
-def _server_ai_error_message(response):
-    data = {}
+    The server handles provider selection and fallback; no provider keys live in
+    the GUI. Raises AIRequestError (or any exception, which the dialog reports).
+    """
+    effective_key = get_effective_openai_key()
+    if not effective_key:
+        return request_server_ai(prompt).answer
     try:
-        data = response.json()
-    except Exception:
-        data = {}
-    message = data.get("message")
-    if message:
-        return message
-    error_code = data.get("error_code") or data.get("error")
-    status_code = response.status_code
-    return _map_ai_error_message(status_code=status_code, error_code=error_code)
-
-
-def _map_ai_error_message(status_code=None, error_code=None):
-    if status_code == 504 or error_code == "ai_upstream_timeout":
-        return "The AI is taking too long to respond. Please try again."
-    if status_code == 429 or error_code == "ai_rate_limited":
-        return "The AI service is busy right now. Please wait a moment and retry."
-    if status_code == 503 or error_code == "ai_connection_error":
-        return "The server could not reach the AI service. Please try again."
-    if (
-        status_code == 502
-        or error_code in ("ai_provider_server_error", "ai_upstream_error")
-    ):
-        return "The AI service failed temporarily. Please try again later."
-    return "The AI service failed temporarily. Please try again later."
-
-
-def _should_retry_ai_error(error):
-    if isinstance(error, (requests.exceptions.Timeout, requests.exceptions.ConnectionError)):
-        return True
-    if isinstance(error, ServerAIResponseError) and error.response is not None:
-        try:
-            data = error.response.json()
-        except Exception:
-            data = {}
-        if data.get("retryable") is True:
-            return True
-        status_code = error.response.status_code
-        error_code = data.get("error_code") or data.get("error")
-        return status_code in (502, 503, 504) or error_code in (
-            "ai_upstream_timeout",
-            "ai_connection_error",
-            "ai_provider_server_error",
-            "ai_upstream_error",
+        client = OpenAI(api_key=effective_key)
+        response = client.chat.completions.create(
+            model=get_effective_openai_model(),
+            **email_reasoning_options(get_effective_openai_model()),
+            messages=[
+                {"role": "system",
+                    "content": "You are an expert email copywriter."},
+                {"role": "user", "content": prompt},
+            ],
         )
-    return False
-
-
-def _ai_exception_message(error):
-    if isinstance(error, ServerAIResponseError):
-        return str(error)
-    if isinstance(error, requests.exceptions.Timeout):
-        return "The request took too long. Please try again."
-    if isinstance(error, requests.exceptions.ConnectionError):
-        return "Network error. Please check your internet connection and try again."
-    return "The AI service failed temporarily. Please try again later."
+    except OpenAIAuthError:
+        raise AIRequestError(
+            "Your OpenAI API key is invalid or has expired.\n\n"
+            "To use the built-in AI access instead, go to "
+            "Settings -> OpenAI key and clear the key field, then save."
+        )
+    answer = response.choices[0].message.content
+    if not (answer or "").strip():
+        raise AIRequestError("The AI returned an empty response. Please try again.")
+    return answer
 
 
 STATISTICS_REPLY_CATEGORIES = {
@@ -288,112 +216,6 @@ def build_statistics_openai_reply_classifier():
         return ""
 
     return classify
-
-
-class AIPromptDialog(QDialog):
-    promptSubmitted = pyqtSignal(str)
-    aiSucceeded = pyqtSignal(str)
-    aiFailed = pyqtSignal(str)
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.client = None
-        self._request_in_progress = False
-        self._worker_thread = None
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
-        self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setGeometry(300, 200, 400, 300)
-        layout = QVBoxLayout(self)
-        self.title_label = QLabel("AI Assistant")
-        layout.addWidget(self.title_label)
-        self.text_input = QTextEdit(var.compose_prompt)
-        layout.addWidget(self.text_input)
-        self.status_label = QLabel("")
-        self.status_label.hide()
-        layout.addWidget(self.status_label)
-        self.loader = QProgressBar()
-        self.loader.setRange(0, 0)
-        self.loader.hide()
-        layout.addWidget(self.loader)
-        button_layout = QHBoxLayout()
-        button_layout.setContentsMargins(0, 0, 10, 10)
-        self.send_button = QPushButton("Send Prompt")
-        self.send_button.clicked.connect(self.get_ai_response)
-        self.close_button = QPushButton("Close Prompt")
-        self.close_button.clicked.connect(self.reject)
-        button_layout.addStretch()
-        button_layout.addWidget(self.send_button)
-        button_layout.addWidget(self.close_button)
-        layout.addLayout(button_layout)
-        self.setStyleSheet(
-            "\n            QLabel::indicator {\n                width: 0px; /* Hide the circle indicator */\n                height: 0px;\n            }\n            QLabel {\n                font-size: 20px;\n                color: #000;\n                background-color: transparent;\n                border: none;\n                padding: 10px;\n            }\n                                    \n            QDialog {\n                background-color: #f9f9f9;\n                border-radius: 20px;\n                padding: 10px;\n            }\n\n            QTextEdit {\n                border: 2px solid black;    /* Black border */\n                border-radius: 10px;\n                padding: 5px;\n                background-color: #ffffff;\n            }\n\n            QDialogButtonBox {\n                background-color: #d4d4d4;\n                border-radius: 10px;\n                padding: 5px;\n            }\n\n            QPushButton {\n                border: 1px solid #555;\n                border-radius: 3px;\n                border-style: Solid;\n                background: rgba(0, 138, 191);\n                padding: 5px 28px;\n                color: rgb(255, 255, 255);\n                }\n            \n            QPushButton:hover {\n                background: rgba(0, 138, 191, 0.6);\n                opacity: 0.2\n                }\n            \n            QPushButton:pressed {\n                border-style: inset;\n                background: rgb(0, 138, 191);\n                }\n        "
-        )
-        self.aiSucceeded.connect(self._handle_ai_success)
-        self.aiFailed.connect(self._handle_ai_failure)
-
-    def get_ai_response(self):
-        if self._request_in_progress:
-            return
-        prompt = self.text_input.toPlainText().strip()
-        var.compose_prompt = prompt
-        Thread(target=update_config_json, daemon=True).start()
-        if not prompt:
-            alert(text="Please enter a prompt.", title="Warning", button="OK")
-            return
-        self._set_ai_loading(True, "Generating response...")
-        QtCore.QTimer.singleShot(10000, self._show_slow_ai_status)
-        self._worker_thread = Thread(
-            target=self._run_ai_request,
-            daemon=True,
-            args=(prompt,),
-        )
-        self._worker_thread.start()
-
-    def _run_ai_request(self, prompt):
-        effective_key = get_effective_openai_key()
-        try:
-            if effective_key:
-                self.client = OpenAI(api_key=effective_key)
-                response = self.client.chat.completions.create(
-                    model=get_effective_openai_model(),
-                    **email_reasoning_options(get_effective_openai_model()),
-                    messages=[
-                        {"role": "system",
-                            "content": "You are an expert email copywriter."},
-                        {"role": "user", "content": prompt},
-                    ],
-                )
-                answer = response.choices[0].message.content
-            else:
-                answer = _call_server_ai(prompt)
-            self.aiSucceeded.emit(answer)
-        except OpenAIAuthError:
-            self.aiFailed.emit(
-                "Your OpenAI API key is invalid or has expired.\n\n"
-                "To use the built-in AI access instead, go to "
-                "Settings -> OpenAI key and clear the key field, then save."
-            )
-        except Exception as e:
-            self.aiFailed.emit(_ai_exception_message(e))
-
-    def _set_ai_loading(self, is_loading, status_text=""):
-        self._request_in_progress = is_loading
-        self.send_button.setEnabled(not is_loading)
-        self.loader.setVisible(is_loading)
-        self.status_label.setText(status_text)
-        self.status_label.setVisible(bool(status_text))
-
-    def _show_slow_ai_status(self):
-        if self._request_in_progress:
-            self.status_label.setText("Still working, this can take a little longer...")
-
-    def _handle_ai_success(self, answer):
-        self._set_ai_loading(False)
-        self.promptSubmitted.emit(answer)
-
-    def _handle_ai_failure(self, message):
-        self._set_ai_loading(False)
-        alert(text=message, title="Error", button="OK")
 
 
 class ImportSlotsDialog(QDialog):
@@ -1083,7 +905,7 @@ class MyMainClass:
         self.inbox_show_changed()
 
     def show_ai_assistant(self):
-        dialog = AIPromptDialog(GUI)
+        dialog = AIPromptDialog(GUI, generate=generate_ai_answer)
         button_position = GUI.checkBox_ai_assistant.mapToGlobal(
             GUI.checkBox_ai_assistant.rect().bottomLeft()
         )
@@ -1098,7 +920,7 @@ class MyMainClass:
         dialog.exec_()
 
     def handle_prompt_response(self, response_text):
-        GUI.textBrowser_compose.setText(response_text)
+        show_answer_in_editor(GUI.textBrowser_compose, response_text)
 
     def on_listwidget_row_changed(self, index):
         if index != 0:
@@ -2339,7 +2161,7 @@ class MyMainClass:
                                 )
                                 answer = response.choices[0].message.content
                             else:
-                                answer = _call_server_ai(new_prompt)
+                                answer = request_server_ai(new_prompt).answer
                             var.email_in_view["body"] = answer
 
                             with open(file_path, "a", encoding="utf-8") as file:
