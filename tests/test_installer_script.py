@@ -27,8 +27,8 @@ class InstallerScriptTest(unittest.TestCase):
             ".github/workflows/release-windows-installer.yml"
         ).read_text(encoding="utf-8")
 
-        self.assertIn("default: 643ab006b105fc3ce5dced9877437f6b034f02c7", workflow)
-        self.assertIn("|| '643ab006b105fc3ce5dced9877437f6b034f02c7'", workflow)
+        self.assertIn("default: 132c8d0e8d9b68e4b9a6def86bfc63a0faa2c2e6", workflow)
+        self.assertIn("|| '132c8d0e8d9b68e4b9a6def86bfc63a0faa2c2e6'", workflow)
 
     def test_installer_branch_push_uses_the_application_version(self):
         workflow = Path(

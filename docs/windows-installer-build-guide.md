@@ -134,7 +134,7 @@ For repeatable public builds, prefer the full commit SHA. Do not use a shortened
 The current known-good WUM source revision is:
 
 ```text
-643ab006b105fc3ce5dced9877437f6b034f02c7
+132c8d0e8d9b68e4b9a6def86bfc63a0faa2c2e6
 ```
 
 ## Where installed data is stored
@@ -205,7 +205,7 @@ The first combined installer was built from:
 ```text
 GMonster source: installer branch
 Installer version: 2.2.0
-WUM source: 643ab006b105fc3ce5dced9877437f6b034f02c7
+WUM source: 132c8d0e8d9b68e4b9a6def86bfc63a0faa2c2e6
 ```
 
 Its Actions artifact is named `GMonster-2.2.0-Setup`.
