@@ -14,12 +14,13 @@ import sys
 import tempfile
 import urllib.request
 
-SCRAPER_VERSION = "v1.11.0"
+# v1.18.3 uses mxschmitt/playwright-go; older builds download from a retired CDN.
+SCRAPER_VERSION = "v1.18.3"
 SCRAPER_URL = (
     "https://github.com/gosom/google-maps-scraper/releases/download/"
-    f"{SCRAPER_VERSION}/google_maps_scraper-1.11.0-windows-amd64.exe"
+    f"{SCRAPER_VERSION}/google_maps_scraper-{SCRAPER_VERSION.removeprefix('v')}-windows-amd64.exe"
 )
-SCRAPER_SHA256 = "41cf2df1cdd4d3ce0cef54d9f4d09f8c34257a97ec4d59eb7bc0140065592594"
+SCRAPER_SHA256 = "ad1f9be95a895d8a27afd36ebcc73a53e28069a5628521d39f30bf8d7e63f077"
 DEFAULT_DESTINATION = Path("data/tools/google_maps_scraper/windows/google_maps_scraper.exe")
 
 

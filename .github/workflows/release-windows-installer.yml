@@ -55,6 +55,10 @@ jobs:
           python-version: "3.10"
       - name: Fetch the Google Maps scraper bundled with GMonster
         run: python scripts/fetch_google_maps_scraper.py
+      - name: Verify scraper can install Playwright on Windows
+        env:
+          PLAYWRIGHT_INSTALL_ONLY: "1"
+        run: '& .\data\tools\google_maps_scraper\windows\google_maps_scraper.exe'
       - name: Install GMonster dependencies and build
         env:
           GMONSTER_CONSOLE_BUILD: ${{ inputs.console_build && '1' || '0' }}

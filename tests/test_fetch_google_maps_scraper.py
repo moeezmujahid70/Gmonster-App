@@ -58,11 +58,11 @@ class FetchGoogleMapsScraperTest(unittest.TestCase):
 
             self.assertEqual(destination.read_bytes(), b"scraper-binary")
 
-    def test_pins_the_release_that_matches_the_binary_gmonster_was_built_with(self):
-        self.assertIn("v1.11.0", fetcher.SCRAPER_URL)
+    def test_pins_the_release_with_the_retired_playwright_cdn_fix(self):
+        self.assertIn("v1.18.3", fetcher.SCRAPER_URL)
         self.assertEqual(
             fetcher.SCRAPER_SHA256,
-            "41cf2df1cdd4d3ce0cef54d9f4d09f8c34257a97ec4d59eb7bc0140065592594",
+            "ad1f9be95a895d8a27afd36ebcc73a53e28069a5628521d39f30bf8d7e63f077",
         )
 
 
