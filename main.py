@@ -1,6 +1,7 @@
 from email_validator import validate_email
 from ai_generation import AIRequestError, email_reasoning_options, request_server_ai
 from ai_prompt_dialog import AIPromptDialog, show_answer_in_editor
+from email_tracking import build_tracking_php
 from textblob import TextBlob
 from gui import Ui_MainWindow
 from database import update_target_verified
@@ -3270,28 +3271,51 @@ class MyMainClass:
         self.configuration_save()
 
     def download_track_php(self):
-        file_name = "./output_php/track-email-open.php"
-        directory = os.path.dirname(file_name)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        if file_name:
-            php_code = '<?php\n            // Enable error reporting to display errors in the browser (for local testing)\n            ini_set("display_errors", 1);\n            ini_set("display_startup_errors", 1);\n            error_reporting(E_ALL);          \n            // GA4 Measurement Protocol POST URL\n            $ga_url = "https://www.google-analytics.com/mp/collect";          \n            // GA4 Required Parameters\n            $measurement_id = {tracking_analytics_account};\n            $api_secret = {tracking_analytics_api_key};\n            // Generate a random client_id for testing purposes (could be replaced with something persistent)\n            $client_id = isset($_GET[\'client_id\']) ? $_GET[\'client_id\'] : uniqid(\'\', true);          \n            // Get the event_name from the query string or use a default value\n            $event_name = $_GET[\'event_name\'] ?? \'email_open\';          \n            // Data for the POST request (JSON)\n            $data = array(\n                "client_id" => $client_id,\n                "events" => array(\n                array(\n                        "name" => $event_name,\n                        "params" => array(\n                            "engagement_time_msec" => 1\n                        )\n                    )\n                )\n            );           \n            // Initialize cURL for POST request\n            $ch = curl_init();\n            curl_setopt($ch, CURLOPT_URL, $ga_url . "?measurement_id=" . $measurement_id . "&api_secret=" . $api_secret . "&debug_mode=1"); // Enable debug mode for testing\n            curl_setopt($ch, CURLOPT_POST, 1);\n            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));\n            curl_setopt($ch, CURLOPT_HTTPHEADER, array(\'Content-Type: application/json\'));\n            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);\n            // Execute the POST request\n            $response = curl_exec($ch);\n            // Check if the request was successful\n            if ($response === false) {\n            // Log cURL error if needed\n            error_log("cURL error: " . curl_error($ch));\n            echo "Error occurred while sending event.";\n            } else {\n            // Log response for testing/debugging\n            error_log("GA4 Response: " . $response);\n            echo "GA4 Response: " . htmlspecialchars($response);\n            }\n            // Close the cURL session\n            curl_close($ch);\n            // Output a 1x1 pixel transparent GIF image to simulate the tracking pixel\n            header("Content-Type: image/gif");\n            echo base64_decode("R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==");\n            ?>\n            '
-            php_code = php_code.replace(
-                "{tracking_analytics_account}", f"'{var.tracking['analytics_account']}'"
+        try:
+            php_code = build_tracking_php(
+                var.tracking["analytics_account"], var.tracking["api_key"]
             )
-            php_code = php_code.replace(
-                "{tracking_analytics_api_key}", f"'{var.tracking['api_key']}'"
-            )
-            try:
-                with open(file_name, "w") as file:
-                    file.write(php_code)
-                alert(
-                    text=f"PHP code successfully written to:\n{file_name}",
-                    title="Success",
-                    button="OK",
-                )
-            except Exception as e:
-                logger.info(f"Error saving file: {e}")
+        except ValueError as error:
+            alert(text=str(error), title="GA4 tracking settings", button="OK")
+            return
+
+        file_name, _ = QFileDialog.getSaveFileName(
+            mainWindow,
+            "Save email tracking file",
+            os.path.join(self._downloads_folder(), "track-email-open.php"),
+            "PHP files (*.php)",
+        )
+        if not file_name:
+            return
+        if not file_name.lower().endswith(".php"):
+            file_name += ".php"
+
+        destination = QtCore.QSaveFile(file_name)
+        encoded = php_code.encode("utf-8")
+        if not destination.open(QtCore.QIODevice.WriteOnly):
+            self.show_tracking_export_error(destination)
+            return
+        if destination.write(encoded) != len(encoded):
+            destination.cancelWriting()
+            self.show_tracking_export_error(destination)
+            return
+        if not destination.commit():
+            self.show_tracking_export_error(destination)
+            return
+
+        alert(
+            text=f"Saved to {file_name}\nUpload it to your tracking domain as track-email-open.php.",
+            title="Tracking file exported",
+            button="OK",
+        )
+
+    def show_tracking_export_error(self, destination):
+        logger.warning("Tracking file export failed (%s)", destination.error())
+        alert(
+            text=f"Could not save the tracking file. {destination.errorString()}",
+            title="Tracking file export failed",
+            button="OK",
+        )
 
     def run_command(self):
         try:

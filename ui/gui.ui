@@ -5955,7 +5955,7 @@ QPushButton:pressed {
     }</string>
                                   </property>
                                   <property name="text">
-                                    <string>Download track file</string>
+                                    <string>Save tracking PHP file</string>
                                   </property>
                                 </widget>
                               </item>
@@ -6135,7 +6135,7 @@ QPushButton:pressed {
                                     <string notr="true">margin-left: 5px;</string>
                                   </property>
                                   <property name="text">
-                                    <string>Analytics account</string>
+                                    <string>GA4 Measurement ID</string>
                                   </property>
                                   <property name="alignment">
                                     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -6327,7 +6327,7 @@ QPushButton:pressed {
                                     <string notr="true">margin-left: 5px;</string>
                                   </property>
                                   <property name="text">
-                                    <string>Google Analytics API key</string>
+                                    <string>Measurement Protocol API secret</string>
                                   </property>
                                   <property name="alignment">
                                     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
