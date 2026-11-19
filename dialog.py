@@ -242,7 +242,9 @@ class Sign_in(si.Ui_Dialog):
         var.remember_login_credentials = (
             self.checkBox_remember_credentials.isChecked()
         )
-        var.login_password = password if var.remember_login_credentials else ""
+        # Keep the password in memory for this session: the AI assistant and
+        # token refresh re-send it. utils only writes it to disk when remembered.
+        var.login_password = password
         Thread(target=utils.update_config_json, daemon=True).start()
         self.label_status.setText("connecting main server...")
         Thread(
@@ -308,6 +310,10 @@ def make_sign_up_requests(email, password, endpoint):
                 capture_access_token(x)
             else:
                 var.api_access_token = ""
+                logger.warning(
+                    "Login rejected by %s (HTTP %s): %r",
+                    url, x.status_code, (x.text or "")[:300],
+                )
     except requests.exceptions.HTTPError as error:
         if endpoint == "register":
             var.sign_up_label = (

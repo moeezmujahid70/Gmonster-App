@@ -45,6 +45,20 @@ class UserMessagesTest(unittest.TestCase):
         self.assertIn("password", message.body.lower())
         self.assertNotIn("invalid login password", display_text(message).lower())
 
+    def test_expired_subscription_is_not_reported_as_outage(self):
+        message = login_response_message("Subscription expired")
+
+        self.assertEqual(message.code, "SUBSCRIPTION_EXPIRED")
+        self.assertIn("renew", message.body.lower())
+
+    def test_version_mismatch_asks_for_update(self):
+        message = login_response_message(
+            "You are using v3.0.1 but you need to use v2.2r !!!"
+        )
+
+        self.assertEqual(message.code, "VERSION_UNSUPPORTED")
+        self.assertIn("latest version", message.body.lower())
+
     def test_smtp_authentication_explains_the_next_step(self):
         message = smtp_message(smtplib.SMTPAuthenticationError(535, b"invalid credentials"))
         self.assertEqual(message.code, "SMTP_AUTH")

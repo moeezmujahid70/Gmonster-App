@@ -1,5 +1,6 @@
 import os
 import sys
+from app_env import get_setting, normalize_api_url
 from runtime_paths import (
     initialize_runtime_data,
     resolve_runtime_paths,
@@ -293,7 +294,7 @@ inbox_group = 0
 limit_of_thread = 100
 login_email = ''
 login_password = ''
-remember_login_credentials = False
+remember_login_credentials = True
 login_machine_uuid = ''
 login_processor_id = ''
 # Short-lived server access token.  It deliberately remains memory-only.
@@ -312,7 +313,11 @@ mailgenius = {
     "enabled": False,
 }
 webhook_link = ''
-api = 'https://enzim.pythonanywhere.com/'
+# Default backend for builds from this branch. Override with GMONSTER_API_URL
+# in the environment or in a .env file next to the app (wins over config.json).
+DEFAULT_API_URL = 'https://dev-enzim.pythonanywhere.com/'
+API_URL_OVERRIDE = get_setting('GMONSTER_API_URL', os.path.join(APP_DIR, '.env'))
+api = normalize_api_url(API_URL_OVERRIDE) if API_URL_OVERRIDE else DEFAULT_API_URL
 API_CONNECT_TIMEOUT = 5
 API_READ_TIMEOUT = 20
 API_TIMEOUT = (API_CONNECT_TIMEOUT, API_READ_TIMEOUT)
@@ -412,9 +417,10 @@ try:
     delay_between_emails = config['delay_between_emails']
     limit_of_thread = config['limit_of_thread']
     login_email = config['login_email']
-    remember_login_credentials = bool(config.get('remember_login_credentials', False))
+    remember_login_credentials = bool(config.get('remember_login_credentials', True))
     login_password = config.get('login_password', '') if remember_login_credentials else ''
-    api = config.get('api', api)
+    if not API_URL_OVERRIDE:
+        api = config.get('api', api)
     tracking = config['tracking']
     statistics = config.get('statistics', statistics)
     mailgenius = config.get('mailgenius', mailgenius)

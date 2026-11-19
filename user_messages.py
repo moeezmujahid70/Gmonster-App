@@ -126,6 +126,18 @@ def login_response_message(response_text: str, endpoint: str = "login") -> UserM
     if endpoint == "register":
         return signup_response_message(response_text)
     detail = str(response_text or "").strip().lower()
+    if "subscription" in detail and "expired" in detail:
+        return UserMessage(
+            "SUBSCRIPTION_EXPIRED",
+            "Subscription has expired",
+            "Renew your Gmonster subscription or contact the admin, then sign in again.",
+        )
+    if "you need to use v" in detail:
+        return UserMessage(
+            "VERSION_UNSUPPORTED",
+            "Update required",
+            "This version of Gmonster is no longer supported. Install the latest version, then sign in again.",
+        )
     if any(token in detail for token in ("password", "credential", "invalid login", "not found")):
         return UserMessage(
             "AUTH_INVALID",
