@@ -2,6 +2,7 @@ from PyQt5 import QtCore, QtGui
 from threading import Thread
 import var
 from p_gui import Ui_Dialog
+from user_messages import summary_text
 import os
 import sys
 
@@ -28,13 +29,15 @@ class Download(Ui_Dialog):
         self.dialog = dialog
         set_icon(self.dialog)
         self.pushButton_cancel.clicked.connect(self.cancel)
+        self.label_status.setWordWrap(True)
+        self._summary_shown = False
         self.timer = QtCore.QTimer()
         self.timer.setInterval(10)
         self.timer.timeout.connect(self.update_gui)
         from imap import main
 
         Thread(target=main, daemon=True, args=[
-               group, folders, var.date]).start()
+               group, folders, var.date, False]).start()
         self.timer.start()
 
     def update_gui(self):
@@ -43,12 +46,17 @@ class Download(Ui_Dialog):
                 self.label_status.setText(
                     f"Total Email Downloaded : {var.total_email_downloaded}"
                 )
-            else:
-                msg = f"Total Email Downloaded : {var.total_email_downloaded} Accounts failed : {var.email_failed}"
+            elif not self._summary_shown:
+                self._summary_shown = True
+                msg = f"Total Email Downloaded : {var.total_email_downloaded}   Accounts failed : {var.email_failed}"
                 if var.hide_warmup_emails:
                     msg += " | Hide warm up filter enabled"
+                if var.email_failed and var.inbox_user_messages:
+                    msg += "\n\n" + summary_text(var.inbox_user_messages)
+                    self.dialog.setMinimumWidth(480)
                 self.label_status.setText(msg)
                 self.pushButton_cancel.setText("Close")
+                self.dialog.adjustSize()
             # compute percentage safely (avoid ZeroDivisionError) and pass int to setValue
             try:
                 if var.total_acc and var.total_acc > 0:

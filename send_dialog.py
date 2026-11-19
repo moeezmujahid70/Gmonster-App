@@ -6,10 +6,9 @@ import utils
 import var
 from email_input_gui import Ui_Dialog
 import os, sys
-import html
 from smtp import ForwardMail, TestMail
 from mailgenius import MailGeniusClient, MailGeniusError, sanitize_mailgenius_html
-from user_messages import mailgenius_message, smtp_message
+from user_messages import display_text, mailgenius_message, smtp_message
 import re
 
 regex = '[^@]+@[^@]+\.[^@]+'
@@ -40,6 +39,60 @@ def set_icon(obj):
 class Communicate(QObject):
     s = pyqtSignal(str, int, int)
     mailgenius = pyqtSignal(str, object)
+
+
+class MailGeniusCheckWidget(QtWidgets.QFrame):
+    """A compact MailGenius check that reveals its explanation on demand."""
+
+    def __init__(self, title, metadata, details_html, passing, parent=None):
+        super().__init__(parent)
+        self._title = title
+        self.setStyleSheet(
+            "QFrame { background: #ffffff; border: 1px solid #e5e7eb; "
+            "border-radius: 8px; }"
+        )
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(8, 6, 8, 8)
+        layout.setSpacing(4)
+
+        self.header = QtWidgets.QToolButton(self)
+        self.header.setCheckable(True)
+        self.header.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        self.header.setStyleSheet(
+            "QToolButton { color: #1f2937; background: transparent; border: 0; "
+            "padding: 2px; text-align: left; }"
+        )
+        self.header.setToolTip("Show details")
+
+        status = QtWidgets.QLabel(metadata, self)
+        status.setStyleSheet(
+            "QLabel { color: %s; background: transparent; font-size: 11px; }"
+            % ("#2f855a" if passing else "#b7791f")
+        )
+
+        self.details = QtWidgets.QLabel(details_html, self)
+        self.details.setWordWrap(True)
+        self.details.setTextFormat(QtCore.Qt.RichText)
+        self.details.setOpenExternalLinks(False)
+        self.details.setStyleSheet(
+            "QLabel { color: #4b5563; background: transparent; font-size: 11px; "
+            "padding: 4px 2px 0 18px; }"
+        )
+
+        layout.addWidget(self.header)
+        layout.addWidget(status)
+        layout.addWidget(self.details)
+        self.header.toggled.connect(self._toggle_details)
+        self._toggle_details(False)
+
+    def _toggle_details(self, expanded):
+        self.details.setVisible(expanded)
+        self.header.setArrowType(
+            QtCore.Qt.DownArrow if expanded else QtCore.Qt.RightArrow
+        )
+        self.header.setText(self._title)
+        self.header.setToolTip("Hide details" if expanded else "Show details")
 
 
 class Send(Ui_Dialog):
@@ -134,7 +187,7 @@ class Send(Ui_Dialog):
             self.pushButton_mailgenius_details.setCheckable(True)
             self.pushButton_mailgenius_details.setStyleSheet(
                 "QPushButton { color: #3b82a0; background: transparent; border: 0; "
-                "font-weight: 600; padding: 6px 0; text-align: left; }"
+                "padding: 6px 0; text-align: left; }"
             )
             self.widget_mailgenius_details = QtWidgets.QWidget(
                 self.frame_mailgenius_results
@@ -144,16 +197,34 @@ class Send(Ui_Dialog):
             )
             self.layout_mailgenius_details.setContentsMargins(0, 4, 0, 0)
             self.layout_mailgenius_details.setSpacing(6)
+            self.scrollArea_mailgenius_details = QtWidgets.QScrollArea(
+                self.widget_mailgenius_details
+            )
+            self.scrollArea_mailgenius_details.setWidgetResizable(True)
+            self.scrollArea_mailgenius_details.setFrameShape(QtWidgets.QFrame.NoFrame)
+            self.scrollArea_mailgenius_details.setMaximumHeight(320)
+            self.widget_mailgenius_check_list = QtWidgets.QWidget(
+                self.scrollArea_mailgenius_details
+            )
+            self.layout_mailgenius_check_list = QtWidgets.QVBoxLayout(
+                self.widget_mailgenius_check_list
+            )
+            self.layout_mailgenius_check_list.setContentsMargins(0, 0, 0, 0)
+            self.layout_mailgenius_check_list.setSpacing(6)
+            self.layout_mailgenius_check_list.addStretch()
+            self.scrollArea_mailgenius_details.setWidget(
+                self.widget_mailgenius_check_list
+            )
+            self.layout_mailgenius_details.addWidget(
+                self.scrollArea_mailgenius_details
+            )
             self.verticalLayout_mailgenius.addWidget(self.pushButton_mailgenius_details)
             self.verticalLayout_mailgenius.addWidget(self.widget_mailgenius_details)
             self.pushButton_mailgenius_details.toggled.connect(
                 self._toggle_mailgenius_details
             )
 
-        configured = bool(
-            getattr(var, "mailgenius", {}).get("rapidapi_key")
-            and getattr(var, "mailgenius", {}).get("rapidapi_host")
-        )
+        configured = bool(str(getattr(var, "api", "")).strip())
         is_test = self.type == "test"
         self.checkBox_mailgenius.setVisible(is_test)
         self.checkBox_mailgenius.setFont(QtGui.QFont("Arial", 13))
@@ -164,7 +235,7 @@ class Send(Ui_Dialog):
             "QCheckBox::indicator:checked { background: #3b82a0; border-color: #3b82a0; }"
         )
         self.checkBox_mailgenius.setToolTip(
-            "" if configured else "MailGenius is not configured; GMonster will explain how to configure it when you send."
+            "" if configured else "MailGenius requires the configured GMonster server."
         )
         self.frame_mailgenius_results.setVisible(False)
         self.progressBar_mailgenius.setVisible(False)
@@ -223,8 +294,8 @@ class Send(Ui_Dialog):
             )
         while self.formLayout_mailgenius_results.rowCount():
             self.formLayout_mailgenius_results.removeRow(0)
-        while self.layout_mailgenius_details.count():
-            item = self.layout_mailgenius_details.takeAt(0)
+        while self.layout_mailgenius_check_list.count() > 1:
+            item = self.layout_mailgenius_check_list.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
         if isinstance(data, dict):
@@ -258,39 +329,40 @@ class Send(Ui_Dialog):
                     )
                 )
                 self.pushButton_mailgenius_details.setVisible(True)
-                detail_sections = []
                 for aspect in aspects:
                     passing = bool(aspect.get("passing"))
-                    color = "#2f855a" if passing else "#b7791f"
-                    title = html.escape(str(aspect.get("message", "MailGenius check")))
+                    title = str(aspect.get("message", "MailGenius check"))
                     meta = "{} · {} severity · {} points deducted".format(
                         "Pass" if passing else "Needs attention",
-                        html.escape(str(aspect.get("severity", "None")).title()),
-                        html.escape(str(aspect.get("points_deducted", 0))),
+                        str(aspect.get("severity", "None")).title(),
+                        str(aspect.get("points_deducted", 0)),
                     )
-                    lines = [
-                        '<div style="margin:8px 0;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#ffffff;">',
-                        '<div style="color:#1f2937;font-weight:600;">{}</div>'.format(title),
-                        '<div style="color:{};font-size:11px;margin-top:3px;">{}</div>'.format(color, meta),
-                    ]
+                    detail_lines = []
                     why = aspect.get("why_is_it_important")
                     if why:
-                        lines.append('<div style="color:#4b5563;font-size:11px;margin-top:5px;">{}</div>'.format(sanitize_mailgenius_html(why)))
+                        detail_lines.append(
+                            '<div>{}</div>'.format(
+                                sanitize_mailgenius_html(why)
+                            )
+                        )
                     factors = aspect.get("factors")
                     if isinstance(factors, list):
                         for factor in factors:
                             factor_text = self._mailgenius_factor_text(factor)
                             if factor_text:
-                                lines.append('<div style="color:#4b5563;font-size:11px;margin-top:3px;">• {}</div>'.format(sanitize_mailgenius_html(factor_text)))
-                    lines.append("</div>")
-                    detail_sections.append("".join(lines))
-                details = QtWidgets.QTextBrowser()
-                details.setOpenExternalLinks(False)
-                details.setReadOnly(True)
-                details.setMinimumHeight(250)
-                details.setStyleSheet("QTextBrowser { border: 0; background: transparent; color: #1f2937; font-family: Arial, sans-serif; font-size: 12px; }")
-                details.setHtml("".join(detail_sections))
-                self.layout_mailgenius_details.addWidget(details)
+                                detail_lines.append(
+                                    '<div style="margin-top:3px;">• {}</div>'.format(
+                                        sanitize_mailgenius_html(factor_text)
+                                    )
+                                )
+                    details_html = "".join(detail_lines) or "No additional details."
+                    check_widget = MailGeniusCheckWidget(
+                        title, meta, details_html, passing
+                    )
+                    self.layout_mailgenius_check_list.insertWidget(
+                        self.layout_mailgenius_check_list.count() - 1,
+                        check_widget,
+                    )
         self.frame_mailgenius_results.setVisible(True)
         self.dialog.setMinimumWidth(560)
         self.dialog.adjustSize()
@@ -319,7 +391,8 @@ class Send(Ui_Dialog):
             if forward.send():
                 self.signal.s.emit("Sent", 100, False)
             else:
-                self.signal.s.emit("Forward could not be sent. Check the sender account and connection, then try again.", 0, False)
+                message = forward.failure_message or smtp_message()
+                self.signal.s.emit(display_text(message), 0, False)
         else:
             self.signal.s.emit("Enter a valid recipient email address.", 0, False)
 
@@ -332,12 +405,12 @@ class Send(Ui_Dialog):
                 try:
                     var.logger.info("MailGenius: enabled for campaign test send")
                     self.signal.mailgenius.emit("Creating MailGenius audit...", {})
-                    audit = MailGeniusClient(var.mailgenius).start_audit()
+                    audit = MailGeniusClient().start_audit()
                 except MailGeniusError as error:
                     message = mailgenius_message(error)
                     var.logger.error("MailGenius audit could not start [%s]: %s", message.code, error)
                     self.signal.mailgenius.emit(message.body, {})
-                    self.signal.s.emit(message.body + " Error reference: " + message.code, 0, False)
+                    self.signal.s.emit(display_text(message), 0, False)
                     return
             self.signal.s.emit("Sending...", 0, True)
             test = TestMail(
@@ -347,28 +420,30 @@ class Send(Ui_Dialog):
             if test.send():
                 if audit:
                     try:
-                        var.logger.info("MailGenius: test email sent; waiting for audit %s", audit.slug)
+                        var.logger.info("MailGenius: test email sent; waiting for server audit")
                         self.signal.s.emit("Email sent — analyzing deliverability...", 100, True)
-                        result = MailGeniusClient(var.mailgenius).wait_for_result(audit.slug)
+                        result = MailGeniusClient().wait_for_result(audit.audit_id)
                         self.signal.mailgenius.emit("Spam score ready", result.data)
-                        var.logger.info("MailGenius: audit %s completed", audit.slug)
+                        var.logger.info("MailGenius: server audit completed")
                     except MailGeniusError as error:
                         message = mailgenius_message(error)
-                        var.logger.error("MailGenius audit %s failed [%s]: %s", audit.slug, message.code, error)
+                        var.logger.error("MailGenius audit failed [%s]: %s", message.code, error)
                         self.signal.mailgenius.emit(message.body, {})
-                        self.signal.s.emit("Test email sent. " + message.body + " Error reference: " + message.code, 100, False)
+                        self.signal.s.emit(
+                            "Test email sent.\n" + display_text(message), 100, False
+                        )
                         return
                     self.signal.s.emit("Sent", 100, False)
                 else:
                     self.signal.s.emit("Sent", 100, False)
             else:
                 if audit:
-                    var.logger.error("MailGenius: SMTP test send failed before audit %s could be analyzed", audit.slug)
+                    var.logger.error("MailGenius: SMTP test send failed before the audit could be analyzed")
                     if test.mailgenius_delivery_error:
                         self.signal.mailgenius.emit("MailGenius could not receive the test email. Check the sender account and try again.", {})
                         self.signal.s.emit("Test email was sent, but MailGenius could not receive its copy. Error reference: SMTP_RECIPIENT_REJECTED", 100, False)
                         return
                 message = test.failure_message or smtp_message()
-                self.signal.s.emit(message.body + " Error reference: " + message.code, 0, False)
+                self.signal.s.emit(display_text(message), 0, False)
         else:
             self.signal.s.emit("Enter a valid test email address.", 0, False)

@@ -83,11 +83,13 @@ These folders contain local state and are not intended for source control.
 
 2. Build
 
-   pyinstaller --clean Gmonster.spec
+   pyinstaller --clean GMonster.spec
 
 CI workflow for Windows build:
 
 - .github/workflows/build-windows-exe.yml
+
+For the combined GMonster and WUM setup, follow [the Windows installer build guide](docs/windows-installer-build-guide.md).
 
 ## Project Structure
 

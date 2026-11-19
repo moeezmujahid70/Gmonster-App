@@ -1,6 +1,6 @@
 import threading
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 _fallback_counter = 0
@@ -32,7 +32,17 @@ def _run_on_main_thread(fn):
     return None
 
 
-def alert(text="", title="Alert", button="OK"):
+def _open_log_folder(parent):
+    import var
+
+    log_folder = str(var.DATA_LOGS_DIR)
+    if not QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(log_folder)):
+        QtWidgets.QMessageBox.warning(
+            parent, "Open log folder", "Could not open the log folder:\n" + log_folder
+        )
+
+
+def alert(text="", title="Alert", button="OK", *, show_log_folder=False):
     def _show():
         _, parent = _app_and_parent()
         box = QtWidgets.QMessageBox(parent)
@@ -40,6 +50,11 @@ def alert(text="", title="Alert", button="OK"):
         box.setWindowTitle(str(title))
         box.setText(str(text))
         btn = box.addButton(str(button), QtWidgets.QMessageBox.AcceptRole)
+        if show_log_folder:
+            log_button = box.addButton(
+                "Open log folder", QtWidgets.QMessageBox.ActionRole
+            )
+            log_button.clicked.connect(lambda: _open_log_folder(box))
         box.exec_()
         return btn.text()
 

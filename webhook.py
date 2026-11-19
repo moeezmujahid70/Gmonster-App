@@ -1,7 +1,6 @@
 global inbox_q
 global logger
 import threading
-from json import loads, dumps, dump
 import time
 import var
 import requests
@@ -10,6 +9,20 @@ import traceback
 import os
 import sys
 from var import logger
+
+
+def post_webhook(url: str, payload: dict, headers: dict, source: str) -> bool:
+    try:
+        response = requests.post(
+            url.strip(), json=payload, headers=headers, timeout=var.API_TIMEOUT
+        )
+    except (requests.RequestException, ValueError, TypeError) as error:
+        logger.warning("%s webhook failed (%s)", source, type(error).__name__)
+        return False
+    if not 200 <= response.status_code < 300:
+        logger.warning("%s webhook returned HTTP %s", source, response.status_code)
+        return False
+    return True
 
 
 class CampaignReportWebhook(threading.Thread):
@@ -30,12 +43,8 @@ class CampaignReportWebhook(threading.Thread):
 
     def run(self):
         self.logger.info("Starting Campaign End Report Webhook session...")
-        data = dumps(self.package).encode("utf-8")
-        data = loads(data)
-        result = requests.post(
-            self.api_link, json=data, headers=self.headers, timeout=var.API_TIMEOUT
-        )
-        self.logger.info("Ending Campaign End Report Webhook session.")
+        if post_webhook(self.api_link, self.package, self.headers, "Campaign summary"):
+            self.logger.info("Campaign summary webhook delivered.")
 
 
 class SendWebhook(threading.Thread):
@@ -64,15 +73,8 @@ class SendWebhook(threading.Thread):
                     self.logger.error(f"Error at SendWebhook part 1 : {e}")
             if len(dict_list) > 0:
                 dict_obj = {"data": dict_list, "data_len": len(dict_list)}
-                try:
-                    data = dumps(dict_obj).encode("utf-8")
-                    data = loads(data)
-                    result = requests.post(
-                        self.api_link, json=data, headers=self.headers, timeout=var.API_TIMEOUT
-                    )
+                if post_webhook(self.api_link, dict_obj, self.headers, "Campaign send"):
                     self.logger.info(f"POSTed {dict_obj['data_len']} data to webhook")
-                except Exception as e:
-                    self.logger.error(f"Error at SendWebhook part 2 : {e}")
             time.sleep(1)
         logger.info("SendWebhook Finished.")
 
@@ -108,23 +110,19 @@ class SendWebhook_Inbox(threading.Thread):
         while not self.close:
             while not inbox_q.empty():
                 try:
-                    temp = {}
-                    temp = inbox_q.get().copy()
-                except Exception as e:
-                    self.logger.error(f"Error at SendWebhook Inbox part 1 : {e}")
-                try:
-                    dict_obj = {"data": temp, "type": "Inbox_Data"}
-                    data = dumps(dict_obj).encode("utf-8")
-                    data = loads(data)
-                    result = requests.post(
-                        self.api_link, json=data, headers=self.headers, timeout=var.API_TIMEOUT
-                    )
+                    message = inbox_q.get_nowait()
+                except queue.Empty:
+                    break
+                data = {
+                    key: value for key, value in message.items()
+                    if key not in {"pass", "proxy_pass"}
+                }
+                payload = {"data": data, "type": "Inbox_Data"}
+                if post_webhook(self.api_link, payload, self.headers, "Inbox"):
                     count += 1
                     var.command_q.put(
                         f'GUI.label_email_status.setText("Total email sent - {count}/{self.total_length}")'
                     )
-                except Exception as e:
-                    self.logger.error(f"Error at SendWebhook Inbox part 2 : {e}")
             time.sleep(1)
         self.logger.info("Webhook Inbox Thread Finished.")
 
